@@ -159,11 +159,36 @@ internal static class JsonScenarioLoader
 
     private static AdjustmentRule MapAdjustment(AdjustmentDto dto)
     {
-        // The current domain only models direction. shiftAmount sign drives forward/backward.
-        var direction = dto.ShiftAmount < 0
-            ? AdjustmentDirection.Backward
-            : AdjustmentDirection.Forward;
-        return new AdjustmentRule(direction);
+        var condition = ParseCondition(Required(dto.Condition, "adjustment.condition"));
+        var shiftUnit = ParseShiftUnit(Required(dto.ShiftUnit, "adjustment.shiftUnit"));
+        var calendarId = string.IsNullOrEmpty(dto.CalendarId)
+            ? null
+            : new BusinessCalendarId(dto.CalendarId);
+
+        if (shiftUnit == AdjustmentShiftUnit.BusinessDay && calendarId is null)
+            throw new InvalidOperationException("adjustment.calendarId is required when shiftUnit is BUSINESS_DAY.");
+
+        return new AdjustmentRule(condition, shiftUnit, dto.ShiftAmount, calendarId);
+    }
+
+    private static AdjustmentCondition ParseCondition(string value)
+    {
+        return value.ToUpperInvariant() switch
+        {
+            "HOLIDAY" => AdjustmentCondition.Holiday,
+            _ => throw new InvalidOperationException($"Unknown adjustment.condition: {value}"),
+        };
+    }
+
+    private static AdjustmentShiftUnit ParseShiftUnit(string value)
+    {
+        return value.ToUpperInvariant() switch
+        {
+            "BUSINESS_DAY" => AdjustmentShiftUnit.BusinessDay,
+            "CALENDAR_DAY" => AdjustmentShiftUnit.CalendarDay,
+            "DAY" => AdjustmentShiftUnit.CalendarDay,
+            _ => throw new InvalidOperationException($"Unknown adjustment.shiftUnit: {value}"),
+        };
     }
 
     private static EventException MapException(ExceptionDto dto, bool allDay)

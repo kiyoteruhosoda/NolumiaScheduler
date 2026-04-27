@@ -200,9 +200,13 @@ public class EventScenarioE2ETests
         var calendar = JsonScenarioLoader.LoadCalendar(BusinessCalendarJson);
 
         Assert.IsTrue(ev.IsRecurring());
-        Assert.IsNotNull(ev.RecurringSchedule!.RecurrenceRule.Adjustment);
-        Assert.AreEqual(AdjustmentDirection.Backward,
-            ev.RecurringSchedule.RecurrenceRule.Adjustment!.Direction);
+        var adjustment = ev.RecurringSchedule!.RecurrenceRule.Adjustment;
+        Assert.IsNotNull(adjustment);
+        Assert.AreEqual(AdjustmentCondition.Holiday, adjustment!.Condition);
+        Assert.AreEqual(AdjustmentShiftUnit.BusinessDay, adjustment.ShiftUnit);
+        Assert.AreEqual(-1, adjustment.ShiftAmount);
+        Assert.AreEqual("jp_default", adjustment.CalendarId!.Value);
+        Assert.AreEqual(AdjustmentDirection.Backward, adjustment.Direction);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 1),
