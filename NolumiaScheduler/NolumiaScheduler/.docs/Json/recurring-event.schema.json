@@ -1,0 +1,111 @@
+﻿{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.local/schemas/recurring-event.schema.json",
+  "title": "Recurring Event",
+  "oneOf": [
+    {
+      "title": "Recurring Timed Event",
+      "allOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/commonEventFields"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "Recurring"
+            },
+            "allDay": {
+              "const": false
+            },
+            "startDate": {
+              "$ref": "./common.schema.json#/$defs/localDate"
+            },
+            "startTime": {
+              "$ref": "./common.schema.json#/$defs/localTime"
+            },
+            "endTime": {
+              "$ref": "./common.schema.json#/$defs/localTime"
+            },
+            "recurrence": {
+              "$ref": "./common.schema.json#/$defs/recurrenceRule"
+            },
+            "exceptions": {
+              "type": "array",
+              "items": {
+                "$ref": "./common.schema.json#/$defs/exceptionRuleTimed"
+              }
+            },
+            "moves": {
+              "type": "array",
+              "items": {
+                "$ref": "./common.schema.json#/$defs/moveTimed"
+              }
+            }
+          },
+          "required": [
+            "startDate",
+            "startTime",
+            "endTime",
+            "recurrence",
+            "exceptions",
+            "moves"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    {
+      "title": "Recurring All-Day Event",
+      "allOf": [
+        {
+          "$ref": "./common.schema.json#/$defs/commonEventFields"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "Recurring"
+            },
+            "allDay": {
+              "const": true
+            },
+            "startDate": {
+              "$ref": "./common.schema.json#/$defs/localDate"
+            },
+            "startTime": {
+              "type": "null"
+            },
+            "endTime": {
+              "type": "null"
+            },
+            "recurrence": {
+              "$ref": "./common.schema.json#/$defs/recurrenceRule"
+            },
+            "exceptions": {
+              "type": "array",
+              "items": {
+                "$ref": "./common.schema.json#/$defs/exceptionRuleAllDay"
+              }
+            },
+            "moves": {
+              "type": "array",
+              "items": {
+                "$ref": "./common.schema.json#/$defs/moveAllDay"
+              }
+            }
+          },
+          "required": [
+            "startDate",
+            "startTime",
+            "endTime",
+            "recurrence",
+            "exceptions",
+            "moves"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  ]
+}

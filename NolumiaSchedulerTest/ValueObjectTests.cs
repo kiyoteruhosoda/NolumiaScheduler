@@ -1,0 +1,87 @@
+using NolumiaScheduler.Domain.ValueObjects;
+using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
+using Location = NolumiaScheduler.Domain.ValueObjects.Location;
+
+namespace NolumiaSchedulerTest;
+
+[TestClass]
+public class ValueObjectTests
+{
+    [TestMethod]
+    public void LocalDateValue_Equality()
+    {
+        var d1 = new LocalDateValue(2026, 4, 20);
+        var d2 = new LocalDateValue(2026, 4, 20);
+        Assert.AreEqual(d1, d2);
+        Assert.IsTrue(d1 == d2);
+    }
+
+    [TestMethod]
+    public void LocalDateValue_Comparison()
+    {
+        var d1 = new LocalDateValue(2026, 4, 19);
+        var d2 = new LocalDateValue(2026, 4, 20);
+        Assert.IsTrue(d1 < d2);
+        Assert.IsTrue(d2 > d1);
+    }
+
+    [TestMethod]
+    public void LocalDateValue_AddDays()
+    {
+        var d = new LocalDateValue(2026, 4, 30);
+        var result = d.AddDays(1);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1), result);
+    }
+
+    [TestMethod]
+    public void LocalTimeValue_Comparison()
+    {
+        var t1 = new LocalTimeValue(9, 0, 0);
+        var t2 = new LocalTimeValue(10, 0, 0);
+        Assert.IsTrue(t1.CompareTo(t2) < 0);
+    }
+
+    [TestMethod]
+    public void OccurrenceLocalKey_Equality()
+    {
+        var k1 = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
+        var k2 = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
+        Assert.AreEqual(k1, k2);
+    }
+
+    [TestMethod]
+    public void RecurrenceRule_WeeklyRequiresWeeklyRule()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31)));
+    }
+
+    [TestMethod]
+    public void RecurrenceRule_IntervalMustBePositive()
+    {
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new RecurrenceRule(RecurrenceType.Weekly, 0, new LocalDateValue(2026, 12, 31),
+                weekly: new WeeklyRule([Weekday.Monday])));
+    }
+
+    [TestMethod]
+    public void EventTitle_CreatesSuccessfully()
+    {
+        var title = new EventTitle("テスト");
+        Assert.AreEqual("テスト", title.Value);
+    }
+
+    [TestMethod]
+    public void TimeZoneId_Invalid_ShouldThrow()
+    {
+        Assert.ThrowsExactly<TimeZoneNotFoundException>(() => new TimeZoneId("Invalid/Zone"));
+    }
+
+    [TestMethod]
+    public void VersionNo_Next_Increments()
+    {
+        var v = VersionNo.Initial();
+        Assert.AreEqual(1, v.Value);
+        Assert.AreEqual(2, v.Next().Value);
+    }
+}

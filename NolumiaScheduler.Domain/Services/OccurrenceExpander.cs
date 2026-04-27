@@ -1,0 +1,263 @@
+using NolumiaScheduler.Domain.Aggregates;
+using NolumiaScheduler.Domain.Entities;
+using NolumiaScheduler.Domain.ValueObjects;
+
+namespace NolumiaScheduler.Domain.Services;
+
+public class OccurrenceExpander : IOccurrenceExpander
+{
+    private readonly IBusinessDayShiftService _shiftService;
+
+    public OccurrenceExpander(IBusinessDayShiftService shiftService)
+    {
+        _shiftService = shiftService;
+    }
+
+    public IReadOnlyList<EventOccurrence> Expand(
+        CalendarEvent calendarEvent,
+        LocalDateValue fromDate,
+        LocalDateValue toDate,
+        BusinessCalendar? businessCalendar)
+    {
+        if (calendarEvent.IsSingle())
+            return ExpandSingle(calendarEvent, fromDate, toDate);
+
+        return ExpandRecurring(calendarEvent, fromDate, toDate, businessCalendar);
+    }
+
+    private IReadOnlyList<EventOccurrence> ExpandSingle(
+        CalendarEvent ev, LocalDateValue fromDate, LocalDateValue toDate)
+    {
+        var schedule = ev.SingleSchedule!;
+        var tz = ev.TimeZoneId.ToTimeZoneInfo();
+        var startLocal = TimeZoneInfo.ConvertTime(schedule.Start, tz);
+        var startDate = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(startLocal.DateTime));
+
+        if (startDate < fromDate || startDate > toDate)
+            return [];
+
+        return
+        [
+            new EventOccurrence(
+                ev.Id, startDate,
+                ev.AllDay ? null : LocalTimeValue.FromTimeOnly(TimeOnly.FromDateTime(startLocal.DateTime)),
+                ev.AllDay ? null : LocalTimeValue.FromTimeOnly(TimeOnly.FromDateTime(
+                    TimeZoneInfo.ConvertTime(schedule.End, tz).DateTime)),
+                ev.AllDay, ev.Title, ev.Location, ev.Visibility)
+        ];
+    }
+
+    private IReadOnlyList<EventOccurrence> ExpandRecurring(
+        CalendarEvent ev, LocalDateValue fromDate, LocalDateValue toDate,
+        BusinessCalendar? businessCalendar)
+    {
+        var schedule = ev.RecurringSchedule!;
+        var rule = schedule.RecurrenceRule;
+        var results = new List<EventOccurrence>();
+
+        var candidateDates = GenerateCandidateDates(schedule.StartDate, rule, toDate);
+
+        foreach (var candidateDate in candidateDates)
+        {
+            var adjustedDate = candidateDate;
+
+            if (rule.Adjustment != null && businessCalendar != null)
+            {
+                adjustedDate = _shiftService.Shift(candidateDate, rule.Adjustment, businessCalendar);
+            }
+
+            if (adjustedDate < fromDate || adjustedDate > toDate)
+                continue;
+
+            var key = new OccurrenceLocalKey(candidateDate, schedule.StartTime);
+
+            // Check skip
+            var exception = ev.Exceptions.FirstOrDefault(e => e.OccurrenceKey.Equals(key));
+            if (exception != null && exception.Type == ExceptionType.Skip)
+                continue;
+
+            // Check move
+            var move = ev.Moves.FirstOrDefault(m => m.OccurrenceKey.Equals(key));
+            if (move != null)
+            {
+                if (move.NewDate >= fromDate && move.NewDate <= toDate)
+                {
+                    results.Add(new EventOccurrence(
+                        ev.Id, move.NewDate,
+                        move.NewStartTime ?? schedule.StartTime,
+                        move.NewEndTime ?? schedule.EndTime,
+                        ev.AllDay,
+                        move.Title ?? ev.Title,
+                        move.Location ?? ev.Location,
+                        move.Visibility ?? ev.Visibility,
+                        isMoved: true));
+                }
+                continue;
+            }
+
+            // Check override
+            if (exception != null && exception.Type == ExceptionType.Override && exception.Override != null)
+            {
+                var ov = exception.Override;
+                results.Add(new EventOccurrence(
+                    ev.Id, adjustedDate,
+                    ov.StartTime ?? schedule.StartTime,
+                    ov.EndTime ?? schedule.EndTime,
+                    ev.AllDay,
+                    ov.Title ?? ev.Title,
+                    ov.Location ?? ev.Location,
+                    ov.Visibility ?? ev.Visibility,
+                    isOverridden: true));
+                continue;
+            }
+
+            results.Add(new EventOccurrence(
+                ev.Id, adjustedDate,
+                schedule.StartTime, schedule.EndTime,
+                ev.AllDay, ev.Title, ev.Location, ev.Visibility));
+        }
+
+        return results;
+    }
+
+    private static IEnumerable<LocalDateValue> GenerateCandidateDates(
+        LocalDateValue startDate, RecurrenceRule rule, LocalDateValue endBound)
+    {
+        var endDate = rule.EndDate < endBound ? rule.EndDate : endBound;
+
+        switch (rule.RuleType)
+        {
+            case RecurrenceType.Weekly:
+                return GenerateWeekly(startDate, rule.Interval, rule.Weekly!, endDate);
+            case RecurrenceType.Monthly:
+                return GenerateMonthly(startDate, rule.Interval, rule.Monthly!, endDate);
+            case RecurrenceType.Yearly:
+                return GenerateYearly(startDate, rule.Interval, rule.Yearly!, endDate);
+            default:
+                return [];
+        }
+    }
+
+    private static IEnumerable<LocalDateValue> GenerateWeekly(
+        LocalDateValue startDate, int interval, WeeklyRule weekly, LocalDateValue endDate)
+    {
+        var current = startDate.ToDateOnly();
+        var end = endDate.ToDateOnly();
+
+        // Align to start of week (Monday)
+        var weekStart = current.AddDays(-(((int)current.DayOfWeek + 6) % 7));
+
+        while (weekStart <= end)
+        {
+            foreach (var weekday in weekly.Weekdays)
+            {
+                var dayOffset = ((int)weekday.ToDayOfWeek() - (int)DayOfWeek.Monday + 7) % 7;
+                var candidate = weekStart.AddDays(dayOffset);
+
+                if (candidate < startDate.ToDateOnly()) continue;
+                if (candidate > end) yield break;
+
+                yield return LocalDateValue.FromDateOnly(candidate);
+            }
+
+            weekStart = weekStart.AddDays(7 * interval);
+        }
+    }
+
+    private static IEnumerable<LocalDateValue> GenerateMonthly(
+        LocalDateValue startDate, int interval, MonthlyRule monthly, LocalDateValue endDate)
+    {
+        var current = new DateOnly(startDate.Year, startDate.Month, 1);
+        var end = endDate.ToDateOnly();
+
+        while (true)
+        {
+            var candidate = ResolveMonthlyDate(current.Year, current.Month, monthly);
+            if (candidate != null)
+            {
+                if (candidate.Value > end) yield break;
+                if (candidate.Value >= startDate.ToDateOnly())
+                    yield return LocalDateValue.FromDateOnly(candidate.Value);
+            }
+
+            current = current.AddMonths(interval);
+            if (current > end) yield break;
+        }
+    }
+
+    private static DateOnly? ResolveMonthlyDate(int year, int month, MonthlyRule rule)
+    {
+        if (rule is DayOfMonthMonthlyRule domRule)
+        {
+            var daysInMonth = DateTime.DaysInMonth(year, month);
+            if (domRule.Day > daysInMonth) return null;
+            return new DateOnly(year, month, domRule.Day);
+        }
+
+        if (rule is NthWeekdayMonthlyRule nthRule)
+        {
+            return FindNthWeekday(year, month, nthRule.WeekIndex, nthRule.Weekday.ToDayOfWeek());
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<LocalDateValue> GenerateYearly(
+        LocalDateValue startDate, int interval, YearlyRule yearly, LocalDateValue endDate)
+    {
+        var currentYear = startDate.Year;
+        var end = endDate.ToDateOnly();
+
+        while (true)
+        {
+            var candidate = ResolveYearlyDate(currentYear, yearly);
+            if (candidate != null)
+            {
+                if (candidate.Value > end) yield break;
+                if (candidate.Value >= startDate.ToDateOnly())
+                    yield return LocalDateValue.FromDateOnly(candidate.Value);
+            }
+
+            currentYear += interval;
+            if (new DateOnly(currentYear, 1, 1) > end) yield break;
+        }
+    }
+
+    private static DateOnly? ResolveYearlyDate(int year, YearlyRule rule)
+    {
+        if (rule is DayOfMonthYearlyRule domRule)
+        {
+            var daysInMonth = DateTime.DaysInMonth(year, domRule.Month);
+            if (domRule.Day > daysInMonth) return null;
+            return new DateOnly(year, domRule.Month, domRule.Day);
+        }
+
+        if (rule is NthWeekdayYearlyRule nthRule)
+        {
+            return FindNthWeekday(year, nthRule.Month, nthRule.WeekIndex, nthRule.Weekday.ToDayOfWeek());
+        }
+
+        return null;
+    }
+
+    private static DateOnly? FindNthWeekday(int year, int month, int weekIndex, DayOfWeek dayOfWeek)
+    {
+        if (weekIndex == -1)
+        {
+            // Last occurrence
+            var lastDay = DateTime.DaysInMonth(year, month);
+            var date = new DateOnly(year, month, lastDay);
+            while (date.DayOfWeek != dayOfWeek)
+                date = date.AddDays(-1);
+            return date;
+        }
+
+        // Nth occurrence
+        var first = new DateOnly(year, month, 1);
+        var offset = ((int)dayOfWeek - (int)first.DayOfWeek + 7) % 7;
+        var nthDate = first.AddDays(offset + (weekIndex - 1) * 7);
+
+        if (nthDate.Month != month) return null;
+        return nthDate;
+    }
+}
