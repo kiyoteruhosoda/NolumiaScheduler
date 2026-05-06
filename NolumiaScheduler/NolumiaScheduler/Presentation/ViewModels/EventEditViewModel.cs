@@ -133,9 +133,17 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         else if (ev.IsRecurring() && ev.RecurringSchedule != null)
         {
             var sched = ev.RecurringSchedule;
-            StartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
-            StartTime = sched.StartTime != null ? new TimeSpan(sched.StartTime.Hour, sched.StartTime.Minute, 0) : new TimeSpan(9, 0, 0);
-            EndTime   = sched.EndTime   != null ? new TimeSpan(sched.EndTime.Hour,   sched.EndTime.Minute,   0) : new TimeSpan(10, 0, 0);
+            var effectiveDate = occurrenceKey?.Date ?? sched.StartDate;
+            var effectiveStart = occurrenceKey?.Time ?? sched.StartTime;
+
+            StartDate = new DateTime(effectiveDate.Year, effectiveDate.Month, effectiveDate.Day);
+            StartTime = effectiveStart != null ? new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0) : new TimeSpan(9, 0, 0);
+
+            var durationMinutes = sched.StartTime != null && sched.EndTime != null
+                ? Math.Max(15, (sched.EndTime.Hour * 60 + sched.EndTime.Minute) - (sched.StartTime.Hour * 60 + sched.StartTime.Minute))
+                : 60;
+            EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(durationMinutes));
+
             LoadRecurrenceRule(sched.RecurrenceRule);
         }
     }

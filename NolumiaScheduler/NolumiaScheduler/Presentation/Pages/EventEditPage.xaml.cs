@@ -84,10 +84,8 @@ public partial class EventEditPage : ContentPage
 
         var startMinute = int.TryParse(_occurrenceStartMinuteRaw, out var parsed) ? parsed : 0;
         startMinute = Math.Clamp(startMinute, 0, 1439);
-        var snapped = (int)(Math.Round(startMinute / 15d) * 15);
-        snapped = Math.Clamp(snapped, 0, 23 * 60 + 45);
 
-        var time = new Domain.ValueObjects.LocalTimeValue(snapped / 60, snapped % 60, 0);
+        var time = new Domain.ValueObjects.LocalTimeValue(startMinute / 60, startMinute % 60, 0);
         return new Domain.ValueObjects.OccurrenceLocalKey(new Domain.ValueObjects.LocalDateValue(date.Year, date.Month, date.Day), time);
     }
 }

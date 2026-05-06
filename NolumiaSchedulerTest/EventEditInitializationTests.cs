@@ -83,6 +83,20 @@ public class EventEditInitializationTests
     }
 
 
+
+    [TestMethod]
+    public void LoadEvent_繰り返し発生日指定時は指定occurrenceの日時で初期化される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-occ"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 20), new LocalTimeValue(9, 10, 0));
+        vm.LoadEvent("rec-occ", key);
+
+        Assert.AreEqual(new DateTime(2026, 5, 20), vm.StartDate.Date);
+        Assert.AreEqual(new TimeSpan(9, 10, 0), vm.StartTime);
+    }
+
     [TestMethod]
     public void この予定のみで対象Occurrenceだけ変更される()
     {
