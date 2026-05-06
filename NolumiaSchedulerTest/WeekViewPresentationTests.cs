@@ -99,6 +99,39 @@ public class WeekViewPresentationTests
         Assert.IsTrue(blocks.All(b => Math.Abs(b.LeftRatio) < 0.0001));
     }
 
+    [TestMethod]
+    public void 終日イベントは終日レーンに配置される()
+    {
+        var strategy = new DefaultWeekAllDayLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("all", null, null, null, null, true)
+        ], new DateTime(2026, 5, 3));
+
+        Assert.HasCount(1, blocks);
+        Assert.AreEqual(1, blocks[0].WidthColumns);
+        Assert.AreEqual(1, blocks[0].LeftColumn);
+    }
+
+    [TestMethod]
+    public void 終日イベントが重なる場合はスタック表示になる()
+    {
+        var strategy = new DefaultWeekAllDayLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("a", null, null, null, null, true),
+            CreateItem("b", null, null, null, null, true),
+        ], new DateTime(2026, 5, 3));
+
+        Assert.AreEqual(0, blocks[0].Row);
+        Assert.AreEqual(1, blocks[1].Row);
+    }
+
+    [TestMethod]
+    public void 日跨ぎ時間予定は分割対象フラグを持つ()
+    {
+        var item = CreateItem("overnight", 22, 0, 2, 0, false);
+        Assert.IsTrue(item.CrossesMidnight);
+    }
+
     private static CalendarEventItem CreateItem(string id, int? sh, int? sm, int? eh, int? em, bool allDay)
     {
         var occ = new EventOccurrence(

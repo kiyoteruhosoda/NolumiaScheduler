@@ -285,6 +285,8 @@
         <controls:WeekCalendarView Grid.Row="5" IsVisible="{Binding IsWeekMode}"
                                   WeekTimeSlots="{Binding WeekTimeSlots}"
                                   WeekDayColumns="{Binding WeekDayColumns}"
+                                  WeekAllDayEventBlocks="{Binding WeekAllDayEventBlocks}"
+                                  WeekAllDayLaneHeight="{Binding WeekAllDayLaneHeight}"
                                   WeekCanvasHeight="{Binding WeekCanvasHeight}"
                                   WeekDayColumnWidth="{Binding WeekDayColumnWidth}"
                                   IsCurrentWeek="{Binding IsCurrentWeek}"

@@ -22,6 +22,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private readonly IOccurrenceExpander _expander;
     private readonly CalendarEventApplicationService _eventService;
     private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
+    private readonly IWeekAllDayLayoutStrategy _weekAllDayLayoutStrategy;
     private readonly DateTime _today = DateTime.Today.Date;
 
     private DateTime _month;
@@ -40,13 +41,15 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         IBusinessCalendarRepository businessCalendars,
         IOccurrenceExpander expander,
         CalendarEventApplicationService eventService,
-        IWeekEventLayoutStrategy weekEventLayoutStrategy)
+        IWeekEventLayoutStrategy weekEventLayoutStrategy,
+        IWeekAllDayLayoutStrategy weekAllDayLayoutStrategy)
     {
         _events = events;
         _businessCalendars = businessCalendars;
         _expander = expander;
         _eventService = eventService;
         _weekEventLayoutStrategy = weekEventLayoutStrategy;
+        _weekAllDayLayoutStrategy = weekAllDayLayoutStrategy;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
 
@@ -55,6 +58,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         WeekTimeSlots = [];
         WeekHeaderDays = [];
         WeekDayColumns = [];
+        WeekAllDayEventBlocks = [];
 
         PreviousMonthCommand = new Command(() => Navigate(-1));
         NextMonthCommand = new Command(() => Navigate(1));
@@ -72,6 +76,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ObservableCollection<WeekTimeSlot> WeekTimeSlots { get; }
     public ObservableCollection<string> WeekHeaderDays { get; }
     public ObservableCollection<WeekDayColumn> WeekDayColumns { get; }
+    public ObservableCollection<WeekAllDayEventBlock> WeekAllDayEventBlocks { get; }
+    public double WeekAllDayLaneHeight => Math.Max(28, (WeekAllDayEventBlocks.Count == 0 ? 1 : WeekAllDayEventBlocks.Max(x => x.Row + 1)) * 24);
     public double WeekCanvasHeight => 24 * 60;
     public double WeekDayColumnWidth => Math.Max(96, (DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density - 72) / 7);
     public DateTime WeekStartDate => _weekStartDate.Date;
@@ -265,6 +271,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     {
         WeekHeaderDays.Clear();
         WeekDayColumns.Clear();
+        WeekAllDayEventBlocks.Clear();
 
         var from = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate));
         var to = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate.AddDays(6)));
@@ -289,9 +296,45 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             {
                 var dayIdx = (int)(occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue).Date - _weekStartDate.Date).TotalDays;
                 if (dayIdx is < 0 or > 6) continue;
-                weekly[dayIdx].Add(new CalendarEventItem(occ));
+                var item = new CalendarEventItem(occ);
+                if (!item.IsAllDay && item.CrossesMidnight && dayIdx < 6)
+                {
+                    var firstOccurrence = new EventOccurrence(
+                        occ.EventId,
+                        occ.Date,
+                        occ.StartTime,
+                        new LocalTimeValue(23, 59, 0),
+                        false,
+                        occ.Title,
+                        occ.Location,
+                        occ.Visibility,
+                        occ.IsMoved,
+                        occ.IsOverridden);
+                    weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence));
+
+                    var secondOccurrence = new EventOccurrence(
+                        occ.EventId,
+                        LocalDateValue.FromDateOnly(occ.Date.ToDateOnly().AddDays(1)),
+                        new LocalTimeValue(0, 0, 0),
+                        occ.EndTime,
+                        false,
+                        occ.Title,
+                        occ.Location,
+                        occ.Visibility,
+                        occ.IsMoved,
+                        occ.IsOverridden);
+                    weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence));
+                }
+                else
+                {
+                    weekly[dayIdx].Add(item);
+                }
             }
         }
+
+        var allDayInput = weekly.SelectMany(x => x.Value).Where(x => x.IsAllDay).ToList();
+        foreach (var block in _weekAllDayLayoutStrategy.Layout(allDayInput, _weekStartDate))
+            WeekAllDayEventBlocks.Add(block);
 
         for (var i = 0; i < 7; i++)
         {
@@ -313,6 +356,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
         OnPropertyChanged(nameof(WeekCanvasHeight));
         OnPropertyChanged(nameof(WeekStartDate));
+        OnPropertyChanged(nameof(WeekAllDayLaneHeight));
     }
 
     private static string FormatWeekRangeTitle(DateTime weekStartDate)

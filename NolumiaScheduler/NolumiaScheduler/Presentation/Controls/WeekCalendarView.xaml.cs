@@ -73,6 +73,10 @@ public partial class WeekCalendarView : ContentView
     public static readonly BindableProperty WeekTimeSlotsProperty = BindableProperty.Create(nameof(WeekTimeSlots), typeof(IEnumerable), typeof(WeekCalendarView));
     public IEnumerable? WeekDayColumns { get => (IEnumerable?)GetValue(WeekDayColumnsProperty); set => SetValue(WeekDayColumnsProperty, value); }
     public static readonly BindableProperty WeekDayColumnsProperty = BindableProperty.Create(nameof(WeekDayColumns), typeof(IEnumerable), typeof(WeekCalendarView));
+    public IEnumerable? WeekAllDayEventBlocks { get => (IEnumerable?)GetValue(WeekAllDayEventBlocksProperty); set => SetValue(WeekAllDayEventBlocksProperty, value); }
+    public static readonly BindableProperty WeekAllDayEventBlocksProperty = BindableProperty.Create(nameof(WeekAllDayEventBlocks), typeof(IEnumerable), typeof(WeekCalendarView));
+    public double WeekAllDayLaneHeight { get => (double)GetValue(WeekAllDayLaneHeightProperty); set => SetValue(WeekAllDayLaneHeightProperty, value); }
+    public static readonly BindableProperty WeekAllDayLaneHeightProperty = BindableProperty.Create(nameof(WeekAllDayLaneHeight), typeof(double), typeof(WeekCalendarView), 28d);
     public double WeekCanvasHeight { get => (double)GetValue(WeekCanvasHeightProperty); set => SetValue(WeekCanvasHeightProperty, value); }
     public static readonly BindableProperty WeekCanvasHeightProperty = BindableProperty.Create(nameof(WeekCanvasHeight), typeof(double), typeof(WeekCalendarView), 1440d);
     public double WeekDayColumnWidth { get => (double)GetValue(WeekDayColumnWidthProperty); set => SetValue(WeekDayColumnWidthProperty, value); }
@@ -162,5 +166,20 @@ public partial class WeekCalendarView : ContentView
 
         var startMinute = _mapper.MapToMinute(point.Value.Y);
         EmptySlotTapped?.Invoke(this, new WeekEmptySlotTappedEventArgs { Date = dayColumn.Date, StartMinute = startMinute });
+    }
+
+    private void OnAllDayBlockTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Border b && b.BindingContext is WeekAllDayEventBlock block)
+        {
+            SelectedEventId = block.EventId;
+            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.StartDate,
+                StartMinute = 0,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        }
     }
 }

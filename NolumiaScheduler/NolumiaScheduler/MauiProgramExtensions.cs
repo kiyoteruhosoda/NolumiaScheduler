@@ -55,6 +55,7 @@ public static class MauiProgramExtensions
 
         // Presentation services
         builder.Services.AddSingleton<IWeekEventLayoutStrategy, DefaultWeekEventLayoutStrategy>();
+        builder.Services.AddSingleton<IWeekAllDayLayoutStrategy, DefaultWeekAllDayLayoutStrategy>();
         builder.Services.AddSingleton<IWeekInteractionMapper, WeekInteractionMapper>();
         builder.Services.AddSingleton<IWeekDragInteractionService, NoOpWeekDragInteractionService>();
         builder.Services.AddSingleton<IWeekInteractionCompletionService, NavigateWeekInteractionCompletionService>();

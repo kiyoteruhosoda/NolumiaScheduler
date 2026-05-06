@@ -7,6 +7,7 @@ public sealed class CalendarEventItem
 {
     public CalendarEventItem(EventOccurrence occ)
     {
+        Date = occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue);
         EventId = occ.EventId.Value;
         OccurrenceKey = new OccurrenceLocalKey(occ.Date, occ.AllDay ? null : occ.StartTime);
         Title = occ.Title.Value;
@@ -26,6 +27,7 @@ public sealed class CalendarEventItem
             TimeRange = $"{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2} – {occ.EndTime.Hour:D2}:{occ.EndTime.Minute:D2}";
             StartMinuteOfDay = (occ.StartTime.Hour * 60) + occ.StartTime.Minute;
             EndMinuteOfDay = (occ.EndTime.Hour * 60) + occ.EndTime.Minute;
+            CrossesMidnight = EndMinuteOfDay <= StartMinuteOfDay;
         }
         else
         {
@@ -48,6 +50,7 @@ public sealed class CalendarEventItem
     }
 
     public string EventId { get; }
+    public DateTime Date { get; }
     public OccurrenceLocalKey OccurrenceKey { get; }
     public string Title { get; }
     public string? Location { get; }
@@ -59,6 +62,7 @@ public sealed class CalendarEventItem
     public bool IsOverridden { get; }
     public int StartMinuteOfDay { get; }
     public int EndMinuteOfDay { get; }
+    public bool CrossesMidnight { get; }
     public bool HasLocation => !string.IsNullOrEmpty(Location);
     public bool HasBadge => BadgeText != null;
 }
