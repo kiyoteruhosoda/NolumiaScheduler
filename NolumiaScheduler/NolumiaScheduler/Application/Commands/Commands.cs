@@ -34,9 +34,11 @@ public sealed record SkipOccurrenceCommand(
 public sealed record OverrideOccurrenceCommand(
     string EventId,
     OccurrenceLocalKey OccurrenceKey,
-    string? Title,
+    string Title,
     string? Location,
-    Visibility? Visibility,
+    Visibility Visibility,
+    bool AllDay,
+    LocalDateValue Date,
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime);
 
@@ -53,6 +55,10 @@ public sealed record MoveOccurrenceCommand(
 public sealed record ChangeFollowingOccurrencesCommand(
     string EventId,
     OccurrenceLocalKey FromOccurrenceKey,
+    string NewTitle,
+    string? NewLocation,
+    Visibility NewVisibility,
+    bool NewAllDay,
     LocalTimeValue? NewStartTime,
     LocalTimeValue? NewEndTime,
     RecurrenceRule NewRecurrenceRule);

@@ -6,6 +6,7 @@ using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Infrastructure.Json.Repositories;
 using NolumiaScheduler.Presentation.Pages;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using DomainEventId = NolumiaScheduler.Domain.ValueObjects.EventId;
 using DomainVisibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
@@ -50,6 +51,16 @@ public static class MauiProgramExtensions
         // Application services
         builder.Services.AddSingleton<CalendarEventApplicationService>();
         builder.Services.AddSingleton<BusinessCalendarApplicationService>();
+
+
+        // Presentation services
+        builder.Services.AddSingleton<IWeekEventLayoutStrategy, DefaultWeekEventLayoutStrategy>();
+        builder.Services.AddSingleton<IWeekAllDayLayoutStrategy, DefaultWeekAllDayLayoutStrategy>();
+        builder.Services.AddSingleton<IWeekInteractionMapper, WeekInteractionMapper>();
+        builder.Services.AddSingleton<IWeekGestureArbitrationService, WeekGestureArbitrationService>();
+        builder.Services.AddSingleton<IWeekAutoScrollService, WeekAutoScrollService>();
+        builder.Services.AddSingleton<IWeekDragInteractionService, NoOpWeekDragInteractionService>();
+        builder.Services.AddSingleton<IWeekInteractionCompletionService, NavigateWeekInteractionCompletionService>();
 
         // ViewModels
         builder.Services.AddTransient<CalendarViewModel>();

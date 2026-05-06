@@ -86,4 +86,25 @@
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>
+  <data name="EditRecurringEventTitle" xml:space="preserve">
+    <value>Edit recurring event</value>
+  </data>
+  <data name="EditThisOccurrence" xml:space="preserve">
+    <value>This occurrence</value>
+  </data>
+  <data name="EditThisAndFollowing" xml:space="preserve">
+    <value>This and following</value>
+  </data>
+  <data name="EditEntireSeries" xml:space="preserve">
+    <value>Entire series</value>
+  </data>
+  <data name="EditRecurringScopeRequired" xml:space="preserve">
+    <value>Please select the edit scope.</value>
+  </data>
+  <data name="EditThisOccurrenceNotImplemented" xml:space="preserve">
+    <value>Editing only this occurrence is not implemented yet.</value>
+  </data>
+  <data name="EditThisAndFollowingNotImplemented" xml:space="preserve">
+    <value>Editing this and following is not implemented yet.</value>
+  </data>
 </root>

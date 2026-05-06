@@ -1,7 +1,14 @@
+using NolumiaScheduler.Domain.ValueObjects;
+
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class WeekEventBlock
+public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChanged
 {
+    public required string EventId { get; init; }
+    public OccurrenceLocalKey? OccurrenceKey { get; init; }
+    public required DateTime Date { get; init; }
+    public required int StartMinute { get; init; }
+    public required int EndMinute { get; init; }
     public required string Title { get; init; }
     public required string TimeLabel { get; init; }
     public required Color BackgroundColor { get; init; }
@@ -9,4 +16,22 @@ public sealed class WeekEventBlock
     public required double Height { get; init; }
     public required double LeftRatio { get; init; }
     public required double WidthRatio { get; init; }
+    public required Rect Bounds { get; init; }
+    public required Rect ResizeHandleBounds { get; init; }
+
+    private bool _isResizePreview;
+    public bool IsResizePreview
+    {
+        get => _isResizePreview;
+        set { _isResizePreview = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsResizePreview))); }
+    }
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { _isSelected = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSelected))); }
+    }
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 }
