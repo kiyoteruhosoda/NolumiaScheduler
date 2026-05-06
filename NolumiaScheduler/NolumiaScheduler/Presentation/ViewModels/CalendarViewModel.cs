@@ -96,23 +96,30 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         SelectedDayHasNoEvents = SelectedDayEvents.Count == 0;
     }
 
-    public void ReloadCurrentMonth() => LoadMonth();
+    public void ReloadCurrentMonth() => RefreshAfterChange();
 
     public void DeleteEntireEvent(string eventId)
     {
         _eventService.DeleteEvent(eventId);
-        LoadMonth();
-        // Refresh selected day events if a day is selected
-        if (_selectedCell != null)
-            SelectDay(_selectedCell);
+        RefreshAfterChange();
     }
 
     public void DeleteOccurrence(string eventId, OccurrenceLocalKey key)
     {
         _eventService.DeleteOccurrence(new SkipOccurrenceCommand(eventId, key));
+        RefreshAfterChange();
+    }
+
+    private void RefreshAfterChange()
+    {
+        var previousDate = _selectedCell?.Date;
         LoadMonth();
-        if (_selectedCell != null)
-            SelectDay(_selectedCell);
+        if (previousDate != null)
+        {
+            var newCell = DayCells.FirstOrDefault(c => c.Date.Equals(previousDate));
+            if (newCell != null)
+                SelectDay(newCell);
+        }
     }
 
     private void Navigate(int months)
@@ -185,6 +192,18 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             });
         }
 
+        // Collect holidays from all business calendars for display
+        var holidayByDate = new Dictionary<string, string?>();
+        foreach (var cal in _businessCalendars.FindAll())
+        {
+            foreach (var h in cal.Holidays)
+            {
+                var key = h.Date.ToString();
+                if (!holidayByDate.ContainsKey(key))
+                    holidayByDate[key] = h.Name;
+            }
+        }
+
         DayCells.Clear();
 
         // Grid starts from the Sunday of the week containing the 1st of the month
@@ -195,6 +214,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             var date = gridStart.AddDays(i);
             var dateVal = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date));
             byDate.TryGetValue(dateVal.ToString(), out var evts);
+            holidayByDate.TryGetValue(dateVal.ToString(), out var holidayName);
+            var isHoliday = holidayByDate.ContainsKey(dateVal.ToString());
 
             DayCells.Add(new CalendarDayCell
             {
@@ -202,6 +223,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
                 IsToday = dateVal.Equals(today),
                 IsCurrentMonth = date.Month == _month.Month,
                 Events = (IReadOnlyList<EventOccurrence>?)evts ?? [],
+                IsHoliday = isHoliday,
+                HolidayName = holidayName,
             });
         }
     }

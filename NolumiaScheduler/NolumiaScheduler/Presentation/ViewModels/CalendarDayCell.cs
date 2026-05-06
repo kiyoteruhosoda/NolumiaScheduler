@@ -14,6 +14,8 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     public bool IsToday { get; init; }
     public bool IsCurrentMonth { get; init; }
     public IReadOnlyList<EventOccurrence> Events { get; init; } = [];
+    public bool IsHoliday { get; init; }
+    public string? HolidayName { get; init; }
 
     public bool IsSelected
     {
@@ -41,6 +43,8 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
         {
             if (IsToday || IsSelected) return Colors.White;
             var isDark = MauiApplication.Current?.RequestedTheme == AppTheme.Dark;
+            if (IsHoliday && IsCurrentMonth)
+                return isDark ? ResourceColor("GCalRedDark") : ResourceColor("GCalRed");
             if (IsCurrentMonth)
                 return isDark ? Colors.White : ResourceColor("GCalTextPrimary");
             return ResourceColor(isDark ? "GCalOutOfMonthTextDark" : "GCalOutOfMonthText");
@@ -82,6 +86,8 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
             "GCalTextPrimary"        => Color.FromArgb("#202124"),
             "GCalGreen"              => Color.FromArgb("#1e8e3e"),
             "GCalEventMoved"         => Color.FromArgb("#9c27b0"),
+            "GCalRed"                => Color.FromArgb("#d93025"),
+            "GCalRedDark"            => Color.FromArgb("#f28b82"),
             "GCalOutOfMonthText"     => Color.FromArgb("#bdbdbd"),
             "GCalOutOfMonthTextDark" => Color.FromArgb("#555555"),
             _ => Colors.Gray

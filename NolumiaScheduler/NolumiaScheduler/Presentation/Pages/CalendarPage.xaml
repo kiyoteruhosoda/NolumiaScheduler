@@ -130,9 +130,10 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:CalendarDayCell">
-                    <Grid HeightRequest="80" Padding="2,2,2,0">
+                    <Grid HeightRequest="88" Padding="2,2,2,0">
                         <Grid.RowDefinitions>
-                            <RowDefinition Height="36" />
+                            <RowDefinition Height="30" />
+                            <RowDefinition Height="14" />
                             <RowDefinition Height="18" />
                             <RowDefinition Height="18" />
                         </Grid.RowDefinitions>
@@ -154,8 +155,20 @@
                                    VerticalOptions="Center" />
                         </Grid>
 
+                        <!-- Holiday name (shown in red when set) -->
+                        <Label Grid.Row="1"
+                               IsVisible="{Binding IsHoliday}"
+                               Text="{Binding HolidayName}"
+                               TextColor="{AppThemeBinding Light={StaticResource GCalRed}, Dark={StaticResource GCalRedDark}}"
+                               FontSize="7"
+                               MaxLines="1"
+                               LineBreakMode="TailTruncation"
+                               HorizontalOptions="Center"
+                               HorizontalTextAlignment="Center"
+                               Margin="1,0" />
+
                         <!-- First event chip -->
-                        <Border Grid.Row="1"
+                        <Border Grid.Row="2"
                                 IsVisible="{Binding HasFirstEvent}"
                                 BackgroundColor="{Binding FirstEventColor}"
                                 StrokeThickness="0"
@@ -170,7 +183,7 @@
                         </Border>
 
                         <!-- Second event chip (only when no overflow) -->
-                        <Border Grid.Row="2"
+                        <Border Grid.Row="3"
                                 IsVisible="{Binding ShowSecondChip}"
                                 BackgroundColor="{Binding SecondEventColor}"
                                 StrokeThickness="0"
@@ -185,7 +198,7 @@
                         </Border>
 
                         <!-- +N overflow label -->
-                        <Label Grid.Row="2"
+                        <Label Grid.Row="3"
                                IsVisible="{Binding HasMoreEvents}"
                                Text="{Binding MoreText}"
                                TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
@@ -233,6 +246,23 @@
                                   MinimumHeightRequest="48"
                                   ColumnDefinitions="14,*,40,40"
                                   ColumnSpacing="8">
+
+                                <VisualStateManager.VisualStateGroups>
+                                    <VisualStateGroupList>
+                                        <VisualStateGroup x:Name="CommonStates">
+                                            <VisualState x:Name="Normal">
+                                                <VisualState.Setters>
+                                                    <Setter Property="BackgroundColor" Value="Transparent" />
+                                                </VisualState.Setters>
+                                            </VisualState>
+                                            <VisualState x:Name="PointerOver">
+                                                <VisualState.Setters>
+                                                    <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
+                                                </VisualState.Setters>
+                                            </VisualState>
+                                        </VisualStateGroup>
+                                    </VisualStateGroupList>
+                                </VisualStateManager.VisualStateGroups>
 
                                 <!-- Colored dot -->
                                 <BoxView Grid.Column="0"
