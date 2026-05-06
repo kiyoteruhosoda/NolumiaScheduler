@@ -95,7 +95,7 @@ public partial class CalendarPage : ContentPage
 
     private void OnDayCellSelected(object? sender, SelectionChangedEventArgs e)
     {
-        if (e.CurrentSelection.FirstOrDefault() is CalendarDayCell cell)
+        if (e.CurrentSelection.Count > 0 && e.CurrentSelection[0] is CalendarDayCell cell)
         {
             _vm.SelectDay(cell);
             ((CollectionView)sender!).SelectedItem = null;

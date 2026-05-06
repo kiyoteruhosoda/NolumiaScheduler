@@ -171,10 +171,16 @@ public class BusinessCalendarServiceTests
         var loaded = _repo.FindById(created.Id)!;
         Assert.HasCount(2, loaded.Holidays);
 
-        var jan = loaded.Holidays.First(h => h.Date.Equals(Jan1));
+        var jan = (Holiday?)null;
+        var may = (Holiday?)null;
+        for (var i = 0; i < loaded.Holidays.Count; i++)
+        {
+            if (loaded.Holidays[i].Date.Equals(Jan1)) jan = loaded.Holidays[i];
+            if (loaded.Holidays[i].Date.Equals(May3)) may = loaded.Holidays[i];
+        }
+        Assert.IsNotNull(jan);
         Assert.AreEqual("元日", jan.Name);
-
-        var may = loaded.Holidays.First(h => h.Date.Equals(May3));
+        Assert.IsNotNull(may);
         Assert.IsNull(may.Name);
     }
 
@@ -208,7 +214,9 @@ public class BusinessCalendarServiceTests
         var loaded = _repo.FindById(created.Id)!;
         Assert.HasCount(2, loaded.Holidays);
 
-        var may = loaded.Holidays.FirstOrDefault(h => h.Date.Equals(May3));
+        Holiday? may = null;
+        for (var i = 0; i < loaded.Holidays.Count; i++)
+            if (loaded.Holidays[i].Date.Equals(May3)) { may = loaded.Holidays[i]; break; }
         Assert.IsNotNull(may);
         Assert.AreEqual("憲法記念日", may.Name);
     }
@@ -266,9 +274,16 @@ public class BusinessCalendarServiceTests
 
         var loaded = _repo.FindById(created.Id)!;
         Assert.HasCount(2, loaded.Holidays);
-        Assert.IsNull(loaded.Holidays.FirstOrDefault(h => h.Date.Equals(Jan1)));
-        Assert.IsNotNull(loaded.Holidays.FirstOrDefault(h => h.Date.Equals(May3)));
-        Assert.IsNotNull(loaded.Holidays.FirstOrDefault(h => h.Date.Equals(newDate)));
-        Assert.AreEqual("大晦日", loaded.Holidays.First(h => h.Date.Equals(newDate)).Name);
+        Holiday? foundJan = null, foundMay = null, foundNew = null;
+        for (var i = 0; i < loaded.Holidays.Count; i++)
+        {
+            if (loaded.Holidays[i].Date.Equals(Jan1))    foundJan = loaded.Holidays[i];
+            if (loaded.Holidays[i].Date.Equals(May3))    foundMay = loaded.Holidays[i];
+            if (loaded.Holidays[i].Date.Equals(newDate)) foundNew = loaded.Holidays[i];
+        }
+        Assert.IsNull(foundJan);
+        Assert.IsNotNull(foundMay);
+        Assert.IsNotNull(foundNew);
+        Assert.AreEqual("大晦日", foundNew.Name);
     }
 }
