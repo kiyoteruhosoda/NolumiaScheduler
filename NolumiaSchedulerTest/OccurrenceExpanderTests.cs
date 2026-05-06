@@ -190,6 +190,136 @@ public class OccurrenceExpanderTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), results[0].Date);
     }
 
+    [TestMethod]
+    public void Expand_YearlyRecurring_GeneratesCorrectDates()
+    {
+        var startDate = new LocalDateValue(2026, 4, 20);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Yearly, 1,
+            new LocalDateValue(2028, 12, 31),
+            yearly: new DayOfMonthYearlyRule(4, 20));
+
+        var schedule = new RecurringEventSchedule(
+            startDate,
+            new LocalTimeValue(9, 0, 0),
+            new LocalTimeValue(10, 0, 0),
+            rule, false);
+
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("evt_y01"),
+            new EventTitle("年次レビュー"),
+            null, Visibility.Public, null, null, Tokyo, false,
+            schedule, Now);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 1, 1),
+            new LocalDateValue(2028, 12, 31), null);
+
+        Assert.AreEqual(3, results.Count);
+        Assert.AreEqual(new LocalDateValue(2026, 4, 20), results[0].Date);
+        Assert.AreEqual(new LocalDateValue(2027, 4, 20), results[1].Date);
+        Assert.AreEqual(new LocalDateValue(2028, 4, 20), results[2].Date);
+        Assert.IsTrue(results.All(r => r.StartTime!.Equals(new LocalTimeValue(9, 0, 0))));
+    }
+
+    [TestMethod]
+    public void Expand_RecurringAllDay_HasNullTimes()
+    {
+        var startDate = new LocalDateValue(2026, 4, 20);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(2026, 4, 30),
+            weekly: new WeeklyRule([Weekday.Monday]));
+
+        var schedule = new RecurringEventSchedule(
+            startDate,
+            null, null,
+            rule, allDay: true);
+
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("evt_allday01"),
+            new EventTitle("終日イベント"),
+            null, Visibility.Public, null, null, Tokyo, true,
+            schedule, Now);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 4, 20),
+            new LocalDateValue(2026, 4, 30), null);
+
+        // Mondays in [4/20, 4/30]: 4/20, 4/27
+        Assert.AreEqual(2, results.Count);
+        Assert.IsTrue(results.All(r => r.AllDay));
+        Assert.IsTrue(results.All(r => r.StartTime is null));
+        Assert.IsTrue(results.All(r => r.EndTime is null));
+    }
+
+    [TestMethod]
+    public void Expand_WeeklyRecurring_OutsideEndDate_ReturnsEmpty()
+    {
+        var startDate = new LocalDateValue(2026, 4, 20);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(2026, 4, 26),
+            weekly: new WeeklyRule([Weekday.Monday]));
+
+        var schedule = new RecurringEventSchedule(
+            startDate,
+            new LocalTimeValue(10, 0, 0),
+            new LocalTimeValue(11, 0, 0),
+            rule, false);
+
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("evt_w02"),
+            new EventTitle("期限切れ会議"),
+            null, Visibility.Public, null, null, Tokyo, false,
+            schedule, Now);
+
+        // Query after rule.EndDate
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 4, 27),
+            new LocalDateValue(2026, 5, 31), null);
+
+        Assert.AreEqual(0, results.Count);
+    }
+
+    [TestMethod]
+    public void Expand_WithAdjustment_NonHolidayDate_IsNotShifted()
+    {
+        var startDate = new LocalDateValue(2026, 5, 1);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Monthly, 1,
+            new LocalDateValue(2026, 5, 31),
+            monthly: new DayOfMonthMonthlyRule(1),
+            adjustment: new AdjustmentRule(AdjustmentDirection.Backward));
+
+        var schedule = new RecurringEventSchedule(
+            startDate,
+            new LocalTimeValue(10, 0, 0),
+            new LocalTimeValue(11, 0, 0),
+            rule, false);
+
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("evt_adj02"),
+            new EventTitle("非祝日テスト"),
+            null, Visibility.Public, null, null, Tokyo, false,
+            schedule, Now);
+
+        // May 1 is not a holiday in this calendar
+        var calendar = new BusinessCalendar(
+            new BusinessCalendarId("jp_test2"),
+            "Test2",
+            Tokyo,
+            [Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday],
+            [new Holiday(new LocalDateValue(2026, 5, 4), "みどりの日")]);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 5, 1),
+            new LocalDateValue(2026, 5, 31), calendar);
+
+        Assert.AreEqual(1, results.Count);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1), results[0].Date);
+    }
+
     private static CalendarEvent CreateWeeklyMonday()
     {
         var startDate = new LocalDateValue(2026, 4, 20);

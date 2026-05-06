@@ -84,4 +84,66 @@ public class ValueObjectTests
         Assert.AreEqual(1, v.Value);
         Assert.AreEqual(2, v.Next().Value);
     }
+
+    [TestMethod]
+    public void LocalDateValue_AddMonths()
+    {
+        var d = new LocalDateValue(2026, 1, 31);
+        // January + 1 month = February, but Feb has no 31st → rolls to Feb 28
+        var result = d.AddMonths(1);
+        Assert.AreEqual(new LocalDateValue(2026, 2, 28), result);
+    }
+
+    [TestMethod]
+    public void LocalDateValue_AddYears()
+    {
+        var d = new LocalDateValue(2026, 4, 20);
+        Assert.AreEqual(new LocalDateValue(2028, 4, 20), d.AddYears(2));
+    }
+
+    [TestMethod]
+    public void LocalTimeValue_Equality()
+    {
+        var t1 = new LocalTimeValue(10, 30, 0);
+        var t2 = new LocalTimeValue(10, 30, 0);
+        Assert.AreEqual(t1, t2);
+        Assert.IsTrue(t1.Equals(t2));
+    }
+
+    [TestMethod]
+    public void RecurrenceRule_MonthlyRequiresMonthlyRule()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new RecurrenceRule(RecurrenceType.Monthly, 1, new LocalDateValue(2026, 12, 31)));
+    }
+
+    [TestMethod]
+    public void RecurrenceRule_YearlyRequiresYearlyRule()
+    {
+        Assert.ThrowsExactly<ArgumentException>(() =>
+            new RecurrenceRule(RecurrenceType.Yearly, 1, new LocalDateValue(2026, 12, 31)));
+    }
+
+    [TestMethod]
+    public void OccurrenceLocalKey_DifferentDate_NotEqual()
+    {
+        var k1 = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
+        var k2 = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 21), new LocalTimeValue(10, 0, 0));
+        Assert.AreNotEqual(k1, k2);
+    }
+
+    [TestMethod]
+    public void LocalDateValue_DayOfWeek_CorrectForKnownDate()
+    {
+        // 2026-04-20 is Monday
+        var d = new LocalDateValue(2026, 4, 20);
+        Assert.AreEqual(DayOfWeek.Monday, d.DayOfWeek);
+    }
+
+    [TestMethod]
+    public void LocalDateValue_InvalidDate_ShouldThrow()
+    {
+        Assert.ThrowsExactly<ArgumentOutOfRangeException>(() =>
+            new LocalDateValue(2026, 2, 30));
+    }
 }
