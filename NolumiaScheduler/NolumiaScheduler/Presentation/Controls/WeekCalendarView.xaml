@@ -5,7 +5,7 @@
              xmlns:controls="clr-namespace:NolumiaScheduler.Presentation.Controls"
              x:Class="NolumiaScheduler.Presentation.Controls.WeekCalendarView"
              x:Name="Root">
-    <ScrollView x:Name="WeekScroll" Orientation="Both">
+    <ScrollView x:Name="WeekScroll" Orientation="Both" Scrolled="OnWeekScrollScrolled">
         <Grid RowDefinitions="Auto,Auto,*" ColumnDefinitions="56,*"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
             <Label Grid.Row="1" Grid.Column="0" Text="終日" FontSize="10" VerticalTextAlignment="Center" Margin="2,0"/>
@@ -62,7 +62,7 @@
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
                                 </AbsoluteLayout>
-                                <AbsoluteLayout BindableLayout.ItemsSource="{Binding EventBlocks}">
+                                <AbsoluteLayout BindableLayout.ItemsSource="{Binding VisibleEventBlocks}">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="vm:WeekEventBlock">
                                             <Border Padding="6,4" BackgroundColor="{Binding BackgroundColor}" StrokeThickness="1" Stroke="Transparent" StrokeShape="RoundRectangle 6" MinimumHeightRequest="44"

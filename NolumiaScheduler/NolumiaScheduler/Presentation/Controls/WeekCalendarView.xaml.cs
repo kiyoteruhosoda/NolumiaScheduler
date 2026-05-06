@@ -17,6 +17,7 @@ public partial class WeekCalendarView : ContentView
     private Point _lastPoint;
     private bool _isResizing;
     private DateTime _suppressTapUntilUtc;
+    private DateTime _lastInteractionFrameUtc = DateTime.MinValue;
 
     public WeekInteractionPreview InteractionPreview
     {
@@ -86,9 +87,13 @@ public partial class WeekCalendarView : ContentView
     public IEnumerable? WeekTimeSlots { get => (IEnumerable?)GetValue(WeekTimeSlotsProperty); set => SetValue(WeekTimeSlotsProperty, value); }
     public static readonly BindableProperty WeekTimeSlotsProperty = BindableProperty.Create(nameof(WeekTimeSlots), typeof(IEnumerable), typeof(WeekCalendarView));
     public IEnumerable? WeekDayColumns { get => (IEnumerable?)GetValue(WeekDayColumnsProperty); set => SetValue(WeekDayColumnsProperty, value); }
-    public static readonly BindableProperty WeekDayColumnsProperty = BindableProperty.Create(nameof(WeekDayColumns), typeof(IEnumerable), typeof(WeekCalendarView));
+    public static readonly BindableProperty WeekDayColumnsProperty = BindableProperty.Create(
+        nameof(WeekDayColumns),
+        typeof(IEnumerable),
+        typeof(WeekCalendarView),
+        propertyChanged: (bindable, _, _) => ((WeekCalendarView)bindable).UpdateVirtualizedRanges());
     public IEnumerable? WeekAllDayEventBlocks { get => (IEnumerable?)GetValue(WeekAllDayEventBlocksProperty); set => SetValue(WeekAllDayEventBlocksProperty, value); }
-    public static readonly BindableProperty WeekAllDayEventBlocksProperty = BindableProperty.Create(nameof(WeekAllDayEventBlocks), typeof(IEnumerable), typeof(WeekCalendarView));
+    public static readonly BindableProperty WeekAllDayEventBlocksProperty = BindableProperty.Create(nameof(WeekAllDayEventBlocks), typeof(IEnumerable), typeof(WeekCalendarView), propertyChanged: (_, _, _) => { });
     public double WeekAllDayLaneHeight { get => (double)GetValue(WeekAllDayLaneHeightProperty); set => SetValue(WeekAllDayLaneHeightProperty, value); }
     public static readonly BindableProperty WeekAllDayLaneHeightProperty = BindableProperty.Create(nameof(WeekAllDayLaneHeight), typeof(double), typeof(WeekCalendarView), 28d);
     public double WeekCanvasHeight { get => (double)GetValue(WeekCanvasHeightProperty); set => SetValue(WeekCanvasHeightProperty, value); }
@@ -101,6 +106,11 @@ public partial class WeekCalendarView : ContentView
     public static readonly BindableProperty CurrentTimeLineTopProperty = BindableProperty.Create(nameof(CurrentTimeLineTop), typeof(double), typeof(WeekCalendarView), 0d);
     public DateTime WeekStartDate { get => (DateTime)GetValue(WeekStartDateProperty); set => SetValue(WeekStartDateProperty, value); }
     public static readonly BindableProperty WeekStartDateProperty = BindableProperty.Create(nameof(WeekStartDate), typeof(DateTime), typeof(WeekCalendarView), DateTime.Today);
+    public int VisibleStartMinute { get => (int)GetValue(VisibleStartMinuteProperty); private set => SetValue(VisibleStartMinuteProperty, value); }
+    public static readonly BindableProperty VisibleStartMinuteProperty = BindableProperty.Create(nameof(VisibleStartMinute), typeof(int), typeof(WeekCalendarView), 0);
+    public int VisibleEndMinute { get => (int)GetValue(VisibleEndMinuteProperty); private set => SetValue(VisibleEndMinuteProperty, value); }
+    public static readonly BindableProperty VisibleEndMinuteProperty = BindableProperty.Create(nameof(VisibleEndMinute), typeof(int), typeof(WeekCalendarView), 24 * 60);
+    public int InteractionFrameThrottleMs { get; set; } = 20;
 
     public string? SelectedEventId { get => (string?)GetValue(SelectedEventIdProperty); set => SetValue(SelectedEventIdProperty, value); }
     public static readonly BindableProperty SelectedEventIdProperty = BindableProperty.Create(nameof(SelectedEventId), typeof(string), typeof(WeekCalendarView), null);
@@ -208,6 +218,13 @@ public partial class WeekCalendarView : ContentView
 
     private void HandlePan(WeekEventBlock block, PanUpdatedEventArgs e, bool isResizeHandle)
     {
+        if (e.StatusType == GestureStatus.Running)
+        {
+            var now = DateTime.UtcNow;
+            if ((now - _lastInteractionFrameUtc).TotalMilliseconds < InteractionFrameThrottleMs) return;
+            _lastInteractionFrameUtc = now;
+        }
+
         var point = new Point(block.LeftRatio * WeekDayColumnWidth + e.TotalX, block.Top + e.TotalY);
         switch (e.StatusType)
         {
@@ -246,6 +263,24 @@ public partial class WeekCalendarView : ContentView
                 CancelCurrentInteraction();
                 break;
         }
+    }
+
+    private void OnWeekScrollScrolled(object? sender, ScrolledEventArgs e)
+    {
+        VisibleStartMinute = Math.Clamp((int)e.ScrollY, 0, 24 * 60);
+        var viewportHeight = WeekScroll.Height <= 0 ? 600 : WeekScroll.Height;
+        VisibleEndMinute = Math.Clamp((int)(e.ScrollY + viewportHeight), 0, 24 * 60);
+        UpdateVirtualizedRanges();
+    }
+
+    private void UpdateVirtualizedRanges()
+    {
+        if (WeekDayColumns is IEnumerable cols)
+        {
+            foreach (var col in cols.OfType<WeekDayColumn>())
+                col.UpdateVisibleRange(VisibleStartMinute, VisibleEndMinute);
+        }
+
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
