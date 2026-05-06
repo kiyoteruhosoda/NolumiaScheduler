@@ -52,6 +52,13 @@ public class JsonBusinessCalendarRepository : IBusinessCalendarRepository
         File.WriteAllText(GetFilePath(calendar.Id), json);
     }
 
+    public void Delete(BusinessCalendarId id)
+    {
+        var path = GetFilePath(id);
+        if (File.Exists(path))
+            File.Delete(path);
+    }
+
     private string GetFilePath(BusinessCalendarId id) => Path.Combine(_directoryPath, $"{id.Value}.json");
 }
 

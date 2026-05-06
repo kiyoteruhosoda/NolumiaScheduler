@@ -5,6 +5,32 @@
 
     <!-- Note: For Android please see also Platforms\Android\Resources\values\colors.xml -->
 
+    <!-- Google Calendar design tokens -->
+    <Color x:Key="GCalBlue">#1a73e8</Color>
+    <Color x:Key="GCalBlueDark">#8ab4f8</Color>
+    <Color x:Key="GCalBlueLight">#e8f0fe</Color>
+    <Color x:Key="GCalBlueLightDark">#1e3a5f</Color>
+    <Color x:Key="GCalRed">#d93025</Color>
+    <Color x:Key="GCalRedDark">#f28b82</Color>
+    <Color x:Key="GCalGreen">#1e8e3e</Color>
+    <Color x:Key="GCalGreenDark">#81c995</Color>
+    <Color x:Key="GCalTextPrimary">#202124</Color>
+    <Color x:Key="GCalTextSecondary">#70757a</Color>
+    <Color x:Key="GCalTextSecondaryDark">#9aa0a6</Color>
+    <Color x:Key="GCalSurface">#ffffff</Color>
+    <Color x:Key="GCalSurfaceDark">#1e1e1e</Color>
+    <Color x:Key="GCalSurfaceVariant">#f8f9fa</Color>
+    <Color x:Key="GCalSurfaceVariantDark">#2d2d2d</Color>
+    <Color x:Key="GCalBorder">#e0e0e0</Color>
+    <Color x:Key="GCalBorderDark">#3c3c3c</Color>
+    <Color x:Key="GCalSelectedCircle">#70757a</Color>
+    <!-- Moved-event chip (purple) -->
+    <Color x:Key="GCalEventMoved">#9c27b0</Color>
+    <Color x:Key="GCalEventMovedDark">#ce93d8</Color>
+    <!-- Out-of-current-month day number -->
+    <Color x:Key="GCalOutOfMonthText">#bdbdbd</Color>
+    <Color x:Key="GCalOutOfMonthTextDark">#555555</Color>
+
     <Color x:Key="Primary">#512BD4</Color>
     <Color x:Key="PrimaryDark">#ac99ea</Color>
     <Color x:Key="PrimaryDarkText">#242424</Color>

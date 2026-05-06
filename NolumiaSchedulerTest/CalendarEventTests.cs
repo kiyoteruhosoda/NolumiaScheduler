@@ -19,7 +19,7 @@ public class CalendarEventTests
     {
         var ev = CalendarEvent.CreateSingle(
             new EventId("evt_001"),
-            new EventTitle("チE��ト会議"),
+            new EventTitle("チE��ト会議"),
             new Location("会議室A"),
             Visibility.Public,
             null, null, Tokyo, false,
@@ -30,7 +30,7 @@ public class CalendarEventTests
 
         Assert.IsTrue(ev.IsSingle());
         Assert.IsFalse(ev.IsRecurring());
-        Assert.AreEqual("チE��ト会議", ev.Title.Value);
+        Assert.AreEqual("チE��ト会議", ev.Title.Value);
         Assert.AreEqual("会議室A", ev.Location!.Value);
         Assert.AreEqual(Visibility.Public, ev.Visibility);
     }
@@ -212,6 +212,73 @@ public class CalendarEventTests
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
 
         Assert.ThrowsExactly<DomainException>(() => ev.RemoveOccurrenceException(key, Now));
+    }
+
+    [TestMethod]
+    public void RemoveOccurrenceMove_ShouldRemove()
+    {
+        var ev = CreateWeeklyRecurring();
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
+        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
+            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+        ev.MoveOccurrence(move, Now);
+
+        ev.RemoveOccurrenceMove(key, Now);
+
+        Assert.IsFalse(ev.HasMoveFor(key));
+        Assert.AreEqual(0, ev.Moves.Count);
+    }
+
+    [TestMethod]
+    public void RemoveOccurrenceMove_NotFound_ShouldThrow()
+    {
+        var ev = CreateWeeklyRecurring();
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
+
+        Assert.ThrowsExactly<DomainException>(() => ev.RemoveOccurrenceMove(key, Now));
+    }
+
+    [TestMethod]
+    public void OverrideOccurrence_AlreadyMoved_ShouldThrow()
+    {
+        var ev = CreateWeeklyRecurring();
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
+        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
+            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+        ev.MoveOccurrence(move, Now);
+
+        var ov = new ExceptionOverride(title: new EventTitle("変更済み"));
+        Assert.ThrowsExactly<DomainException>(() => ev.OverrideOccurrence(key, ov, Now));
+    }
+
+    [TestMethod]
+    public void ChangeDetails_IncreasesVersionByOne()
+    {
+        var ev = CreateWeeklyRecurring();
+        var v0 = ev.Version.Value;
+
+        ev.ChangeDetails(new EventTitle("更新1"), null, Visibility.Public, null, null, Now);
+        ev.ChangeDetails(new EventTitle("更新2"), null, Visibility.Private, null, null, Now);
+
+        Assert.AreEqual(v0 + 2, ev.Version.Value);
+    }
+
+    [TestMethod]
+    public void SingleEvent_MoveOccurrence_ShouldThrow()
+    {
+        var ev = CalendarEvent.CreateSingle(
+            new EventId("evt_s02"),
+            new EventTitle("単発"),
+            null, Visibility.Public, null, null, Tokyo, false,
+            new SingleEventSchedule(
+                new DateTimeOffset(2026, 4, 20, 10, 0, 0, TimeSpan.FromHours(9)),
+                new DateTimeOffset(2026, 4, 20, 11, 0, 0, TimeSpan.FromHours(9))),
+            Now);
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
+        var move = new EventMove(key, new LocalDateValue(2026, 4, 21),
+            new LocalTimeValue(10, 0, 0), new LocalTimeValue(11, 0, 0));
+        Assert.ThrowsExactly<DomainException>(() => ev.MoveOccurrence(move, Now));
     }
 
     private static CalendarEvent CreateWeeklyRecurring()

@@ -1,10 +1,14 @@
-﻿namespace NolumiaScheduler
+using NolumiaScheduler.Presentation.Pages;
+
+namespace NolumiaScheduler;
+
+public partial class AppShell : Shell
 {
-    public partial class AppShell : Shell
+    public AppShell()
     {
-        public AppShell()
-        {
-            InitializeComponent();
-        }
+        InitializeComponent();
+
+        Routing.RegisterRoute("BusinessCalendarEdit", typeof(BusinessCalendarEditPage));
+        Routing.RegisterRoute("EventEdit",            typeof(EventEditPage));
     }
 }
