@@ -18,15 +18,24 @@ public sealed class CalendarEventItem
         if (occ.AllDay)
         {
             TimeRange = AppResources.AllDay;
+            StartMinuteOfDay = 0;
+            EndMinuteOfDay = 60;
         }
         else if (occ.StartTime != null && occ.EndTime != null)
         {
             TimeRange = $"{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2} – {occ.EndTime.Hour:D2}:{occ.EndTime.Minute:D2}";
+            StartMinuteOfDay = (occ.StartTime.Hour * 60) + occ.StartTime.Minute;
+            EndMinuteOfDay = (occ.EndTime.Hour * 60) + occ.EndTime.Minute;
         }
         else
         {
             TimeRange = "";
+            StartMinuteOfDay = 0;
+            EndMinuteOfDay = 60;
         }
+
+        if (EndMinuteOfDay <= StartMinuteOfDay)
+            EndMinuteOfDay = StartMinuteOfDay + 60;
 
         var badges = new List<string>();
         if (IsMoved) badges.Add(AppResources.BadgeMoved);
@@ -48,6 +57,8 @@ public sealed class CalendarEventItem
     public bool IsAllDay { get; }
     public bool IsMoved { get; }
     public bool IsOverridden { get; }
+    public int StartMinuteOfDay { get; }
+    public int EndMinuteOfDay { get; }
     public bool HasLocation => !string.IsNullOrEmpty(Location);
     public bool HasBadge => BadgeText != null;
 }
