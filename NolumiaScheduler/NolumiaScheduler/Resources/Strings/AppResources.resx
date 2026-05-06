@@ -16,6 +16,10 @@
   <data name="DayFri" xml:space="preserve"><value>Fri</value></data>
   <data name="DaySat" xml:space="preserve"><value>Sat</value></data>
 
+  <data name="MonthViewLabel" xml:space="preserve"><value>月表示</value></data>
+  <data name="WeekViewLabel" xml:space="preserve"><value>週表示</value></data>
+  <data name="WeekViewHint" xml:space="preserve"><value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value></data>
+
   <data name="AllDay" xml:space="preserve"><value>All day</value></data>
   <data name="BadgeMoved" xml:space="preserve"><value>Moved</value></data>
   <data name="BadgeModified" xml:space="preserve"><value>Modified</value></data>

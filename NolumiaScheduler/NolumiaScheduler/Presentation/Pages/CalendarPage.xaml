@@ -41,7 +41,7 @@
           4  6×7 calendar grid (*)
           5  Selected-day events panel (Auto)
     -->
-    <Grid RowDefinitions="48,1,36,1,*,Auto">
+    <Grid RowDefinitions="48,40,1,36,1,*,Auto">
 
         <!-- ── Header ── -->
         <Grid Grid.Row="0"
@@ -117,12 +117,19 @@
             </Border>
         </Grid>
 
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="12,4" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+            <Button Grid.Column="0" Text="{x:Static res:AppResources.MonthViewLabel}" Command="{Binding SwitchToMonthViewCommand}" />
+            <Button Grid.Column="1" Text="{x:Static res:AppResources.WeekViewLabel}" Command="{Binding SwitchToWeekViewCommand}" />
+        </Grid>
+
         <!-- ── Separator: header / day-of-week ── -->
-        <BoxView Grid.Row="1"
+        <BoxView Grid.Row="2"
                  BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
 
         <!-- ── Day-of-week labels ── -->
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="3"
+              IsVisible="{Binding IsMonthMode}"
               ColumnDefinitions="*,*,*,*,*,*,*"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
 
@@ -157,11 +164,11 @@
         </Grid>
 
         <!-- ── Separator: day-of-week / calendar grid ── -->
-        <BoxView Grid.Row="3"
+        <BoxView Grid.Row="4" IsVisible="{Binding IsMonthMode}"
                  BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
 
         <!-- ── 6×7 calendar grid ── -->
-        <CollectionView Grid.Row="4"
+        <CollectionView Grid.Row="5" IsVisible="{Binding IsMonthMode}"
                         x:Name="DayCellsView"
                         ItemsSource="{Binding DayCells}"
                         SelectionMode="Single"
@@ -260,8 +267,79 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
+
+        <Grid Grid.Row="5" IsVisible="{Binding IsWeekMode}" RowDefinitions="Auto,*" ColumnDefinitions="56,*" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+            <CollectionView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding WeekTimeSlots}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WeekTimeSlot">
+                        <Label Text="{Binding HourLabel}" FontSize="10" HeightRequest="60" VerticalTextAlignment="Start" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+
+            <CollectionView Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" ItemsSource="{Binding WeekDayColumns}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="7" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WeekDayColumn">
+                        <Grid RowDefinitions="Auto,*" Margin="1,0">
+                            <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" />
+                            <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#1E1E1E}">
+                                <BoxView Color="{AppThemeBinding Light=#E0E0E0, Dark=#333333}" AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All" />
+                                <VerticalStackLayout AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All" Spacing="0" InputTransparent="True">
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                </VerticalStackLayout>
+                                <FlexLayout BindableLayout.ItemsSource="{Binding EventBlocks}" Direction="Column" />
+                                <AbsoluteLayout BindableLayout.ItemsSource="{Binding EventBlocks}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:WeekEventBlock">
+                                            <Border Padding="3"
+                                                    BackgroundColor="{Binding BackgroundColor}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 4"
+                                                    AbsoluteLayout.LayoutBounds="{Binding LeftRatio}, {Binding Top}, {Binding WidthRatio}, {Binding Height}"
+                                                    AbsoluteLayout.LayoutFlags="XProportional,WidthProportional">
+                                                <VerticalStackLayout Spacing="0">
+                                                    <Label Text="{Binding TimeLabel}" FontSize="9" TextColor="White" />
+                                                    <Label Text="{Binding Title}" FontSize="10" TextColor="White" LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </AbsoluteLayout>
+                            </AbsoluteLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
         <!-- ── Selected-day events panel ── -->
-        <Grid Grid.Row="5"
+        <Grid Grid.Row="6"
               IsVisible="{Binding HasSelectedDay}"
               RowDefinitions="1,44,Auto,Auto,Auto"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
