@@ -9,12 +9,20 @@ namespace NolumiaScheduler.Presentation.Controls;
 public partial class WeekCalendarView : ContentView
 {
     private readonly IWeekInteractionMapper _mapper;
+    private readonly IWeekGestureArbitrationService _gestureArbitrationService;
+    private readonly IWeekAutoScrollService _autoScrollService;
     private WeekInteractionState _interactionState = WeekInteractionState.Idle;
     private WeekEventBlock? _activeBlock;
     private Point _pressStartPoint;
     private Point _lastPoint;
 
-    public WeekInteractionPreview InteractionPreview { get; private set; } = new() { IsVisible = false };
+    public WeekInteractionPreview InteractionPreview
+    {
+        get => (WeekInteractionPreview)GetValue(InteractionPreviewProperty);
+        private set => SetValue(InteractionPreviewProperty, value);
+    }
+    public static readonly BindableProperty InteractionPreviewProperty =
+        BindableProperty.Create(nameof(InteractionPreview), typeof(WeekInteractionPreview), typeof(WeekCalendarView), new WeekInteractionPreview { IsVisible = false });
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
@@ -25,6 +33,8 @@ public partial class WeekCalendarView : ContentView
     {
         InitializeComponent();
         _mapper = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();
+        _gestureArbitrationService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
+        _autoScrollService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
     }
 
     protected override async void OnHandlerChanged()
@@ -63,7 +73,9 @@ public partial class WeekCalendarView : ContentView
             EventId = eventId,
             Date = date,
             StartMinute = startMinute,
-            EndMinute = endMinute
+            EndMinute = endMinute,
+            LeftRatio = _activeBlock?.LeftRatio ?? 0,
+            WidthRatio = _activeBlock?.WidthRatio ?? 1
         };
     }
 
@@ -128,6 +140,9 @@ public partial class WeekCalendarView : ContentView
     // Resize本実装前の統合ポイント: 将来下端ドラッグから呼ぶ
     public void CompleteResize(string eventId, DateTime date, int startMinute, double previewHeight)
     {
+        var decision = _gestureArbitrationService.Decide(true, true, _pressStartPoint, new Point(_pressStartPoint.X, previewHeight), TimeSpan.FromMilliseconds(350));
+        if (decision == WeekGestureDecision.Cancel) { CancelCurrentInteraction(); return; }
+
         TransitionTo(WeekInteractionState.DraggingResize, _activeBlock, new Point(0, previewHeight));
         var endMinute = Math.Max(startMinute + 15, _mapper.HeightToMinute(previewHeight));
         UpdatePreview(eventId, date, startMinute, endMinute);
@@ -145,8 +160,14 @@ public partial class WeekCalendarView : ContentView
     // Drag本実装前の統合ポイント: 将来Pan/LongPressから呼ぶ
     public void CompleteDrag(string eventId, Point point, DateTime weekStartDate)
     {
+        var decision = _gestureArbitrationService.Decide(true, false, _pressStartPoint, point, TimeSpan.FromMilliseconds(350));
+        if (decision != WeekGestureDecision.Drag && decision != WeekGestureDecision.LongPress) return;
+
         TransitionTo(WeekInteractionState.DraggingMove, _activeBlock, point);
         var dt = _mapper.MapToDateTime(point, weekStartDate, WeekDayColumnWidth);
+        var dy = _autoScrollService.ComputeVerticalDelta(point.Y, WeekScroll.Height);
+        if (Math.Abs(dy) > 0.01)
+            WeekScroll.ScrollToAsync(WeekScroll.ScrollX, Math.Max(0, WeekScroll.ScrollY + dy), false);
         UpdatePreview(eventId, dt.Date, dt.Hour * 60 + dt.Minute, dt.Hour * 60 + dt.Minute + 60);
         EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
         {
@@ -156,6 +177,13 @@ public partial class WeekCalendarView : ContentView
         });
         TransitionTo(WeekInteractionState.Idle);
         ClearPreview();
+    }
+
+    public void CancelCurrentInteraction()
+    {
+        TransitionTo(WeekInteractionState.Canceled);
+        ClearPreview();
+        TransitionTo(WeekInteractionState.Idle);
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
