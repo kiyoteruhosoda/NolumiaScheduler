@@ -4,44 +4,92 @@ namespace NolumiaScheduler.Presentation.Services;
 
 public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
 {
+    private const int MinimumEventHeight = 24;
+
     public IReadOnlyList<WeekEventBlock> Layout(IReadOnlyList<CalendarEventItem> events)
     {
-        var segments = events.Select(e => new Segment(e, e.IsAllDay ? 0 : e.StartMinuteOfDay, e.IsAllDay ? 60 : e.EndMinuteOfDay))
-            .OrderBy(s => s.Start).ThenBy(s => s.End).ToList();
+        var segments = events
+            .Where(e => !e.IsAllDay)
+            .Select(e => new Segment(e, e.StartMinuteOfDay, e.EndMinuteOfDay))
+            .OrderBy(s => s.Start)
+            .ThenBy(s => s.End)
+            .ToList();
 
-        var blocks = new List<WeekEventBlock>();
-        var active = new List<Segment>();
-
-        foreach (var seg in segments)
+        var grouped = GroupOverlaps(segments);
+        foreach (var group in grouped)
         {
-            active.RemoveAll(a => a.End <= seg.Start);
-            var used = active.Select(a => a.Column).ToHashSet();
-            var col = 0;
-            while (used.Contains(col)) col++;
-            seg.Column = col;
-            active.Add(seg);
-            seg.ColumnCount = Math.Max(seg.ColumnCount, active.Max(a => a.Column) + 1);
-            foreach (var a in active) a.ColumnCount = Math.Max(a.ColumnCount, seg.ColumnCount);
+            AssignColumns(group);
         }
 
-        foreach (var s in segments)
+        return segments.Select(ToBlock).ToList();
+    }
+
+    private static List<List<Segment>> GroupOverlaps(IReadOnlyList<Segment> ordered)
+    {
+        var groups = new List<List<Segment>>();
+        if (ordered.Count == 0) return groups;
+
+        var current = new List<Segment>();
+        var currentMaxEnd = -1;
+        foreach (var segment in ordered)
         {
-            var duration = Math.Max(24, s.End - s.Start);
-            blocks.Add(new WeekEventBlock
+            if (current.Count == 0 || segment.Start < currentMaxEnd)
             {
-                EventId = s.Item.EventId,
-                OccurrenceKey = s.Item.OccurrenceKey.ToString() ?? string.Empty,
-                Title = s.Item.Title,
-                TimeLabel = s.Item.TimeRange,
-                BackgroundColor = s.Item.DotColor,
-                Top = s.Start,
-                Height = duration,
-                LeftRatio = s.ColumnCount <= 1 ? 0 : (double)s.Column / s.ColumnCount,
-                WidthRatio = s.ColumnCount <= 1 ? 1 : 1d / s.ColumnCount,
-            });
+                current.Add(segment);
+                currentMaxEnd = Math.Max(currentMaxEnd, segment.End);
+                continue;
+            }
+
+            groups.Add(current);
+            current = [segment];
+            currentMaxEnd = segment.End;
         }
 
-        return blocks;
+        if (current.Count > 0) groups.Add(current);
+        return groups;
+    }
+
+    private static void AssignColumns(List<Segment> group)
+    {
+        var active = new List<Segment>();
+        var maxColumn = 0;
+
+        foreach (var segment in group.OrderBy(s => s.Start).ThenBy(s => s.End))
+        {
+            active.RemoveAll(a => a.End <= segment.Start);
+            var used = active.Select(a => a.Column).ToHashSet();
+
+            var column = 0;
+            while (used.Contains(column)) column++;
+
+            segment.Column = column;
+            maxColumn = Math.Max(maxColumn, column);
+            active.Add(segment);
+        }
+
+        var columnCount = maxColumn + 1;
+        foreach (var segment in group)
+        {
+            segment.ColumnCount = columnCount;
+        }
+    }
+
+    private static WeekEventBlock ToBlock(Segment segment)
+    {
+        var duration = Math.Max(MinimumEventHeight, segment.End - segment.Start);
+
+        return new WeekEventBlock
+        {
+            EventId = segment.Item.EventId,
+            OccurrenceKey = segment.Item.OccurrenceKey,
+            Title = segment.Item.Title,
+            TimeLabel = segment.Item.TimeRange,
+            BackgroundColor = segment.Item.DotColor,
+            Top = segment.Start,
+            Height = duration,
+            LeftRatio = segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
+            WidthRatio = segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
+        };
     }
 
     private sealed class Segment(CalendarEventItem item, int start, int end)
@@ -53,4 +101,3 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
         public int ColumnCount { get; set; } = 1;
     }
 }
-

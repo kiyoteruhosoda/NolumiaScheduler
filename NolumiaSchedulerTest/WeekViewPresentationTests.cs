@@ -21,13 +21,12 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 終日イベントは一日の先頭スロットに表示される()
+    public void 終日イベントは時間グリッドに表示しない()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([CreateItem("all", null, null, null, null, true)]);
 
-        Assert.AreEqual(0d, blocks[0].Top);
-        Assert.AreEqual(60d, blocks[0].Height);
+        Assert.HasCount(0, blocks);
     }
 
     [TestMethod]
@@ -48,6 +47,56 @@ public class WeekViewPresentationTests
         Assert.AreEqual("14:15 – 15:00", item.TimeRange);
         Assert.AreEqual(855, item.StartMinuteOfDay);
         Assert.AreEqual(900, item.EndMinuteOfDay);
+    }
+
+
+    [TestMethod]
+    public void 重ならない予定は幅100パーセントになる()
+    {
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("a", 9, 0, 10, 0, false),
+            CreateItem("b", 10, 0, 11, 0, false),
+        ]);
+
+        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - 1d) < 0.0001));
+    }
+
+    [TestMethod]
+    public void 完全重複2件は幅50パーセントずつになる()
+    {
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("a", 9, 0, 10, 0, false),
+            CreateItem("b", 9, 0, 10, 0, false),
+        ]);
+
+        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - 0.5d) < 0.0001));
+    }
+
+    [TestMethod]
+    public void 三重複は幅3分の1ずつになる()
+    {
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("a", 9, 0, 11, 0, false),
+            CreateItem("b", 9, 30, 10, 30, false),
+            CreateItem("c", 9, 45, 10, 15, false),
+        ]);
+
+        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - (1d / 3d)) < 0.0001));
+    }
+
+    [TestMethod]
+    public void 連続予定は重複扱いしない()
+    {
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("a", 9, 0, 10, 0, false),
+            CreateItem("b", 10, 0, 11, 0, false),
+        ]);
+
+        Assert.IsTrue(blocks.All(b => Math.Abs(b.LeftRatio) < 0.0001));
     }
 
     private static CalendarEventItem CreateItem(string id, int? sh, int? sm, int? eh, int? em, bool allDay)

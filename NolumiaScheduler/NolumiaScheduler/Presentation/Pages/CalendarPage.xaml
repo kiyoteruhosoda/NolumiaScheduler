@@ -297,7 +297,7 @@
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:WeekDayColumn">
-                        <Grid RowDefinitions="Auto,*" Margin="1,0" WidthRequest="180">
+                        <Grid RowDefinitions="Auto,*" Margin="1,0" WidthRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekDayColumnWidth}">
                             <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" FontAttributes="{Binding HeaderFontAttributes}" TextColor="{Binding HeaderTextColor}" />
                             <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{Binding DayBackgroundColor}">
                                 <AbsoluteLayout BindableLayout.ItemsSource="{Binding GuideLines}" InputTransparent="True">
@@ -316,7 +316,6 @@
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
                                 </AbsoluteLayout>
-                                <FlexLayout BindableLayout.ItemsSource="{Binding EventBlocks}" Direction="Column" />
                                 <AbsoluteLayout BindableLayout.ItemsSource="{Binding EventBlocks}">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="vm:WeekEventBlock">
