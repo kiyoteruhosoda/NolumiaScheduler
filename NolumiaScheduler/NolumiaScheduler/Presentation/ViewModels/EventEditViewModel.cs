@@ -4,9 +4,11 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
+using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Resources.Strings;
+using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -22,6 +24,7 @@ public enum AdjustmentIndex { None = 0, Forward = 1, Backward = 2 }
 public sealed class EventEditViewModel : INotifyPropertyChanged
 {
     private readonly CalendarEventApplicationService _eventService;
+    private readonly ICalendarEventRepository _eventRepo;
     private readonly IBusinessCalendarRepository _calendarRepo;
 
     // ── Basic fields ──────────────────────────────────────────
@@ -29,6 +32,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     private string _location = "";
     private bool _allDay;
     private DateTime _startDate = DateTime.Today;
+
     private TimeSpan _startTime = new(9, 0, 0);
     private TimeSpan _endTime = new(10, 0, 0);
 
@@ -58,13 +62,16 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     private int _selectedCalendarIndex = -1;
 
     private string _validationError = "";
+    private string? _editingEventId;
 
     // ── Constructor ──────────────────────────────────────────
     public EventEditViewModel(
         CalendarEventApplicationService eventService,
+        ICalendarEventRepository eventRepo,
         IBusinessCalendarRepository calendarRepo)
     {
         _eventService = eventService;
+        _eventRepo = eventRepo;
         _calendarRepo = calendarRepo;
 
         SaveCommand = new Command(Save);
@@ -73,6 +80,108 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         _weekMon = true;
 
         LoadAvailableCalendars();
+    }
+
+    public bool IsEditing => _editingEventId != null;
+    public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;
+
+    public void LoadEvent(string eventId)
+    {
+        var ev = _eventRepo.FindById(new EventId(eventId));
+        if (ev == null) return;
+
+        _editingEventId = eventId;
+        OnPropertyChanged(nameof(IsEditing));
+        OnPropertyChanged(nameof(PageTitle));
+
+        Title = ev.Title.Value;
+        Location = ev.Location?.Value ?? "";
+        AllDay = ev.AllDay;
+
+        if (ev.IsSingle() && ev.SingleSchedule != null)
+        {
+            var tz = ev.TimeZoneId.ToTimeZoneInfo();
+            var startLocal = TimeZoneInfo.ConvertTime(ev.SingleSchedule.Start, tz);
+            var endLocal   = TimeZoneInfo.ConvertTime(ev.SingleSchedule.End, tz);
+            StartDate = startLocal.DateTime.Date;
+            StartTime = startLocal.TimeOfDay;
+            EndTime   = endLocal.TimeOfDay;
+            RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.None;
+        }
+        else if (ev.IsRecurring() && ev.RecurringSchedule != null)
+        {
+            var sched = ev.RecurringSchedule;
+            StartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
+            StartTime = sched.StartTime != null ? new TimeSpan(sched.StartTime.Hour, sched.StartTime.Minute, 0) : new TimeSpan(9, 0, 0);
+            EndTime   = sched.EndTime   != null ? new TimeSpan(sched.EndTime.Hour,   sched.EndTime.Minute,   0) : new TimeSpan(10, 0, 0);
+            LoadRecurrenceRule(sched.RecurrenceRule);
+        }
+    }
+
+    private void LoadRecurrenceRule(RecurrenceRule rule)
+    {
+        EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
+        Interval = rule.Interval;
+
+        switch (rule.RuleType)
+        {
+            case RecurrenceType.Weekly:
+                RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.Weekly;
+                if (rule.Weekly != null)
+                {
+                    WeekSun = rule.Weekly.Weekdays.Contains(Weekday.Sunday);
+                    WeekMon = rule.Weekly.Weekdays.Contains(Weekday.Monday);
+                    WeekTue = rule.Weekly.Weekdays.Contains(Weekday.Tuesday);
+                    WeekWed = rule.Weekly.Weekdays.Contains(Weekday.Wednesday);
+                    WeekThu = rule.Weekly.Weekdays.Contains(Weekday.Thursday);
+                    WeekFri = rule.Weekly.Weekdays.Contains(Weekday.Friday);
+                    WeekSat = rule.Weekly.Weekdays.Contains(Weekday.Saturday);
+                }
+                break;
+            case RecurrenceType.Monthly:
+                RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.Monthly;
+                if (rule.Monthly is DayOfMonthMonthlyRule dom)
+                {
+                    MonthlyRuleIndex = (int)ViewModels.MonthlyRuleIndex.DayOfMonth;
+                    DayOfMonth = dom.Day;
+                }
+                else if (rule.Monthly is NthWeekdayMonthlyRule nth)
+                {
+                    MonthlyRuleIndex = (int)ViewModels.MonthlyRuleIndex.NthWeekday;
+                    WeekIndexPickerIndex = nth.WeekIndex == -1 ? 5 : nth.WeekIndex - 1;
+                    MonthlyWeekdayIndex = (int)nth.Weekday;
+                }
+                break;
+            case RecurrenceType.Yearly:
+                RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.Yearly;
+                if (rule.Yearly is DayOfMonthYearlyRule domY)
+                {
+                    YearlyRuleIndex = 0;
+                    YearlyMonth = domY.Month;
+                    YearlyDay   = domY.Day;
+                }
+                else if (rule.Yearly is NthWeekdayYearlyRule nthY)
+                {
+                    YearlyRuleIndex = 1;
+                    YearlyMonth = nthY.Month;
+                    YearlyWeekIndexPickerIndex = nthY.WeekIndex == -1 ? 5 : nthY.WeekIndex - 1;
+                    YearlyWeekdayIndex = (int)nthY.Weekday;
+                }
+                break;
+        }
+
+        if (rule.Adjustment != null)
+        {
+            AdjustmentIndex = rule.Adjustment.ShiftAmount > 0
+                ? (int)ViewModels.AdjustmentIndex.Forward
+                : (int)ViewModels.AdjustmentIndex.Backward;
+
+            if (rule.Adjustment.CalendarId != null)
+            {
+                var idx = _availableCalendarIds.IndexOf(rule.Adjustment.CalendarId.Value);
+                SelectedCalendarIndex = idx;
+            }
+        }
     }
 
     // ── Picker item lists ─────────────────────────────────────
@@ -329,7 +438,9 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
         try
         {
-            if (!IsRecurring)
+            if (_editingEventId != null)
+                UpdateExisting(_editingEventId);
+            else if (!IsRecurring)
                 SaveSingle();
             else
                 SaveRecurring();
@@ -341,6 +452,44 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         {
             ValidationError = ex.Message;
         }
+    }
+
+    private void UpdateExisting(string eventId)
+    {
+        var ev = _eventRepo.FindById(new EventId(eventId));
+        if (ev == null) { ValidationError = "Event not found."; return; }
+
+        ev.ChangeDetails(
+            new EventTitle(Title.Trim()),
+            string.IsNullOrWhiteSpace(Location) ? null : new Location(Location.Trim()),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            ev.EventType,
+            ev.Description,
+            DateTimeOffset.UtcNow);
+
+        if (ev.IsSingle() && ev.SingleSchedule != null)
+        {
+            var tz = ev.TimeZoneId.Value;
+            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
+            DateTimeOffset start, end;
+            if (AllDay)
+            {
+                var offset = tzInfo.GetUtcOffset(StartDate);
+                start = new DateTimeOffset(StartDate.Year, StartDate.Month, StartDate.Day, 0, 0, 0, offset);
+                end = start.AddDays(1);
+            }
+            else
+            {
+                var startDt = StartDate.Date + StartTime;
+                var endDt   = StartDate.Date + EndTime;
+                var offset  = tzInfo.GetUtcOffset(startDt);
+                start = new DateTimeOffset(startDt, offset);
+                end   = new DateTimeOffset(endDt, offset);
+            }
+            ev.RescheduleSingle(new SingleEventSchedule(start, end), DateTimeOffset.UtcNow);
+        }
+
+        _eventRepo.Save(ev);
     }
 
     private void SaveSingle()

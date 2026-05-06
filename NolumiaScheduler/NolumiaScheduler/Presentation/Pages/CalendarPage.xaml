@@ -229,10 +229,10 @@
                 <VerticalStackLayout BindableLayout.ItemsSource="{Binding SelectedDayEvents}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:CalendarEventItem">
-                            <Grid Padding="16,10,16,6"
+                            <Grid Padding="16,10,8,6"
                                   MinimumHeightRequest="48"
-                                  ColumnDefinitions="14,*"
-                                  ColumnSpacing="12">
+                                  ColumnDefinitions="14,*,40,40"
+                                  ColumnSpacing="8">
 
                                 <!-- Colored dot -->
                                 <BoxView Grid.Column="0"
@@ -267,6 +267,32 @@
                                                TextColor="{AppThemeBinding Light={StaticResource GCalBlue}, Dark={StaticResource GCalBlueDark}}" />
                                     </Border>
                                 </VerticalStackLayout>
+
+                                <!-- Edit button -->
+                                <Button Grid.Column="2"
+                                        Text="✏"
+                                        FontSize="14"
+                                        BackgroundColor="Transparent"
+                                        BorderWidth="0"
+                                        TextColor="{AppThemeBinding Light={StaticResource GCalBlue}, Dark={StaticResource GCalBlueDark}}"
+                                        Padding="0"
+                                        WidthRequest="40"
+                                        HeightRequest="40"
+                                        VerticalOptions="Start"
+                                        Clicked="OnEditEventClicked" />
+
+                                <!-- Delete button -->
+                                <Button Grid.Column="3"
+                                        Text="🗑"
+                                        FontSize="14"
+                                        BackgroundColor="Transparent"
+                                        BorderWidth="0"
+                                        TextColor="{StaticResource GCalRed}"
+                                        Padding="0"
+                                        WidthRequest="40"
+                                        HeightRequest="40"
+                                        VerticalOptions="Start"
+                                        Clicked="OnDeleteEventClicked" />
                             </Grid>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>

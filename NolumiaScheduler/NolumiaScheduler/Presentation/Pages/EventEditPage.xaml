@@ -5,7 +5,7 @@
              xmlns:res="clr-namespace:NolumiaScheduler.Resources.Strings"
              x:Class="NolumiaScheduler.Presentation.Pages.EventEditPage"
              x:DataType="vm:EventEditViewModel"
-             Title="{x:Static res:AppResources.NewEventTitle}">
+             Title="{Binding PageTitle}">
 
     <ScrollView BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
         <VerticalStackLayout Padding="16" Spacing="0">

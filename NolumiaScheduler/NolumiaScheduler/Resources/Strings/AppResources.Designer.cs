@@ -95,6 +95,15 @@ public static class AppResources
     public static string ErrorTitleRequired     => Get(nameof(ErrorTitleRequired));
     public static string ErrorWeekdayRequired   => Get(nameof(ErrorWeekdayRequired));
 
+    // Event actions
+    public static string EditButton              => Get(nameof(EditButton));
+    public static string DeleteButton            => Get(nameof(DeleteButton));
+    public static string CancelButton            => Get(nameof(CancelButton));
+    public static string DeleteEventTitle        => Get(nameof(DeleteEventTitle));
+    public static string DeleteOccurrence        => Get(nameof(DeleteOccurrence));
+    public static string DeleteAllOccurrences    => Get(nameof(DeleteAllOccurrences));
+    public static string EditEventTitle          => Get(nameof(EditEventTitle));
+
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
 }

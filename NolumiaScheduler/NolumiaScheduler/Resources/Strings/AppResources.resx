@@ -68,6 +68,15 @@
   <data name="ErrorTitleRequired" xml:space="preserve"><value>Title is required.</value></data>
   <data name="ErrorWeekdayRequired" xml:space="preserve"><value>Select at least one day.</value></data>
 
+  <!-- Event actions -->
+  <data name="EditButton" xml:space="preserve"><value>Edit</value></data>
+  <data name="DeleteButton" xml:space="preserve"><value>Delete</value></data>
+  <data name="CancelButton" xml:space="preserve"><value>Cancel</value></data>
+  <data name="DeleteEventTitle" xml:space="preserve"><value>Delete Event</value></data>
+  <data name="DeleteOccurrence" xml:space="preserve"><value>Delete this occurrence</value></data>
+  <data name="DeleteAllOccurrences" xml:space="preserve"><value>Delete all occurrences</value></data>
+  <data name="EditEventTitle" xml:space="preserve"><value>Edit Event</value></data>
+
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>

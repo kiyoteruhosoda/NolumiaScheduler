@@ -144,4 +144,14 @@ public class CalendarEventApplicationService
         return _repository.FindById(id)
             ?? throw new DomainException($"Event not found: {eventId}");
     }
+
+    public void DeleteEvent(string eventId)
+    {
+        _repository.Delete(new EventId(eventId));
+    }
+
+    public void DeleteOccurrence(SkipOccurrenceCommand command)
+    {
+        SkipOccurrence(command);
+    }
 }

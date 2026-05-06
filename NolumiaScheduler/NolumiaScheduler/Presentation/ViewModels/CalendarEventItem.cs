@@ -7,6 +7,8 @@ public sealed class CalendarEventItem
 {
     public CalendarEventItem(EventOccurrence occ)
     {
+        EventId = occ.EventId.Value;
+        OccurrenceKey = new OccurrenceLocalKey(occ.Date, occ.AllDay ? null : occ.StartTime);
         Title = occ.Title.Value;
         Location = occ.Location?.Value;
         IsAllDay = occ.AllDay;
@@ -36,6 +38,8 @@ public sealed class CalendarEventItem
                    Color.FromArgb("#1a73e8");
     }
 
+    public string EventId { get; }
+    public OccurrenceLocalKey OccurrenceKey { get; }
     public string Title { get; }
     public string? Location { get; }
     public string TimeRange { get; }

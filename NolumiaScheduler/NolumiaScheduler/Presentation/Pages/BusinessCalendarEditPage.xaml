@@ -92,12 +92,13 @@
             <Label Text="{x:Static res:AppResources.HolidaysLabel}"
                    FontSize="12"
                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
-                   Margin="4,20,0,8" />
+                   Margin="4,20,0,4" />
 
             <!-- Holiday list -->
             <Border BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}"
                     StrokeThickness="0"
-                    StrokeShape="RoundRectangle 8">
+                    StrokeShape="RoundRectangle 8"
+                    Margin="0,0,0,2">
                 <VerticalStackLayout BindableLayout.ItemsSource="{Binding Holidays}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:HolidayDisplayItem">
@@ -122,30 +123,35 @@
                             </Grid>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>
-                    <!-- Add holiday row -->
-                    <Grid Padding="12,8" ColumnDefinitions="*,*,56" ColumnSpacing="8"
-                          BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
-                        <DatePicker Grid.Column="0"
-                                    Date="{Binding NewHolidayDate}"
-                                    FontSize="13"
-                                    MinimumHeightRequest="40"
-                                    TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
-                        <Entry Grid.Column="1"
-                               Text="{Binding NewHolidayName}"
-                               Placeholder="{x:Static res:AppResources.HolidayNamePlaceholder}"
-                               FontSize="13"
-                               TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
-                        <Button Grid.Column="2"
-                                Text="{x:Static res:AppResources.AddHolidayButton}"
-                                Command="{Binding AddHolidayCommand}"
-                                BackgroundColor="{StaticResource GCalBlue}"
-                                TextColor="{StaticResource White}"
-                                FontSize="13"
-                                Padding="4,0"
-                                CornerRadius="6"
-                                HeightRequest="40" />
-                    </Grid>
                 </VerticalStackLayout>
+            </Border>
+
+            <!-- Add holiday row (outside BindableLayout to keep correct BindingContext) -->
+            <Border BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,8">
+                <Grid ColumnDefinitions="*,*,56" ColumnSpacing="8">
+                    <DatePicker Grid.Column="0"
+                                Date="{Binding NewHolidayDate}"
+                                FontSize="13"
+                                MinimumHeightRequest="40"
+                                TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
+                    <Entry Grid.Column="1"
+                           Text="{Binding NewHolidayName}"
+                           Placeholder="{x:Static res:AppResources.HolidayNamePlaceholder}"
+                           FontSize="13"
+                           TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
+                    <Button Grid.Column="2"
+                            Text="{x:Static res:AppResources.AddHolidayButton}"
+                            Command="{Binding AddHolidayCommand}"
+                            BackgroundColor="{StaticResource GCalBlue}"
+                            TextColor="{StaticResource White}"
+                            FontSize="13"
+                            Padding="4,0"
+                            CornerRadius="6"
+                            HeightRequest="40" />
+                </Grid>
             </Border>
 
             <!-- ── Save Button ── -->

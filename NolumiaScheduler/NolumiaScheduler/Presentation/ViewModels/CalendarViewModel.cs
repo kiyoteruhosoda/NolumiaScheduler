@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using NolumiaScheduler.Application.Commands;
+using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
@@ -15,6 +17,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private readonly ICalendarEventRepository _events;
     private readonly IBusinessCalendarRepository _businessCalendars;
     private readonly IOccurrenceExpander _expander;
+    private readonly CalendarEventApplicationService _eventService;
 
     private DateTime _month;
     private CalendarDayCell? _selectedCell;
@@ -26,11 +29,13 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public CalendarViewModel(
         ICalendarEventRepository events,
         IBusinessCalendarRepository businessCalendars,
-        IOccurrenceExpander expander)
+        IOccurrenceExpander expander,
+        CalendarEventApplicationService eventService)
     {
         _events = events;
         _businessCalendars = businessCalendars;
         _expander = expander;
+        _eventService = eventService;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
         DayCells = [];
@@ -76,8 +81,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
     public void SelectDay(CalendarDayCell cell)
     {
-        if (_selectedCell != null)
-            _selectedCell.IsSelected = false;
+        _selectedCell?.IsSelected = false;
 
         _selectedCell = cell;
         cell.IsSelected = true;
@@ -93,6 +97,23 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     }
 
     public void ReloadCurrentMonth() => LoadMonth();
+
+    public void DeleteEntireEvent(string eventId)
+    {
+        _eventService.DeleteEvent(eventId);
+        LoadMonth();
+        // Refresh selected day events if a day is selected
+        if (_selectedCell != null)
+            SelectDay(_selectedCell);
+    }
+
+    public void DeleteOccurrence(string eventId, OccurrenceLocalKey key)
+    {
+        _eventService.DeleteOccurrence(new SkipOccurrenceCommand(eventId, key));
+        LoadMonth();
+        if (_selectedCell != null)
+            SelectDay(_selectedCell);
+    }
 
     private void Navigate(int months)
     {
@@ -110,8 +131,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
     private void ClearSelection()
     {
-        if (_selectedCell != null)
-            _selectedCell.IsSelected = false;
+        _selectedCell?.IsSelected = false;
         _selectedCell = null;
         HasSelectedDay = false;
         SelectedDayHasNoEvents = false;
