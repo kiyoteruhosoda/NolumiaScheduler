@@ -167,7 +167,9 @@ public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
 
         if (_calendarId == null)
         {
-            _service.Create(new CreateBusinessCalendarCommand(Name.Trim(), timezone, workdays));
+            var created = _service.Create(new CreateBusinessCalendarCommand(Name.Trim(), timezone, workdays));
+            foreach (var h in Holidays)
+                _service.AddHoliday(new AddHolidayCommand(created.Id.Value, h.Date, h.Name));
         }
         else
         {
