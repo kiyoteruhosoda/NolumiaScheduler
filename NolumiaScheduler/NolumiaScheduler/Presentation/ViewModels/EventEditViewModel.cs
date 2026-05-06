@@ -74,7 +74,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         _eventRepo = eventRepo;
         _calendarRepo = calendarRepo;
 
-        SaveCommand = new Command(Save);
+        SaveCommand = new Command(RequestSave);
 
         // Default: Mon selected for weekly
         _weekMon = true;
@@ -83,16 +83,38 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
 
     public bool IsEditing => _editingEventId != null;
+    public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
+    public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
+    public bool RequiresRecurringEditScopeSelection => IsEditing && IsRecurring && IsOccurrenceEditing;
+
+    public void InitializeNewEvent(DateOnly date, int startMinute)
+    {
+        if (IsEditing) return;
+
+        StartDate = date.ToDateTime(TimeOnly.MinValue);
+
+        var clamped = Math.Clamp(startMinute, 0, 1439);
+        var snapped = (int)(Math.Round(clamped / 15d) * 15);
+        snapped = Math.Clamp(snapped, 0, 23 * 60 + 45);
+
+        StartTime = TimeSpan.FromMinutes(snapped);
+
+        var endMinutes = Math.Min(snapped + 60, 23 * 60 + 59);
+        EndTime = TimeSpan.FromMinutes(endMinutes);
+    }
     public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;
 
-    public void LoadEvent(string eventId)
+    public void LoadEvent(string eventId, OccurrenceLocalKey? occurrenceKey = null)
     {
         var ev = _eventRepo.FindById(new EventId(eventId));
         if (ev == null) return;
 
         _editingEventId = eventId;
+        EditingOccurrenceKey = occurrenceKey;
         OnPropertyChanged(nameof(IsEditing));
         OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(IsOccurrenceEditing));
+        OnPropertyChanged(nameof(RequiresRecurringEditScopeSelection));
 
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
@@ -426,7 +448,9 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     // ── Save logic ────────────────────────────────────────────
 
-    private void Save()
+    public void RequestSave() => Save(null);
+
+    public void Save(RecurringEditScope? scope = null)
     {
         ValidationError = "";
 
@@ -439,18 +463,88 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         try
         {
             if (_editingEventId != null)
+            {
+                if (RequiresRecurringEditScopeSelection)
+                {
+                    if (scope == null)
+                    {
+                        ValidationError = "編集範囲を選択してください。";
+                        return;
+                    }
+
+                    if (scope == RecurringEditScope.ThisOccurrence)
+                    {
+                        SaveThisOccurrence(_editingEventId);
+                        if (!string.IsNullOrEmpty(ValidationError)) return;
+                        goto SaveCompletedBranch;
+                    }
+
+                    if (scope == RecurringEditScope.ThisAndFollowing)
+                    {
+                        ValidationError = "これ以降の編集は未実装です。";
+                        return;
+                    }
+                }
+
                 UpdateExisting(_editingEventId);
+            }
             else if (!IsRecurring)
                 SaveSingle();
             else
                 SaveRecurring();
 
+            SaveCompletedBranch:
             if (string.IsNullOrEmpty(ValidationError))
                 SaveCompleted?.Invoke();
         }
         catch (Exception ex)
         {
             ValidationError = ex.Message;
+        }
+    }
+
+
+    private void SaveThisOccurrence(string eventId)
+    {
+        if (EditingOccurrenceKey == null)
+        {
+            ValidationError = "発生日情報がありません。";
+            return;
+        }
+
+        var ev = _eventRepo.FindById(new EventId(eventId));
+        if (ev == null || !ev.IsRecurring())
+        {
+            ValidationError = "繰り返し予定が見つかりません。";
+            return;
+        }
+
+        var newDate = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(StartDate.Date));
+        LocalTimeValue? newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        LocalTimeValue? newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
+
+        
+
+        var originalDate = EditingOccurrenceKey.Date;
+        var originalStart = EditingOccurrenceKey.Time;
+        var shouldMove = !originalDate.Equals(newDate) ||
+                         (originalStart != null && newStart != null && !originalStart.Equals(newStart)) ||
+                         (originalStart == null && newStart != null) ||
+                         (originalStart != null && newStart == null) ||
+                         !string.Equals(ev.Title.Value, Title.Trim(), StringComparison.Ordinal) ||
+                         !string.Equals(ev.Location?.Value ?? string.Empty, (string.IsNullOrWhiteSpace(Location) ? string.Empty : Location.Trim()), StringComparison.Ordinal);
+
+        if (shouldMove)
+        {
+            _eventService.MoveOccurrence(new MoveOccurrenceCommand(
+                eventId,
+                EditingOccurrenceKey,
+                newDate,
+                newStart,
+                newEnd,
+                Title.Trim(),
+                string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+                NolumiaScheduler.Domain.ValueObjects.Visibility.Public));
         }
     }
 

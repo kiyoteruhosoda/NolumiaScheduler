@@ -1,4 +1,6 @@
-namespace NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.Presentation.ViewModels;
+
+namespace NolumiaScheduler.Presentation.Services;
 
 public interface IWeekEventLayoutStrategy
 {

@@ -3,12 +3,14 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using Microsoft.Maui.Devices;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
@@ -20,6 +22,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private readonly IOccurrenceExpander _expander;
     private readonly CalendarEventApplicationService _eventService;
     private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
+    private readonly DateTime _today = DateTime.Today.Date;
 
     private DateTime _month;
     private CalendarDayCell? _selectedCell;
@@ -36,13 +39,14 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         ICalendarEventRepository events,
         IBusinessCalendarRepository businessCalendars,
         IOccurrenceExpander expander,
-        CalendarEventApplicationService eventService)
+        CalendarEventApplicationService eventService,
+        IWeekEventLayoutStrategy weekEventLayoutStrategy)
     {
         _events = events;
         _businessCalendars = businessCalendars;
         _expander = expander;
         _eventService = eventService;
-        _weekEventLayoutStrategy = new DefaultWeekEventLayoutStrategy();
+        _weekEventLayoutStrategy = weekEventLayoutStrategy;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
 
@@ -69,6 +73,10 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ObservableCollection<string> WeekHeaderDays { get; }
     public ObservableCollection<WeekDayColumn> WeekDayColumns { get; }
     public double WeekCanvasHeight => 24 * 60;
+    public double WeekDayColumnWidth => Math.Max(96, (DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density - 72) / 7);
+    public DateTime WeekStartDate => _weekStartDate.Date;
+    public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
+    public double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;
 
     public string MonthYearTitle
     {
@@ -292,7 +300,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             WeekHeaderDays.Add(header);
             var isHoliday = _businessCalendars.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
 
-            var col = new WeekDayColumn(header, isHoliday);
+            var isToday = date.Date == _today;
+            var col = new WeekDayColumn(header, date, isHoliday, isToday);
             for (var h = 0; h < 24; h++)
             {
                 col.GuideLines.Add(new HourGuideLine(h));
@@ -303,6 +312,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(WeekCanvasHeight));
+        OnPropertyChanged(nameof(WeekStartDate));
     }
 
     private static string FormatWeekRangeTitle(DateTime weekStartDate)

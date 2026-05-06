@@ -118,6 +118,17 @@ public partial class CalendarPage : ContentPage
             await Shell.Current.GoToAsync($"EventEdit?eventId={item.EventId}");
     }
 
+
+    private async void OnWeekEventBlockTapped(object? sender, Controls.WeekEventBlockTappedEventArgs e)
+    {
+        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.Date:yyyy-MM-dd}&occurrenceStartMinute={e.StartMinute}");
+    }
+
+    private async void OnWeekEmptySlotTapped(object? sender, Controls.WeekEmptySlotTappedEventArgs e)
+    {
+        await Shell.Current.GoToAsync($"EventEdit?startDate={e.Date:yyyy-MM-dd}&startMinute={e.StartMinute}");
+    }
+
     // ── Delete event ──────────────────────────────────────────
 
     private async void OnDeleteEventClicked(object? sender, TappedEventArgs e)
