@@ -77,11 +77,19 @@
                                                 </Border.Triggers>
                                                 <Border.GestureRecognizers>
                                                     <TapGestureRecognizer Tapped="OnEventBlockTapped" />
+                                                    <PanGestureRecognizer PanUpdated="OnEventBlockPanUpdated" />
                                                 </Border.GestureRecognizers>
-                                                <VerticalStackLayout Spacing="0">
-                                                    <Label Text="{Binding TimeLabel}" FontSize="9" TextColor="White" />
-                                                    <Label Text="{Binding Title}" FontSize="10" TextColor="White" LineBreakMode="TailTruncation" />
-                                                </VerticalStackLayout>
+                                                <Grid RowDefinitions="*,14">
+                                                    <VerticalStackLayout Grid.Row="0" Spacing="0">
+                                                        <Label Text="{Binding TimeLabel}" FontSize="9" TextColor="White" />
+                                                        <Label Text="{Binding Title}" FontSize="10" TextColor="White" LineBreakMode="TailTruncation" />
+                                                    </VerticalStackLayout>
+                                                    <BoxView Grid.Row="1" Opacity="0.001" BackgroundColor="Transparent">
+                                                        <BoxView.GestureRecognizers>
+                                                            <PanGestureRecognizer PanUpdated="OnResizeHandlePanUpdated" />
+                                                        </BoxView.GestureRecognizers>
+                                                    </BoxView>
+                                                </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>

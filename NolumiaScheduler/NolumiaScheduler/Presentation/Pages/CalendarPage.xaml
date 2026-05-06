@@ -289,6 +289,7 @@
                                   WeekAllDayLaneHeight="{Binding WeekAllDayLaneHeight}"
                                   WeekCanvasHeight="{Binding WeekCanvasHeight}"
                                   WeekDayColumnWidth="{Binding WeekDayColumnWidth}"
+                                  WeekStartDate="{Binding WeekStartDate}"
                                   IsCurrentWeek="{Binding IsCurrentWeek}"
                                   CurrentTimeLineTop="{Binding CurrentTimeLineTop}"
                                   EmptySlotTapped="OnWeekEmptySlotTapped"

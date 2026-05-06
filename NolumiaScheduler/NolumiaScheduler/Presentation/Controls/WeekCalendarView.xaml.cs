@@ -15,6 +15,8 @@ public partial class WeekCalendarView : ContentView
     private WeekEventBlock? _activeBlock;
     private Point _pressStartPoint;
     private Point _lastPoint;
+    private bool _isResizing;
+    private DateTime _suppressTapUntilUtc;
 
     public WeekInteractionPreview InteractionPreview
     {
@@ -97,12 +99,16 @@ public partial class WeekCalendarView : ContentView
     public static readonly BindableProperty IsCurrentWeekProperty = BindableProperty.Create(nameof(IsCurrentWeek), typeof(bool), typeof(WeekCalendarView), false);
     public double CurrentTimeLineTop { get => (double)GetValue(CurrentTimeLineTopProperty); set => SetValue(CurrentTimeLineTopProperty, value); }
     public static readonly BindableProperty CurrentTimeLineTopProperty = BindableProperty.Create(nameof(CurrentTimeLineTop), typeof(double), typeof(WeekCalendarView), 0d);
+    public DateTime WeekStartDate { get => (DateTime)GetValue(WeekStartDateProperty); set => SetValue(WeekStartDateProperty, value); }
+    public static readonly BindableProperty WeekStartDateProperty = BindableProperty.Create(nameof(WeekStartDate), typeof(DateTime), typeof(WeekCalendarView), DateTime.Today);
 
     public string? SelectedEventId { get => (string?)GetValue(SelectedEventIdProperty); set => SetValue(SelectedEventIdProperty, value); }
     public static readonly BindableProperty SelectedEventIdProperty = BindableProperty.Create(nameof(SelectedEventId), typeof(string), typeof(WeekCalendarView), null);
 
     private void OnEventBlockTapped(object? sender, TappedEventArgs e)
     {
+        if (DateTime.UtcNow < _suppressTapUntilUtc) return;
+        if (_interactionState is WeekInteractionState.DraggingMove or WeekInteractionState.DraggingResize) return;
         if (sender is Border b && b.BindingContext is WeekEventBlock block)
         {
             var point = new Point(block.LeftRatio, block.Top);
@@ -184,6 +190,62 @@ public partial class WeekCalendarView : ContentView
         TransitionTo(WeekInteractionState.Canceled);
         ClearPreview();
         TransitionTo(WeekInteractionState.Idle);
+        _activeBlock = null;
+        _isResizing = false;
+    }
+
+    private void OnEventBlockPanUpdated(object? sender, PanUpdatedEventArgs e)
+    {
+        if (sender is not Border b || b.BindingContext is not WeekEventBlock block) { CancelCurrentInteraction(); return; }
+        HandlePan(block, e, isResizeHandle: false);
+    }
+
+    private void OnResizeHandlePanUpdated(object? sender, PanUpdatedEventArgs e)
+    {
+        if (sender is not BoxView box || box.BindingContext is not WeekEventBlock block) { CancelCurrentInteraction(); return; }
+        HandlePan(block, e, isResizeHandle: true);
+    }
+
+    private void HandlePan(WeekEventBlock block, PanUpdatedEventArgs e, bool isResizeHandle)
+    {
+        var point = new Point(block.LeftRatio * WeekDayColumnWidth + e.TotalX, block.Top + e.TotalY);
+        switch (e.StatusType)
+        {
+            case GestureStatus.Started:
+                _activeBlock = block;
+                _isResizing = isResizeHandle;
+                TransitionTo(isResizeHandle ? WeekInteractionState.DraggingResize : WeekInteractionState.Pressed, block, point);
+                break;
+            case GestureStatus.Running:
+                if (_activeBlock == null) { CancelCurrentInteraction(); return; }
+                if (_isResizing || isResizeHandle)
+                {
+                    var endMinute = _mapper.MapToMinute(block.EndMinute + e.TotalY);
+                    endMinute = Math.Max(block.StartMinute + 15, endMinute);
+                    UpdatePreview(block.EventId, block.Date, block.StartMinute, endMinute);
+                    TransitionTo(WeekInteractionState.DraggingResize, block, point);
+                }
+                else
+                {
+                    var dt = _mapper.MapToDateTime(new Point(block.LeftRatio * WeekDayColumnWidth + e.TotalX, block.Top + e.TotalY), WeekStartDate, WeekDayColumnWidth);
+                    UpdatePreview(block.EventId, dt.Date, dt.Hour * 60 + dt.Minute, dt.Hour * 60 + dt.Minute + Math.Max(15, block.EndMinute - block.StartMinute));
+                    TransitionTo(WeekInteractionState.DraggingMove, block, point);
+                }
+                _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
+                break;
+            case GestureStatus.Completed:
+                if (_activeBlock == null) { CancelCurrentInteraction(); return; }
+                if (_isResizing || isResizeHandle)
+                    CompleteResize(block.EventId, block.Date, block.StartMinute, block.Height + e.TotalY);
+                else
+                    CompleteDrag(block.EventId, new Point(block.LeftRatio * WeekDayColumnWidth + e.TotalX, block.Top + e.TotalY), WeekStartDate);
+                _activeBlock = null;
+                _isResizing = false;
+                break;
+            case GestureStatus.Canceled:
+                CancelCurrentInteraction();
+                break;
+        }
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
