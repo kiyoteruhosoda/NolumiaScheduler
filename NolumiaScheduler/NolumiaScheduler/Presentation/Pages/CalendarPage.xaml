@@ -300,6 +300,9 @@
                         <Grid RowDefinitions="Auto,*" Margin="1,0" WidthRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekDayColumnWidth}">
                             <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" FontAttributes="{Binding HeaderFontAttributes}" TextColor="{Binding HeaderTextColor}" />
                             <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{Binding DayBackgroundColor}">
+                                <AbsoluteLayout.GestureRecognizers>
+                                    <TapGestureRecognizer Tapped="OnWeekEmptySlotTapped" />
+                                </AbsoluteLayout.GestureRecognizers>
                                 <AbsoluteLayout BindableLayout.ItemsSource="{Binding GuideLines}" InputTransparent="True">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="vm:IWeekGuideLine">
@@ -336,6 +339,12 @@
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
                                 </AbsoluteLayout>
+                            
+                                <BoxView IsVisible="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=IsCurrentWeek}"
+                                         Color="#EA4335"
+                                         HeightRequest="2"
+                                         AbsoluteLayout.LayoutBounds="0,{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=CurrentTimeLineTop},1,2"
+                                         AbsoluteLayout.LayoutFlags="WidthProportional" />
                             </AbsoluteLayout>
                         </Grid>
                     </DataTemplate>

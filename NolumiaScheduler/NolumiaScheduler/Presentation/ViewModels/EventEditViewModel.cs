@@ -83,6 +83,20 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
 
     public bool IsEditing => _editingEventId != null;
+
+    public void ApplyInitialStart(DateOnly date, int? startMinute)
+    {
+        if (IsEditing) return;
+
+        StartDate = date.ToDateTime(TimeOnly.MinValue);
+        if (startMinute.HasValue)
+        {
+            var snapped = (int)(Math.Round(startMinute.Value / 15d) * 15);
+            snapped = Math.Clamp(snapped, 0, 23 * 60 + 45);
+            StartTime = TimeSpan.FromMinutes(snapped);
+            EndTime = StartTime.Add(TimeSpan.FromMinutes(60));
+        }
+    }
     public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;
 
     public void LoadEvent(string eventId)

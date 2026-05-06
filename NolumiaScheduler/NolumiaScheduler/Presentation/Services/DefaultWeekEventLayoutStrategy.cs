@@ -82,6 +82,9 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
         {
             EventId = segment.Item.EventId,
             OccurrenceKey = segment.Item.OccurrenceKey,
+            Date = segment.Item.OccurrenceKey.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue),
+            StartMinute = segment.Item.StartMinuteOfDay,
+            EndMinute = segment.Item.EndMinuteOfDay,
             Title = segment.Item.Title,
             TimeLabel = segment.Item.TimeRange,
             BackgroundColor = segment.Item.DotColor,

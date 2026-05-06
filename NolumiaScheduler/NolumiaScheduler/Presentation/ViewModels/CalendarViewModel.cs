@@ -74,6 +74,9 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ObservableCollection<WeekDayColumn> WeekDayColumns { get; }
     public double WeekCanvasHeight => 24 * 60;
     public double WeekDayColumnWidth => Math.Max(96, (DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density - 72) / 7);
+    public DateTime WeekStartDate => _weekStartDate.Date;
+    public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
+    public double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;
 
     public string MonthYearTitle
     {
@@ -298,7 +301,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             var isHoliday = _businessCalendars.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
 
             var isToday = date.Date == _today;
-            var col = new WeekDayColumn(header, isHoliday, isToday);
+            var col = new WeekDayColumn(header, date, isHoliday, isToday);
             for (var h = 0; h < 24; h++)
             {
                 col.GuideLines.Add(new HourGuideLine(h));
@@ -309,6 +312,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(WeekCanvasHeight));
+        OnPropertyChanged(nameof(WeekStartDate));
     }
 
     private static string FormatWeekRangeTitle(DateTime weekStartDate)

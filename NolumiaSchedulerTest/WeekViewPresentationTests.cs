@@ -32,8 +32,8 @@ public class WeekViewPresentationTests
     [TestMethod]
     public void 休日カラムは月表示と同系統の赤背景になる()
     {
-        var holidayColumn = new WeekDayColumn("Sun 4", true);
-        var normalColumn = new WeekDayColumn("Mon 5", false);
+        var holidayColumn = new WeekDayColumn("Sun 4", new DateTime(2026,5,4), true);
+        var normalColumn = new WeekDayColumn("Mon 5", new DateTime(2026,5,5), false);
 
         Assert.AreEqual("#FFF0F0", holidayColumn.DayBackgroundColor.ToArgbHex());
         Assert.AreEqual(Colors.Transparent, normalColumn.DayBackgroundColor);

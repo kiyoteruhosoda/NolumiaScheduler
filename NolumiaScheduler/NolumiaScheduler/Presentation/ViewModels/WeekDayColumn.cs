@@ -4,14 +4,16 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 
 public sealed class WeekDayColumn
 {
-    public WeekDayColumn(string header, bool isHoliday, bool isToday = false)
+    public WeekDayColumn(string header, DateTime date, bool isHoliday, bool isToday = false)
     {
         Header = header;
+        Date = date.Date;
         IsHoliday = isHoliday;
         IsToday = isToday;
     }
 
     public string Header { get; }
+    public DateTime Date { get; }
     public bool IsHoliday { get; }
     public bool IsToday { get; }
     public Color DayBackgroundColor => IsHoliday ? Color.FromArgb("#fff0f0") : (IsToday ? Color.FromArgb("#eef6ff") : Colors.Transparent);
