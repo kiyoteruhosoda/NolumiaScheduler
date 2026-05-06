@@ -131,14 +131,14 @@ public partial class CalendarPage : ContentPage
 
     private async void OnWeekEventDragCompleted(object? sender, Controls.WeekEventDragCompletedEventArgs e)
     {
-        // ドラッグ本実装前の統合ポイント: まずは occurrence編集画面をターゲット時刻付きで開く
-        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.TargetDateTime:yyyy-MM-dd}&occurrenceStartMinute={e.TargetStartMinute}");
+        // state machine導入後: drag完了は通知のみ（保存/遷移は次工程）
+        await Task.CompletedTask;
     }
 
     private async void OnWeekEventResizeCompleted(object? sender, Controls.WeekEventResizeCompletedEventArgs e)
     {
-        // リサイズ本実装前の統合ポイント: occurrence文脈を維持して編集画面へ遷移
-        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.Date:yyyy-MM-dd}&occurrenceStartMinute={e.StartMinute}");
+        // state machine導入後: resize完了は通知のみ（保存/遷移は次工程）
+        await Task.CompletedTask;
     }
 
     // ── Delete event ──────────────────────────────────────────

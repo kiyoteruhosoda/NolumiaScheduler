@@ -9,6 +9,12 @@ namespace NolumiaScheduler.Presentation.Controls;
 public partial class WeekCalendarView : ContentView
 {
     private readonly IWeekInteractionMapper _mapper;
+    private WeekInteractionState _interactionState = WeekInteractionState.Idle;
+    private WeekEventBlock? _activeBlock;
+    private Point _pressStartPoint;
+    private Point _lastPoint;
+
+    public WeekInteractionPreview InteractionPreview { get; private set; } = new() { IsVisible = false };
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
@@ -33,6 +39,36 @@ public partial class WeekCalendarView : ContentView
         await WeekScroll.ScrollToAsync(0, y, false);
     }
 
+
+    private void TransitionTo(WeekInteractionState next, WeekEventBlock? block = null, Point? point = null)
+    {
+        _interactionState = next;
+        _activeBlock = block ?? _activeBlock;
+        if (point != null)
+        {
+            _lastPoint = point.Value;
+            if (next == WeekInteractionState.Pressed || next == WeekInteractionState.LongPressPending)
+                _pressStartPoint = point.Value;
+        }
+    }
+
+    private bool ShouldTreatAsTap(Point point)
+        => Math.Abs(point.X - _pressStartPoint.X) < 6 && Math.Abs(point.Y - _pressStartPoint.Y) < 6;
+
+    private void UpdatePreview(string eventId, DateTime date, int startMinute, int endMinute)
+    {
+        InteractionPreview = new WeekInteractionPreview
+        {
+            IsVisible = true,
+            EventId = eventId,
+            Date = date,
+            StartMinute = startMinute,
+            EndMinute = endMinute
+        };
+    }
+
+    private void ClearPreview() => InteractionPreview = new WeekInteractionPreview { IsVisible = false };
+
     public IEnumerable? WeekTimeSlots { get => (IEnumerable?)GetValue(WeekTimeSlotsProperty); set => SetValue(WeekTimeSlotsProperty, value); }
     public static readonly BindableProperty WeekTimeSlotsProperty = BindableProperty.Create(nameof(WeekTimeSlots), typeof(IEnumerable), typeof(WeekCalendarView));
     public IEnumerable? WeekDayColumns { get => (IEnumerable?)GetValue(WeekDayColumnsProperty); set => SetValue(WeekDayColumnsProperty, value); }
@@ -53,8 +89,13 @@ public partial class WeekCalendarView : ContentView
     {
         if (sender is Border b && b.BindingContext is WeekEventBlock block)
         {
+            var point = new Point(block.LeftRatio, block.Top);
+            TransitionTo(WeekInteractionState.Pressed, block, point);
+            if (!ShouldTreatAsTap(point)) return;
+
             SelectedEventId = block.EventId;
             UpdateSelectionState();
+            TransitionTo(WeekInteractionState.Idle, null, point);
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
             {
                 EventId = block.EventId,
@@ -83,7 +124,9 @@ public partial class WeekCalendarView : ContentView
     // Resize本実装前の統合ポイント: 将来下端ドラッグから呼ぶ
     public void CompleteResize(string eventId, DateTime date, int startMinute, double previewHeight)
     {
+        TransitionTo(WeekInteractionState.DraggingResize, _activeBlock, new Point(0, previewHeight));
         var endMinute = Math.Max(startMinute + 15, _mapper.HeightToMinute(previewHeight));
+        UpdatePreview(eventId, date, startMinute, endMinute);
         EventResizeCompleted?.Invoke(this, new WeekEventResizeCompletedEventArgs
         {
             EventId = eventId,
@@ -91,18 +134,24 @@ public partial class WeekCalendarView : ContentView
             StartMinute = startMinute,
             EndMinute = endMinute
         });
+        TransitionTo(WeekInteractionState.Idle);
+        ClearPreview();
     }
 
     // Drag本実装前の統合ポイント: 将来Pan/LongPressから呼ぶ
     public void CompleteDrag(string eventId, Point point, DateTime weekStartDate)
     {
+        TransitionTo(WeekInteractionState.DraggingMove, _activeBlock, point);
         var dt = _mapper.MapToDateTime(point, weekStartDate, WeekDayColumnWidth);
+        UpdatePreview(eventId, dt.Date, dt.Hour * 60 + dt.Minute, dt.Hour * 60 + dt.Minute + 60);
         EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
         {
             EventId = eventId,
             TargetDateTime = dt,
             TargetStartMinute = dt.Hour * 60 + dt.Minute
         });
+        TransitionTo(WeekInteractionState.Idle);
+        ClearPreview();
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
