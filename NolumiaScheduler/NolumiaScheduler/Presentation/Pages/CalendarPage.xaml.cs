@@ -1,7 +1,6 @@
 using Microsoft.Maui.Controls;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.Resources.Strings;
 using MauiApp = Microsoft.Maui.Controls.Application;
@@ -12,18 +11,16 @@ public partial class CalendarPage : ContentPage
 {
     private readonly CalendarViewModel _vm;
     private readonly ICalendarEventRepository _eventRepo;
-    private readonly IWeekInteractionMapper _weekInteractionMapper;
 
     private Color _rowHoverColor = Color.FromArgb("#e8eaed");
     private Color _iconHoverColor = Color.FromArgb("#e0e0e0");
     private Color _outlineHoverColor = Color.FromArgb("#e8f0fe");
 
-    public CalendarPage(CalendarViewModel vm, ICalendarEventRepository eventRepo, IWeekInteractionMapper weekInteractionMapper)
+    public CalendarPage(CalendarViewModel vm, ICalendarEventRepository eventRepo)
     {
         InitializeComponent();
         _vm = vm;
         _eventRepo = eventRepo;
-        _weekInteractionMapper = weekInteractionMapper;
         BindingContext = vm;
     }
 
@@ -122,20 +119,14 @@ public partial class CalendarPage : ContentPage
     }
 
 
-    private async void OnWeekEventBlockTapped(object? sender, TappedEventArgs e)
+    private async void OnWeekEventBlockTapped(object? sender, Controls.WeekEventBlockTappedEventArgs e)
     {
-        if (sender is Border b && b.BindingContext is WeekEventBlock block)
-            await Shell.Current.GoToAsync($"EventEdit?eventId={block.EventId}");
+        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}");
     }
-    private async void OnWeekEmptySlotTapped(object? sender, TappedEventArgs e)
-    {
-        if (sender is not AbsoluteLayout layout || layout.BindingContext is not WeekDayColumn dayColumn) return;
-        var point = e.GetPosition(layout);
-        if (point == null) return;
 
-        var startMinute = _weekInteractionMapper.MapToMinute(point.Value.Y);
-        var date = dayColumn.Date.Date;
-        await Shell.Current.GoToAsync($"EventEdit?startDate={date:yyyy-MM-dd}&startMinute={startMinute}");
+    private async void OnWeekEmptySlotTapped(object? sender, Controls.WeekEmptySlotTappedEventArgs e)
+    {
+        await Shell.Current.GoToAsync($"EventEdit?startDate={e.Date:yyyy-MM-dd}&startMinute={e.StartMinute}");
     }
 
     // ── Delete event ──────────────────────────────────────────
