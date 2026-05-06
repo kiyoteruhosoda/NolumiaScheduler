@@ -12,9 +12,9 @@ public partial class CalendarPage : ContentPage
     private readonly CalendarViewModel _vm;
     private readonly ICalendarEventRepository _eventRepo;
 
-    // Colors for hover, resolved once after page is loaded
-    private Color _hoverColor = Color.FromArgb("#e0e0e0");
-    private Color _transparentColor = Colors.Transparent;
+    private Color _rowHoverColor = Color.FromArgb("#e8eaed");
+    private Color _iconHoverColor = Color.FromArgb("#e0e0e0");
+    private Color _outlineHoverColor = Color.FromArgb("#e8f0fe");
 
     public CalendarPage(CalendarViewModel vm, ICalendarEventRepository eventRepo)
     {
@@ -27,26 +27,71 @@ public partial class CalendarPage : ContentPage
     protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
-        if (MauiApp.Current?.Resources.TryGetValue("GCalBorder", out var light) == true && light is Color lc)
-            _hoverColor = lc;
-        if (MauiApp.Current?.Resources.TryGetValue("GCalBorderDark", out var dark) == true && dark is Color dc)
+        var isDark = MauiApp.Current?.RequestedTheme == AppTheme.Dark;
+        if (isDark)
         {
-            var isDark = MauiApp.Current.RequestedTheme == AppTheme.Dark;
-            if (isDark) _hoverColor = dc;
+            _rowHoverColor  = Color.FromArgb("#3c3c3c");
+            _iconHoverColor = Color.FromArgb("#4a4a4a");
+            _outlineHoverColor = Color.FromArgb("#1e3a5f");
+        }
+        else
+        {
+            _rowHoverColor  = Color.FromArgb("#f1f3f4");
+            _iconHoverColor = Color.FromArgb("#e0e0e0");
+            _outlineHoverColor = Color.FromArgb("#e8f0fe");
         }
     }
 
+    // ── Header button hover ───────────────────────────────────
+
+    private void OnHeaderButtonEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border b) b.BackgroundColor = _iconHoverColor;
+    }
+
+    private void OnHeaderButtonExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border b) b.BackgroundColor = Colors.Transparent;
+    }
+
+    private void OnOutlineButtonEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border b) b.BackgroundColor = _outlineHoverColor;
+    }
+
+    private void OnOutlineButtonExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border b) b.BackgroundColor = Colors.Transparent;
+    }
+
+    // ── Event row hover ───────────────────────────────────────
+
     private void OnEventItemPointerEntered(object? sender, PointerEventArgs e)
     {
-        if (sender is Border border)
-            border.BackgroundColor = _hoverColor;
+        // sender is Grid; walk up to find the parent Border
+        if (sender is Grid grid && grid.Parent is Border border)
+            border.BackgroundColor = _rowHoverColor;
     }
 
     private void OnEventItemPointerExited(object? sender, PointerEventArgs e)
     {
-        if (sender is Border border)
-            border.BackgroundColor = _transparentColor;
+        if (sender is Grid grid && grid.Parent is Border border)
+            border.BackgroundColor = Colors.Transparent;
     }
+
+    // ── Icon button hover ─────────────────────────────────────
+
+    private void OnIconBorderEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border b) b.BackgroundColor = _iconHoverColor;
+    }
+
+    private void OnIconBorderExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border b) b.BackgroundColor = Colors.Transparent;
+    }
+
+    // ── Calendar grid ─────────────────────────────────────────
 
     private void OnDayCellSelected(object? sender, SelectionChangedEventArgs e)
     {
@@ -57,22 +102,27 @@ public partial class CalendarPage : ContentPage
         }
     }
 
+    // ── New event ─────────────────────────────────────────────
+
     private async void OnNewEventClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("EventEdit");
     }
 
-    private async void OnEditEventClicked(object? sender, EventArgs e)
+    // ── Edit event ────────────────────────────────────────────
+
+    private async void OnEditEventClicked(object? sender, TappedEventArgs e)
     {
-        if (sender is Button btn && btn.BindingContext is CalendarEventItem item)
-        {
+        // sender is the Border; its BindingContext is CalendarEventItem (inherited from parent Grid)
+        if (sender is Border b && b.BindingContext is CalendarEventItem item)
             await Shell.Current.GoToAsync($"EventEdit?eventId={item.EventId}");
-        }
     }
 
-    private async void OnDeleteEventClicked(object? sender, EventArgs e)
+    // ── Delete event ──────────────────────────────────────────
+
+    private async void OnDeleteEventClicked(object? sender, TappedEventArgs e)
     {
-        if (sender is not Button btn || btn.BindingContext is not CalendarEventItem item)
+        if (sender is not Border b || b.BindingContext is not CalendarEventItem item)
             return;
 
         var ev = _eventRepo.FindById(new EventId(item.EventId));
