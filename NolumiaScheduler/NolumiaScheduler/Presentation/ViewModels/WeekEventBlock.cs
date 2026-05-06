@@ -2,7 +2,7 @@ using NolumiaScheduler.Domain.ValueObjects;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class WeekEventBlock
+public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChanged
 {
     public required string EventId { get; init; }
     public OccurrenceLocalKey? OccurrenceKey { get; init; }
@@ -16,4 +16,14 @@ public sealed class WeekEventBlock
     public required double Height { get; init; }
     public required double LeftRatio { get; init; }
     public required double WidthRatio { get; init; }
+    public required Rect Bounds { get; init; }
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { _isSelected = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSelected))); }
+    }
+
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 }

@@ -2,9 +2,10 @@
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:NolumiaScheduler.Presentation.ViewModels"
+             xmlns:controls="clr-namespace:NolumiaScheduler.Presentation.Controls"
              x:Class="NolumiaScheduler.Presentation.Controls.WeekCalendarView"
              x:Name="Root">
-    <ScrollView Orientation="Both">
+    <ScrollView x:Name="WeekScroll" Orientation="Both">
         <Grid RowDefinitions="Auto,*" ColumnDefinitions="56,*"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
             <CollectionView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding Source={x:Reference Root}, Path=WeekTimeSlots}" SelectionMode="None" HeightRequest="{Binding Source={x:Reference Root}, Path=WeekCanvasHeight}">
@@ -27,7 +28,8 @@
                                 <AbsoluteLayout.GestureRecognizers>
                                     <TapGestureRecognizer Tapped="OnEmptySlotTapped" />
                                 </AbsoluteLayout.GestureRecognizers>
-                                <AbsoluteLayout BindableLayout.ItemsSource="{Binding GuideLines}" InputTransparent="True">
+                                <controls:WeekGridBackgroundView IsToday="{Binding IsToday}" IsCurrentWeek="{Binding Source={x:Reference Root}, Path=IsCurrentWeek}" CurrentTimeLineTop="{Binding Source={x:Reference Root}, Path=CurrentTimeLineTop}" HeightRequest="{Binding Source={x:Reference Root}, Path=WeekCanvasHeight}" />
+                                <AbsoluteLayout BindableLayout.ItemsSource="{Binding GuideLines}" InputTransparent="True" IsVisible="False">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="vm:IWeekGuideLine">
                                             <BoxView HeightRequest="1"
@@ -46,9 +48,16 @@
                                 <AbsoluteLayout BindableLayout.ItemsSource="{Binding EventBlocks}">
                                     <BindableLayout.ItemTemplate>
                                         <DataTemplate x:DataType="vm:WeekEventBlock">
-                                            <Border Padding="3" BackgroundColor="{Binding BackgroundColor}" StrokeThickness="0" StrokeShape="RoundRectangle 4"
+                                            <Border Padding="6,4" BackgroundColor="{Binding BackgroundColor}" StrokeThickness="1" Stroke="Transparent" StrokeShape="RoundRectangle 6" MinimumHeightRequest="44"
                                                     AbsoluteLayout.LayoutBounds="{Binding LeftRatio}, {Binding Top}, {Binding WidthRatio}, {Binding Height}"
                                                     AbsoluteLayout.LayoutFlags="XProportional,WidthProportional">
+                                                <Border.Triggers>
+                                                    <DataTrigger TargetType="Border" Binding="{Binding IsSelected}" Value="True">
+                                                        <Setter Property="Stroke" Value="#0B57D0" />
+                                                        <Setter Property="StrokeThickness" Value="2" />
+                                                        <Setter Property="ZIndex" Value="10" />
+                                                    </DataTrigger>
+                                                </Border.Triggers>
                                                 <Border.GestureRecognizers>
                                                     <TapGestureRecognizer Tapped="OnEventBlockTapped" />
                                                 </Border.GestureRecognizers>
@@ -60,9 +69,7 @@
                                         </DataTemplate>
                                     </BindableLayout.ItemTemplate>
                                 </AbsoluteLayout>
-                                <BoxView IsVisible="{Binding Source={x:Reference Root}, Path=IsCurrentWeek}" Color="#EA4335" HeightRequest="2"
-                                         AbsoluteLayout.LayoutBounds="0,{Binding Source={x:Reference Root}, Path=CurrentTimeLineTop},1,2"
-                                         AbsoluteLayout.LayoutFlags="WidthProportional" />
+                                
                             </AbsoluteLayout>
                         </Grid>
                     </DataTemplate>

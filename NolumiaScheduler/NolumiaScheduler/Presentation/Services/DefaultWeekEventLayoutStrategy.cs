@@ -92,6 +92,11 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             Height = duration,
             LeftRatio = segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
             WidthRatio = segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
+            Bounds = new Rect(
+                segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
+                segment.Start,
+                segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
+                duration),
         };
     }
 

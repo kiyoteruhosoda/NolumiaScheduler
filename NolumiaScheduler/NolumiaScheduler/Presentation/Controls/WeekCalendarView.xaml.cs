@@ -1,5 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
+using System.Collections.ObjectModel;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 
@@ -18,6 +19,18 @@ public partial class WeekCalendarView : ContentView
         _mapper = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();
     }
 
+    protected override async void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+        await ScrollToCurrentTimeAsync();
+    }
+
+    public async Task ScrollToCurrentTimeAsync()
+    {
+        var y = Math.Max(0, CurrentTimeLineTop - 240);
+        await WeekScroll.ScrollToAsync(0, y, false);
+    }
+
     public IEnumerable? WeekTimeSlots { get => (IEnumerable?)GetValue(WeekTimeSlotsProperty); set => SetValue(WeekTimeSlotsProperty, value); }
     public static readonly BindableProperty WeekTimeSlotsProperty = BindableProperty.Create(nameof(WeekTimeSlots), typeof(IEnumerable), typeof(WeekCalendarView));
     public IEnumerable? WeekDayColumns { get => (IEnumerable?)GetValue(WeekDayColumnsProperty); set => SetValue(WeekDayColumnsProperty, value); }
@@ -31,9 +44,15 @@ public partial class WeekCalendarView : ContentView
     public double CurrentTimeLineTop { get => (double)GetValue(CurrentTimeLineTopProperty); set => SetValue(CurrentTimeLineTopProperty, value); }
     public static readonly BindableProperty CurrentTimeLineTopProperty = BindableProperty.Create(nameof(CurrentTimeLineTop), typeof(double), typeof(WeekCalendarView), 0d);
 
+    public string? SelectedEventId { get => (string?)GetValue(SelectedEventIdProperty); set => SetValue(SelectedEventIdProperty, value); }
+    public static readonly BindableProperty SelectedEventIdProperty = BindableProperty.Create(nameof(SelectedEventId), typeof(string), typeof(WeekCalendarView), null);
+
     private void OnEventBlockTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Border b && b.BindingContext is WeekEventBlock block)
+        {
+            SelectedEventId = block.EventId;
+            UpdateSelectionState();
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
             {
                 EventId = block.EventId,
@@ -41,6 +60,21 @@ public partial class WeekCalendarView : ContentView
                 StartMinute = block.StartMinute,
                 OccurrenceKey = block.OccurrenceKey
             });
+        }
+    }
+
+
+    private void UpdateSelectionState()
+    {
+        if (WeekDayColumns is not IEnumerable cols) return;
+        foreach (var c in cols)
+        {
+            if (c is WeekDayColumn day)
+            {
+                foreach (var b in day.EventBlocks)
+                    b.IsSelected = b.EventId == SelectedEventId;
+            }
+        }
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
