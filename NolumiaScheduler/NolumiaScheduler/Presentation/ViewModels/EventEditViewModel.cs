@@ -334,7 +334,8 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             else
                 SaveRecurring();
 
-            SaveCompleted?.Invoke();
+            if (string.IsNullOrEmpty(ValidationError))
+                SaveCompleted?.Invoke();
         }
         catch (Exception ex)
         {
