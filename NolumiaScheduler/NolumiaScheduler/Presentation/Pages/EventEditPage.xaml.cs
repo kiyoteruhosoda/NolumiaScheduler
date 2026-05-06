@@ -9,34 +9,13 @@ public partial class EventEditPage : ContentPage
 {
     private readonly EventEditViewModel _vm;
 
-    public string? EventId
-    {
-        set
-        {
-            if (!string.IsNullOrEmpty(value))
-                _vm.LoadEvent(value);
-        }
-    }
+    private string? _eventId;
+    private string? _startDateRaw;
+    private string? _startMinuteRaw;
 
-
-    public string? StartDate
-    {
-        set
-        {
-            if (DateOnly.TryParse(value, out var date))
-                _vm.ApplyInitialStart(date, _pendingStartMinute);
-        }
-    }
-
-    private int? _pendingStartMinute;
-    public string? StartMinute
-    {
-        set
-        {
-            if (int.TryParse(value, out var minute))
-                _pendingStartMinute = minute;
-        }
-    }
+    public string? EventId { set { _eventId = value; ApplyNavigationContext(); } }
+    public string? StartDate { set { _startDateRaw = value; ApplyNavigationContext(); } }
+    public string? StartMinute { set { _startMinuteRaw = value; ApplyNavigationContext(); } }
 
     public EventEditPage(EventEditViewModel vm)
     {
@@ -45,5 +24,20 @@ public partial class EventEditPage : ContentPage
         BindingContext = vm;
 
         vm.SaveCompleted += async () => await Shell.Current.GoToAsync("..");
+    }
+
+    private void ApplyNavigationContext()
+    {
+        if (!string.IsNullOrWhiteSpace(_eventId))
+        {
+            _vm.LoadEvent(_eventId);
+            return;
+        }
+
+        if (DateOnly.TryParse(_startDateRaw, out var date))
+        {
+            var minute = int.TryParse(_startMinuteRaw, out var parsedMinute) ? parsedMinute : 9 * 60;
+            _vm.InitializeNewEvent(date, minute);
+        }
     }
 }

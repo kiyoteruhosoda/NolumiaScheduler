@@ -84,18 +84,20 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     public bool IsEditing => _editingEventId != null;
 
-    public void ApplyInitialStart(DateOnly date, int? startMinute)
+    public void InitializeNewEvent(DateOnly date, int startMinute)
     {
         if (IsEditing) return;
 
         StartDate = date.ToDateTime(TimeOnly.MinValue);
-        if (startMinute.HasValue)
-        {
-            var snapped = (int)(Math.Round(startMinute.Value / 15d) * 15);
-            snapped = Math.Clamp(snapped, 0, 23 * 60 + 45);
-            StartTime = TimeSpan.FromMinutes(snapped);
-            EndTime = StartTime.Add(TimeSpan.FromMinutes(60));
-        }
+
+        var clamped = Math.Clamp(startMinute, 0, 1439);
+        var snapped = (int)(Math.Round(clamped / 15d) * 15);
+        snapped = Math.Clamp(snapped, 0, 23 * 60 + 45);
+
+        StartTime = TimeSpan.FromMinutes(snapped);
+
+        var endMinutes = Math.Min(snapped + 60, 23 * 60 + 59);
+        EndTime = TimeSpan.FromMinutes(endMinutes);
     }
     public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;
 
