@@ -1,0 +1,232 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NolumiaScheduler.Presentation.ViewModels"
+             x:Class="NolumiaScheduler.Presentation.Pages.CalendarPage"
+             x:DataType="vm:CalendarViewModel"
+             Title="カレンダー">
+
+    <Grid RowDefinitions="48,32,*,Auto">
+
+        <!-- Header: [←] [yyyy年M月] [今日] [→] -->
+        <Grid Grid.Row="0"
+              ColumnDefinitions="48,*,Auto,48"
+              BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+
+            <Button Grid.Column="0"
+                    Text="&#x2039;"
+                    Command="{Binding PreviousMonthCommand}"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                    FontSize="26"
+                    Padding="0"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Fill" />
+
+            <Label Grid.Column="1"
+                   Text="{Binding MonthYearTitle}"
+                   FontSize="18"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}"
+                   HorizontalOptions="Center"
+                   VerticalOptions="Center" />
+
+            <Button Grid.Column="2"
+                    Text="今日"
+                    Command="{Binding GoTodayCommand}"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    TextColor="{StaticResource GCalBlue}"
+                    FontSize="14"
+                    Padding="8,0"
+                    VerticalOptions="Fill" />
+
+            <Button Grid.Column="3"
+                    Text="&#x203A;"
+                    Command="{Binding NextMonthCommand}"
+                    BackgroundColor="Transparent"
+                    BorderWidth="0"
+                    TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                    FontSize="26"
+                    Padding="0"
+                    HorizontalOptions="Center"
+                    VerticalOptions="Fill" />
+        </Grid>
+
+        <!-- Day-of-week labels: 日 月 火 水 木 金 土 -->
+        <Grid Grid.Row="1"
+              ColumnDefinitions="*,*,*,*,*,*,*"
+              BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+
+            <Label Grid.Column="0" Text="日" FontSize="11"
+                   TextColor="{StaticResource GCalRed}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+            <Label Grid.Column="1" Text="月" FontSize="11"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+            <Label Grid.Column="2" Text="火" FontSize="11"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+            <Label Grid.Column="3" Text="水" FontSize="11"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+            <Label Grid.Column="4" Text="木" FontSize="11"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+            <Label Grid.Column="5" Text="金" FontSize="11"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+            <Label Grid.Column="6" Text="土" FontSize="11"
+                   TextColor="{StaticResource GCalBlue}"
+                   HorizontalOptions="Center" VerticalOptions="Center" />
+        </Grid>
+
+        <!-- 6×7 calendar grid -->
+        <CollectionView Grid.Row="2"
+                        x:Name="DayCellsView"
+                        ItemsSource="{Binding DayCells}"
+                        SelectionMode="Single"
+                        SelectionChanged="OnDayCellSelected"
+                        BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+            <CollectionView.ItemsLayout>
+                <GridItemsLayout Orientation="Vertical" Span="7" />
+            </CollectionView.ItemsLayout>
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="vm:CalendarDayCell">
+                    <Grid HeightRequest="80" Padding="2,2,2,0">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="36" />
+                            <RowDefinition Height="18" />
+                            <RowDefinition Height="18" />
+                        </Grid.RowDefinitions>
+
+                        <!-- Day number with today/selected circle -->
+                        <Grid Grid.Row="0"
+                              WidthRequest="28"
+                              HeightRequest="28"
+                              HorizontalOptions="Center"
+                              VerticalOptions="Center">
+                            <BoxView CornerRadius="14"
+                                     BackgroundColor="{Binding CircleColor}"
+                                     HorizontalOptions="Fill"
+                                     VerticalOptions="Fill" />
+                            <Label Text="{Binding DayLabel}"
+                                   TextColor="{Binding DayTextColor}"
+                                   FontSize="13"
+                                   HorizontalOptions="Center"
+                                   VerticalOptions="Center" />
+                        </Grid>
+
+                        <!-- First event chip -->
+                        <Border Grid.Row="1"
+                                IsVisible="{Binding HasFirstEvent}"
+                                BackgroundColor="{Binding FirstEventColor}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 2"
+                                Padding="3,1"
+                                Margin="2,1,2,0">
+                            <Label Text="{Binding FirstEventTitle}"
+                                   TextColor="White"
+                                   FontSize="9"
+                                   MaxLines="1"
+                                   LineBreakMode="TailTruncation" />
+                        </Border>
+
+                        <!-- Second event chip (only when no overflow) -->
+                        <Border Grid.Row="2"
+                                IsVisible="{Binding ShowSecondChip}"
+                                BackgroundColor="{Binding SecondEventColor}"
+                                StrokeThickness="0"
+                                StrokeShape="RoundRectangle 2"
+                                Padding="3,1"
+                                Margin="2,1,2,0">
+                            <Label Text="{Binding SecondEventTitle}"
+                                   TextColor="White"
+                                   FontSize="9"
+                                   MaxLines="1"
+                                   LineBreakMode="TailTruncation" />
+                        </Border>
+
+                        <!-- +N overflow label -->
+                        <Label Grid.Row="2"
+                               IsVisible="{Binding HasMoreEvents}"
+                               Text="{Binding MoreText}"
+                               TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                               FontSize="9"
+                               Margin="4,2,2,0" />
+                    </Grid>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <!-- Selected day events panel -->
+        <Grid Grid.Row="3"
+              IsVisible="{Binding HasSelectedDay}"
+              RowDefinitions="1,40,Auto"
+              BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
+
+            <!-- Top divider -->
+            <BoxView Grid.Row="0"
+                     BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
+
+            <!-- Selected day label -->
+            <Label Grid.Row="1"
+                   Text="{Binding SelectedDayLabel}"
+                   FontSize="14"
+                   FontAttributes="Bold"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}"
+                   VerticalOptions="Center"
+                   Margin="16,0" />
+
+            <!-- Event list (scrollable, capped at ~200dp) -->
+            <ScrollView Grid.Row="2" MaximumHeightRequest="200">
+                <VerticalStackLayout BindableLayout.ItemsSource="{Binding SelectedDayEvents}">
+                    <BindableLayout.ItemTemplate>
+                        <DataTemplate x:DataType="vm:CalendarEventItem">
+                            <Grid Padding="16,8,16,4"
+                                  ColumnDefinitions="14,*"
+                                  ColumnSpacing="12">
+
+                                <!-- Colored dot -->
+                                <BoxView Grid.Column="0"
+                                         WidthRequest="10"
+                                         HeightRequest="10"
+                                         CornerRadius="5"
+                                         BackgroundColor="{Binding DotColor}"
+                                         VerticalOptions="Start"
+                                         Margin="0,4,0,0" />
+
+                                <!-- Event details -->
+                                <VerticalStackLayout Grid.Column="1" Spacing="2">
+                                    <Label Text="{Binding Title}"
+                                           FontSize="14"
+                                           FontAttributes="Bold"
+                                           TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
+                                    <Label Text="{Binding TimeRange}"
+                                           FontSize="12"
+                                           TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}" />
+                                    <Label Text="{Binding Location}"
+                                           FontSize="12"
+                                           IsVisible="{Binding HasLocation}"
+                                           TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}" />
+                                    <Border IsVisible="{Binding HasBadge}"
+                                            BackgroundColor="{AppThemeBinding Light={StaticResource GCalBlueLight}, Dark={StaticResource GCalBlueLightDark}}"
+                                            StrokeThickness="0"
+                                            StrokeShape="RoundRectangle 4"
+                                            Padding="6,2"
+                                            HorizontalOptions="Start">
+                                        <Label Text="{Binding BadgeText}"
+                                               FontSize="11"
+                                               TextColor="{AppThemeBinding Light={StaticResource GCalBlue}, Dark={StaticResource GCalBlueDark}}" />
+                                    </Border>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </DataTemplate>
+                    </BindableLayout.ItemTemplate>
+                </VerticalStackLayout>
+            </ScrollView>
+        </Grid>
+
+    </Grid>
+</ContentPage>
