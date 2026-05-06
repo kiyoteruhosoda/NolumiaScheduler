@@ -83,6 +83,8 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
 
     public bool IsEditing => _editingEventId != null;
+    public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
+    public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
 
     public void InitializeNewEvent(DateOnly date, int startMinute)
     {
@@ -101,14 +103,16 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
     public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;
 
-    public void LoadEvent(string eventId)
+    public void LoadEvent(string eventId, OccurrenceLocalKey? occurrenceKey = null)
     {
         var ev = _eventRepo.FindById(new EventId(eventId));
         if (ev == null) return;
 
         _editingEventId = eventId;
+        EditingOccurrenceKey = occurrenceKey;
         OnPropertyChanged(nameof(IsEditing));
         OnPropertyChanged(nameof(PageTitle));
+        OnPropertyChanged(nameof(IsOccurrenceEditing));
 
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";

@@ -5,6 +5,8 @@ namespace NolumiaScheduler.Presentation.Pages;
 [QueryProperty(nameof(EventId), "eventId")]
 [QueryProperty(nameof(StartDate), "startDate")]
 [QueryProperty(nameof(StartMinute), "startMinute")]
+[QueryProperty(nameof(OccurrenceDate), "occurrenceDate")]
+[QueryProperty(nameof(OccurrenceStartMinute), "occurrenceStartMinute")]
 public partial class EventEditPage : ContentPage
 {
     private readonly EventEditViewModel _vm;
@@ -12,10 +14,14 @@ public partial class EventEditPage : ContentPage
     private string? _eventId;
     private string? _startDateRaw;
     private string? _startMinuteRaw;
+    private string? _occurrenceDateRaw;
+    private string? _occurrenceStartMinuteRaw;
 
     public string? EventId { set { _eventId = value; ApplyNavigationContext(); } }
     public string? StartDate { set { _startDateRaw = value; ApplyNavigationContext(); } }
     public string? StartMinute { set { _startMinuteRaw = value; ApplyNavigationContext(); } }
+    public string? OccurrenceDate { set { _occurrenceDateRaw = value; ApplyNavigationContext(); } }
+    public string? OccurrenceStartMinute { set { _occurrenceStartMinuteRaw = value; ApplyNavigationContext(); } }
 
     public EventEditPage(EventEditViewModel vm)
     {
@@ -30,7 +36,8 @@ public partial class EventEditPage : ContentPage
     {
         if (!string.IsNullOrWhiteSpace(_eventId))
         {
-            _vm.LoadEvent(_eventId);
+            var occurrenceKey = BuildOccurrenceKey();
+            _vm.LoadEvent(_eventId, occurrenceKey);
             return;
         }
 
@@ -40,4 +47,18 @@ public partial class EventEditPage : ContentPage
             _vm.InitializeNewEvent(date, minute);
         }
     }
+
+    private Domain.ValueObjects.OccurrenceLocalKey? BuildOccurrenceKey()
+    {
+        if (!DateOnly.TryParse(_occurrenceDateRaw, out var date)) return null;
+
+        var startMinute = int.TryParse(_occurrenceStartMinuteRaw, out var parsed) ? parsed : 0;
+        startMinute = Math.Clamp(startMinute, 0, 1439);
+        var snapped = (int)(Math.Round(startMinute / 15d) * 15);
+        snapped = Math.Clamp(snapped, 0, 23 * 60 + 45);
+
+        var time = new Domain.ValueObjects.LocalTimeValue(snapped / 60, snapped % 60, 0);
+        return new Domain.ValueObjects.OccurrenceLocalKey(new Domain.ValueObjects.LocalDateValue(date.Year, date.Month, date.Day), time);
+    }
 }
+

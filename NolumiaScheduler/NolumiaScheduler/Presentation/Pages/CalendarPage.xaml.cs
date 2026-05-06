@@ -121,7 +121,7 @@ public partial class CalendarPage : ContentPage
 
     private async void OnWeekEventBlockTapped(object? sender, Controls.WeekEventBlockTappedEventArgs e)
     {
-        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}");
+        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.Date:yyyy-MM-dd}&occurrenceStartMinute={e.StartMinute}");
     }
 
     private async void OnWeekEmptySlotTapped(object? sender, Controls.WeekEmptySlotTappedEventArgs e)

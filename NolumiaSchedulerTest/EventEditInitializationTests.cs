@@ -37,12 +37,44 @@ public class EventEditInitializationTests
         Assert.AreEqual(new TimeSpan(23, 59, 0), vm.EndTime);
     }
 
+
+    [TestMethod]
+    public void eventId指定時はOccurrenceKeyを保持する()
+    {
+        var vm = CreateViewModel(out var repo);
+        var ev = CreateSingleEvent("e-load");
+        repo.Save(ev);
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("e-load", key);
+
+        Assert.IsTrue(vm.IsEditing);
+        Assert.IsTrue(vm.IsOccurrenceEditing);
+        Assert.AreEqual(key, vm.EditingOccurrenceKey);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();
         var calendarRepo = new InMemoryCalendarRepo();
         var service = new CalendarEventApplicationService(eventRepo);
         return new EventEditViewModel(service, eventRepo, calendarRepo);
+    }
+
+    private static EventEditViewModel CreateViewModel(out InMemoryEventRepo eventRepo)
+    {
+        eventRepo = new InMemoryEventRepo();
+        var calendarRepo = new InMemoryCalendarRepo();
+        var service = new CalendarEventApplicationService(eventRepo);
+        return new EventEditViewModel(service, eventRepo, calendarRepo);
+    }
+
+    private static CalendarEvent CreateSingleEvent(string id)
+    {
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var now = DateTimeOffset.UtcNow;
+        var start = new DateTimeOffset(2026,5,6,9,30,0,TimeSpan.FromHours(9));
+        return CalendarEvent.CreateSingle(new EventId(id), new EventTitle("x"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false, new SingleEventSchedule(start, start.AddHours(1)), now);
     }
 
     private sealed class InMemoryEventRepo : ICalendarEventRepository

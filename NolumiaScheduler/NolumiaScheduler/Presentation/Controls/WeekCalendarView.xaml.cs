@@ -34,7 +34,13 @@ public partial class WeekCalendarView : ContentView
     private void OnEventBlockTapped(object? sender, TappedEventArgs e)
     {
         if (sender is Border b && b.BindingContext is WeekEventBlock block)
-            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs { EventId = block.EventId, OccurrenceKey = block.OccurrenceKey });
+            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.Date,
+                StartMinute = block.StartMinute,
+                OccurrenceKey = block.OccurrenceKey
+            });
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
