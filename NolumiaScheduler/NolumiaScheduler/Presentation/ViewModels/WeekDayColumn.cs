@@ -14,4 +14,5 @@ public sealed class WeekDayColumn
     public bool IsHoliday { get; }
     public Color DayBackgroundColor => IsHoliday ? Color.FromArgb("#fff0f0") : Colors.Transparent;
     public ObservableCollection<WeekEventBlock> EventBlocks { get; } = [];
+    public ObservableCollection<IWeekGuideLine> GuideLines { get; } = [];
 }
