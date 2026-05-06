@@ -1,5 +1,6 @@
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using NolumiaScheduler.Application.Commands;
@@ -18,6 +19,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private readonly IBusinessCalendarRepository _businessCalendars;
     private readonly IOccurrenceExpander _expander;
     private readonly CalendarEventApplicationService _eventService;
+    private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
 
     private DateTime _month;
     private CalendarDayCell? _selectedCell;
@@ -40,6 +42,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         _businessCalendars = businessCalendars;
         _expander = expander;
         _eventService = eventService;
+        _weekEventLayoutStrategy = new DefaultWeekEventLayoutStrategy();
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
 
@@ -201,7 +204,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             _weekStartDate = _weekStartDate.AddDays(step * 7);
             _month = new DateTime(_weekStartDate.Year, _weekStartDate.Month, 1);
             LoadWeek();
-            MonthYearTitle = $"{_weekStartDate:yyyy年M月d日} - {_weekStartDate.AddDays(6):M月d日}";
+            MonthYearTitle = FormatWeekRangeTitle(_weekStartDate);
             return;
         }
 
@@ -240,7 +243,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         }
         else
         {
-            MonthYearTitle = $"{_weekStartDate:yyyy年M月d日} - {_weekStartDate.AddDays(6):M月d日}";
+            MonthYearTitle = FormatWeekRangeTitle(_weekStartDate);
         }
     }
 
@@ -285,77 +288,22 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         for (var i = 0; i < 7; i++)
         {
             var date = _weekStartDate.AddDays(i);
-            WeekHeaderDays.Add(date.ToString("M/d(ddd)", AppResources.FormatCulture));
+            var header = date.ToString("ddd d", CultureInfo.InvariantCulture);
+            WeekHeaderDays.Add(header);
+            var isHoliday = _businessCalendars.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
 
-            var col = new WeekDayColumn(date.ToString("M/d(ddd)", AppResources.FormatCulture));
-            foreach (var b in LayoutDayBlocks(weekly[i])) col.EventBlocks.Add(b);
+            var col = new WeekDayColumn(header, isHoliday);
+            foreach (var b in _weekEventLayoutStrategy.Layout(weekly[i])) col.EventBlocks.Add(b);
             WeekDayColumns.Add(col);
         }
 
         OnPropertyChanged(nameof(WeekCanvasHeight));
     }
 
-    private static IReadOnlyList<WeekEventBlock> LayoutDayBlocks(IReadOnlyList<CalendarEventItem> events)
+    private static string FormatWeekRangeTitle(DateTime weekStartDate)
     {
-        var segments = events.Select(e =>
-        {
-            var (start, end) = GetRange(e);
-            return new Segment(e, start, end);
-        }).OrderBy(s => s.Start).ThenBy(s => s.End).ToList();
-
-        var blocks = new List<WeekEventBlock>();
-        var active = new List<Segment>();
-
-        foreach (var seg in segments)
-        {
-            active.RemoveAll(a => a.End <= seg.Start);
-            var used = active.Select(a => a.Column).ToHashSet();
-            var col = 0;
-            while (used.Contains(col)) col++;
-            seg.Column = col;
-            active.Add(seg);
-            seg.ColumnCount = Math.Max(seg.ColumnCount, active.Max(a => a.Column) + 1);
-            foreach (var a in active) a.ColumnCount = Math.Max(a.ColumnCount, seg.ColumnCount);
-        }
-
-        foreach (var s in segments)
-        {
-            var duration = Math.Max(20, s.End - s.Start);
-            blocks.Add(new WeekEventBlock
-            {
-                Title = s.Item.Title,
-                TimeLabel = s.Item.TimeRange,
-                BackgroundColor = s.Item.DotColor,
-                Top = s.Start,
-                Height = duration,
-                LeftRatio = s.ColumnCount <= 1 ? 0 : (double)s.Column / s.ColumnCount,
-                WidthRatio = s.ColumnCount <= 1 ? 1 : 1d / s.ColumnCount,
-            });
-        }
-
-        return blocks;
-    }
-
-    private static (int Start, int End) GetRange(CalendarEventItem item)
-    {
-        if (item.IsAllDay) return (0, 60);
-        var split = item.TimeRange.Split('–', StringSplitOptions.TrimEntries);
-        if (split.Length != 2) return (0, 60);
-        var st = TimeOnly.Parse(split[0]);
-        var ed = TimeOnly.Parse(split[1]);
-        var s = st.Hour * 60 + st.Minute;
-        var e = ed.Hour * 60 + ed.Minute;
-        if (e <= s) e = s + 60;
-        return (s, e);
-    }
-
-    private sealed class Segment(CalendarEventItem item, int start, int end)
-    {
-        public CalendarEventItem Item { get; } = item;
-        public int Start { get; } = start;
-        public int End { get; } = end;
-        public int Column { get; set; }
-        public int ColumnCount { get; set; } = 1;
+        var weekEndDate = weekStartDate.AddDays(6);
+        return $"{weekStartDate:MMM d, yyyy} - {weekEndDate:MMM d, yyyy}";
     }
 
     private void LoadMonth()

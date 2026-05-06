@@ -30,6 +30,17 @@
             <Setter Property="VerticalOptions" Value="Center" />
             <Setter Property="Padding" Value="0" />
         </Style>
+
+        <Style x:Key="ViewSwitchButtonStyle" TargetType="Button">
+            <Setter Property="CornerRadius" Value="8" />
+            <Setter Property="Padding" Value="12,6" />
+            <Setter Property="FontSize" Value="13" />
+            <Setter Property="FontAttributes" Value="Bold" />
+            <Setter Property="BorderWidth" Value="1" />
+            <Setter Property="BorderColor" Value="{StaticResource GCalBorder}" />
+            <Setter Property="TextColor" Value="{StaticResource GCalTextPrimary}" />
+            <Setter Property="BackgroundColor" Value="Transparent" />
+        </Style>
     </ContentPage.Resources>
 
     <!--
@@ -118,9 +129,9 @@
         </Grid>
 
 
-        <Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="12,4" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
-            <Button Grid.Column="0" Text="{x:Static res:AppResources.MonthViewLabel}" Command="{Binding SwitchToMonthViewCommand}" />
-            <Button Grid.Column="1" Text="{x:Static res:AppResources.WeekViewLabel}" Command="{Binding SwitchToWeekViewCommand}" />
+        <Grid Grid.Row="1" ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" Padding="12,4" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+            <Button Grid.Column="0" Style="{StaticResource ViewSwitchButtonStyle}" Text="{x:Static res:AppResources.MonthViewLabel}" Command="{Binding SwitchToMonthViewCommand}" />
+            <Button Grid.Column="1" Style="{StaticResource ViewSwitchButtonStyle}" Text="{x:Static res:AppResources.WeekViewLabel}" Command="{Binding SwitchToWeekViewCommand}" />
         </Grid>
 
         <!-- ── Separator: header / day-of-week ── -->
@@ -277,15 +288,15 @@
                 </CollectionView.ItemTemplate>
             </CollectionView>
 
-            <CollectionView Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" ItemsSource="{Binding WeekDayColumns}" SelectionMode="None">
+            <CollectionView Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" ItemsSource="{Binding WeekDayColumns}" SelectionMode="None" HorizontalScrollBarVisibility="Always">
                 <CollectionView.ItemsLayout>
-                    <GridItemsLayout Orientation="Vertical" Span="7" />
+                    <LinearItemsLayout Orientation="Horizontal" ItemSpacing="2" />
                 </CollectionView.ItemsLayout>
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:WeekDayColumn">
-                        <Grid RowDefinitions="Auto,*" Margin="1,0">
+                        <Grid RowDefinitions="Auto,*" Margin="1,0" WidthRequest="180">
                             <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" />
-                            <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#1E1E1E}">
+                            <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{Binding DayBackgroundColor}">
                                 <BoxView Color="{AppThemeBinding Light=#E0E0E0, Dark=#333333}" AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All" />
                                 <VerticalStackLayout AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All" Spacing="0" InputTransparent="True">
                                     <BoxView HeightRequest="60" Color="Transparent" />
