@@ -25,6 +25,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private string _selectedDayLabel = "";
     private bool _hasSelectedDay;
     private bool _selectedDayHasNoEvents;
+    private bool _selectedDayIsHoliday;
+    private string _selectedDayHolidayText = "";
 
     public CalendarViewModel(
         ICalendarEventRepository events,
@@ -75,6 +77,18 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         private set { _selectedDayHasNoEvents = value; OnPropertyChanged(); }
     }
 
+    public bool SelectedDayIsHoliday
+    {
+        get => _selectedDayIsHoliday;
+        private set { _selectedDayIsHoliday = value; OnPropertyChanged(); }
+    }
+
+    public string SelectedDayHolidayText
+    {
+        get => _selectedDayHolidayText;
+        private set { _selectedDayHolidayText = value; OnPropertyChanged(); }
+    }
+
     public ICommand PreviousMonthCommand { get; }
     public ICommand NextMonthCommand { get; }
     public ICommand GoTodayCommand { get; }
@@ -94,6 +108,28 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         foreach (var occ in cell.Events)
             SelectedDayEvents.Add(new CalendarEventItem(occ));
         SelectedDayHasNoEvents = SelectedDayEvents.Count == 0;
+
+        // Collect holiday info for the selected day across all business calendars
+        if (cell.IsHoliday)
+        {
+            var parts = new List<string>();
+            foreach (var cal in _businessCalendars.FindAll())
+            {
+                var h = cal.Holidays.FirstOrDefault(h => h.Date.Equals(cell.Date));
+                if (h != null)
+                {
+                    var entry = string.IsNullOrEmpty(h.Name) ? cal.Name : $"{cal.Name}：{h.Name}";
+                    parts.Add(entry);
+                }
+            }
+            SelectedDayIsHoliday = true;
+            SelectedDayHolidayText = string.Join("  /  ", parts);
+        }
+        else
+        {
+            SelectedDayIsHoliday = false;
+            SelectedDayHolidayText = "";
+        }
     }
 
     public void ReloadCurrentMonth() => RefreshAfterChange();
@@ -142,6 +178,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         _selectedCell = null;
         HasSelectedDay = false;
         SelectedDayHasNoEvents = false;
+        SelectedDayIsHoliday = false;
+        SelectedDayHolidayText = "";
         SelectedDayEvents.Clear();
     }
 

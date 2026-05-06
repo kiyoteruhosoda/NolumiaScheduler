@@ -21,4 +21,12 @@ public partial class BusinessCalendarEditPage : ContentPage
         vm.SaveCompleted   += async () => await Shell.Current.GoToAsync("..");
         vm.DeleteCompleted += async () => await Shell.Current.GoToAsync("..");
     }
+
+    private void OnAddHolidayClicked(object sender, EventArgs e)
+    {
+        // Unfocus the Entry so its TwoWay binding commits the text to the ViewModel
+        HolidayNameEntry.Unfocus();
+        _vm.NewHolidayName = HolidayNameEntry.Text ?? "";
+        _vm.AddHolidayCommand.Execute(null);
+    }
 }

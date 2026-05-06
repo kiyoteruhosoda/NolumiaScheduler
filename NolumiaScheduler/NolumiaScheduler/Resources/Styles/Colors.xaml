@@ -31,6 +31,14 @@
     <Color x:Key="GCalOutOfMonthText">#bdbdbd</Color>
     <Color x:Key="GCalOutOfMonthTextDark">#555555</Color>
 
+    <!-- Holiday / weekend cell backgrounds -->
+    <Color x:Key="GCalHolidayBg">#fff0f0</Color>
+    <Color x:Key="GCalHolidayBgDark">#3a1a1a</Color>
+    <Color x:Key="GCalSundayBg">#fff8f8</Color>
+    <Color x:Key="GCalSundayBgDark">#2d1a1a</Color>
+    <Color x:Key="GCalSaturdayBg">#f0f4ff</Color>
+    <Color x:Key="GCalSaturdayBgDark">#1a1a2d</Color>
+
     <Color x:Key="Primary">#512BD4</Color>
     <Color x:Key="PrimaryDark">#ac99ea</Color>
     <Color x:Key="PrimaryDarkText">#242424</Color>

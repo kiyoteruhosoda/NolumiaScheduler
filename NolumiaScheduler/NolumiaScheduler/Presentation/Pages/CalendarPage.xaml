@@ -130,7 +130,8 @@
 
             <CollectionView.ItemTemplate>
                 <DataTemplate x:DataType="vm:CalendarDayCell">
-                    <Grid HeightRequest="88" Padding="2,2,2,0">
+                    <Grid HeightRequest="88" Padding="2,2,2,0"
+                          BackgroundColor="{Binding CellBackgroundColor}">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="30" />
                             <RowDefinition Height="14" />
@@ -212,7 +213,7 @@
         <!-- ── Selected-day events panel ── -->
         <Grid Grid.Row="5"
               IsVisible="{Binding HasSelectedDay}"
-              RowDefinitions="1,44,Auto,Auto"
+              RowDefinitions="1,44,Auto,Auto,Auto"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
 
             <!-- Top divider -->
@@ -228,8 +229,21 @@
                    VerticalOptions="Center"
                    Margin="16,0" />
 
+            <!-- Holiday banner (shown when selected day is a holiday) -->
+            <Border Grid.Row="2"
+                    IsVisible="{Binding SelectedDayIsHoliday}"
+                    BackgroundColor="{AppThemeBinding Light={StaticResource GCalHolidayBg}, Dark={StaticResource GCalHolidayBgDark}}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 6"
+                    Padding="12,6"
+                    Margin="16,4,16,0">
+                <Label Text="{Binding SelectedDayHolidayText}"
+                       FontSize="12"
+                       TextColor="{AppThemeBinding Light={StaticResource GCalRed}, Dark={StaticResource GCalRedDark}}" />
+            </Border>
+
             <!-- Empty state when no events for the selected day -->
-            <Label Grid.Row="2"
+            <Label Grid.Row="3"
                    IsVisible="{Binding SelectedDayHasNoEvents}"
                    Text="{x:Static res:AppResources.NoEventsLabel}"
                    FontSize="13"
@@ -238,7 +252,7 @@
                    Margin="16,8,16,16" />
 
             <!-- Event list (scrollable, capped at ~200dp) -->
-            <ScrollView Grid.Row="3" MaximumHeightRequest="200">
+            <ScrollView Grid.Row="4" MaximumHeightRequest="200">
                 <VerticalStackLayout BindableLayout.ItemsSource="{Binding SelectedDayEvents}">
                     <BindableLayout.ItemTemplate>
                         <DataTemplate x:DataType="vm:CalendarEventItem">
@@ -308,8 +322,28 @@
                                         Padding="0"
                                         WidthRequest="40"
                                         HeightRequest="40"
+                                        CornerRadius="20"
                                         VerticalOptions="Start"
-                                        Clicked="OnEditEventClicked" />
+                                        Clicked="OnEditEventClicked">
+                                    <Button.VisualStateManager.VisualStateGroups>
+                                        <VisualStateGroupList>
+                                            <VisualStateGroup x:Name="CommonStates">
+                                                <VisualState x:Name="Normal">
+                                                    <VisualState.Setters>
+                                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </VisualState.Setters>
+                                                </VisualState>
+                                                <VisualState x:Name="PointerOver">
+                                                    <VisualState.Setters>
+                                                        <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource GCalBlueLight}, Dark={StaticResource GCalBlueLightDark}}" />
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </VisualState.Setters>
+                                                </VisualState>
+                                            </VisualStateGroup>
+                                        </VisualStateGroupList>
+                                    </Button.VisualStateManager.VisualStateGroups>
+                                </Button>
 
                                 <!-- Delete button -->
                                 <Button Grid.Column="3"
@@ -321,8 +355,28 @@
                                         Padding="0"
                                         WidthRequest="40"
                                         HeightRequest="40"
+                                        CornerRadius="20"
                                         VerticalOptions="Start"
-                                        Clicked="OnDeleteEventClicked" />
+                                        Clicked="OnDeleteEventClicked">
+                                    <Button.VisualStateManager.VisualStateGroups>
+                                        <VisualStateGroupList>
+                                            <VisualStateGroup x:Name="CommonStates">
+                                                <VisualState x:Name="Normal">
+                                                    <VisualState.Setters>
+                                                        <Setter Property="BackgroundColor" Value="Transparent" />
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </VisualState.Setters>
+                                                </VisualState>
+                                                <VisualState x:Name="PointerOver">
+                                                    <VisualState.Setters>
+                                                        <Setter Property="BackgroundColor" Value="#33d93025" />
+                                                        <Setter Property="Opacity" Value="1" />
+                                                    </VisualState.Setters>
+                                                </VisualState>
+                                            </VisualStateGroup>
+                                        </VisualStateGroupList>
+                                    </Button.VisualStateManager.VisualStateGroups>
+                                </Button>
                             </Grid>
                         </DataTemplate>
                     </BindableLayout.ItemTemplate>

@@ -27,6 +27,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(CircleColor));
             OnPropertyChanged(nameof(DayTextColor));
+            OnPropertyChanged(nameof(CellBackgroundColor));
         }
     }
 
@@ -48,6 +49,23 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
             if (IsCurrentMonth)
                 return isDark ? Colors.White : ResourceColor("GCalTextPrimary");
             return ResourceColor(isDark ? "GCalOutOfMonthTextDark" : "GCalOutOfMonthText");
+        }
+    }
+
+    public Color CellBackgroundColor
+    {
+        get
+        {
+            if (!IsCurrentMonth) return Colors.Transparent;
+            var isDark = MauiApplication.Current?.RequestedTheme == AppTheme.Dark;
+            var dow = Date.DayOfWeek;
+            if (IsHoliday)
+                return isDark ? ResourceColor("GCalHolidayBgDark") : ResourceColor("GCalHolidayBg");
+            if (dow == DayOfWeek.Sunday)
+                return isDark ? ResourceColor("GCalSundayBgDark") : ResourceColor("GCalSundayBg");
+            if (dow == DayOfWeek.Saturday)
+                return isDark ? ResourceColor("GCalSaturdayBgDark") : ResourceColor("GCalSaturdayBg");
+            return Colors.Transparent;
         }
     }
 
@@ -88,6 +106,12 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
             "GCalEventMoved"         => Color.FromArgb("#9c27b0"),
             "GCalRed"                => Color.FromArgb("#d93025"),
             "GCalRedDark"            => Color.FromArgb("#f28b82"),
+            "GCalHolidayBg"          => Color.FromArgb("#fff0f0"),
+            "GCalHolidayBgDark"      => Color.FromArgb("#3a1a1a"),
+            "GCalSundayBg"           => Color.FromArgb("#fff8f8"),
+            "GCalSundayBgDark"       => Color.FromArgb("#2d1a1a"),
+            "GCalSaturdayBg"         => Color.FromArgb("#f0f4ff"),
+            "GCalSaturdayBgDark"     => Color.FromArgb("#1a1a2d"),
             "GCalOutOfMonthText"     => Color.FromArgb("#bdbdbd"),
             "GCalOutOfMonthTextDark" => Color.FromArgb("#555555"),
             _ => Colors.Gray

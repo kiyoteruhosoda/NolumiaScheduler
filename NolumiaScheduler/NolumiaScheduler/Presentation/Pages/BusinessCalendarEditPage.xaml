@@ -137,20 +137,21 @@
                                 FontSize="13"
                                 MinimumHeightRequest="40"
                                 TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
-                    <Entry Grid.Column="1"
-                           Text="{Binding NewHolidayName}"
+                    <Entry x:Name="HolidayNameEntry"
+                           Grid.Column="1"
+                           Text="{Binding NewHolidayName, Mode=TwoWay}"
                            Placeholder="{x:Static res:AppResources.HolidayNamePlaceholder}"
                            FontSize="13"
                            TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
                     <Button Grid.Column="2"
                             Text="{x:Static res:AppResources.AddHolidayButton}"
-                            Command="{Binding AddHolidayCommand}"
                             BackgroundColor="{StaticResource GCalBlue}"
                             TextColor="{StaticResource White}"
                             FontSize="13"
                             Padding="4,0"
                             CornerRadius="6"
-                            HeightRequest="40" />
+                            HeightRequest="40"
+                            Clicked="OnAddHolidayClicked" />
                 </Grid>
             </Border>
 
