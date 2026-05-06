@@ -291,7 +291,8 @@
                                   CurrentTimeLineTop="{Binding CurrentTimeLineTop}"
                                   EmptySlotTapped="OnWeekEmptySlotTapped"
                                   EventBlockTapped="OnWeekEventBlockTapped"
-                                  EventDragCompleted="OnWeekEventDragCompleted" />
+                                  EventDragCompleted="OnWeekEventDragCompleted"
+                                  EventResizeCompleted="OnWeekEventResizeCompleted" />
 
         <!-- ── Selected-day events panel ── -->
         <Grid Grid.Row="6"

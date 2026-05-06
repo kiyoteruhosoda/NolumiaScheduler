@@ -13,6 +13,7 @@ public partial class WeekCalendarView : ContentView
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
     public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
+    public event EventHandler<WeekEventResizeCompletedEventArgs>? EventResizeCompleted;
 
     public WeekCalendarView()
     {
@@ -78,6 +79,19 @@ public partial class WeekCalendarView : ContentView
         }
     }
 
+
+    // Resize本実装前の統合ポイント: 将来下端ドラッグから呼ぶ
+    public void CompleteResize(string eventId, DateTime date, int startMinute, double previewHeight)
+    {
+        var endMinute = Math.Max(startMinute + 15, _mapper.HeightToMinute(previewHeight));
+        EventResizeCompleted?.Invoke(this, new WeekEventResizeCompletedEventArgs
+        {
+            EventId = eventId,
+            Date = date,
+            StartMinute = startMinute,
+            EndMinute = endMinute
+        });
+    }
 
     // Drag本実装前の統合ポイント: 将来Pan/LongPressから呼ぶ
     public void CompleteDrag(string eventId, Point point, DateTime weekStartDate)

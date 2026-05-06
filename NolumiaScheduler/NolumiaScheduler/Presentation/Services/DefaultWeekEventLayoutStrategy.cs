@@ -97,6 +97,11 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
                 segment.Start,
                 segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
                 duration),
+            ResizeHandleBounds = new Rect(
+                segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
+                Math.Max(segment.Start, segment.Start + duration - 16),
+                segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
+                16),
         };
     }
 

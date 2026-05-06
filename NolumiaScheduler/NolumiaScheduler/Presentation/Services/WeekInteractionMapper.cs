@@ -33,4 +33,10 @@ public sealed class WeekInteractionMapper : IWeekInteractionMapper
         var y = MapToY(dateTime.Hour * 60 + dateTime.Minute);
         return new Point(x, y);
     }
+
+    public double MinuteToHeight(int minute) => Math.Max(15, SnapMinute(minute));
+
+    public int HeightToMinute(double height) => SnapMinute((int)Math.Round(height));
+
+    public int SnapMinute(int minute) => Math.Clamp((int)(Math.Round(minute / 15d) * 15), 15, 24 * 60);
 }

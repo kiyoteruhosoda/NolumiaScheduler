@@ -17,6 +17,14 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
     public required double LeftRatio { get; init; }
     public required double WidthRatio { get; init; }
     public required Rect Bounds { get; init; }
+    public required Rect ResizeHandleBounds { get; init; }
+
+    private bool _isResizePreview;
+    public bool IsResizePreview
+    {
+        get => _isResizePreview;
+        set { _isResizePreview = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsResizePreview))); }
+    }
 
     private bool _isSelected;
     public bool IsSelected

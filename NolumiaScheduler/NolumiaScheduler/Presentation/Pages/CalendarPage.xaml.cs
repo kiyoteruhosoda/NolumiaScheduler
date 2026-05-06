@@ -135,6 +135,12 @@ public partial class CalendarPage : ContentPage
         await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.TargetDateTime:yyyy-MM-dd}&occurrenceStartMinute={e.TargetStartMinute}");
     }
 
+    private async void OnWeekEventResizeCompleted(object? sender, Controls.WeekEventResizeCompletedEventArgs e)
+    {
+        // リサイズ本実装前の統合ポイント: occurrence文脈を維持して編集画面へ遷移
+        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.Date:yyyy-MM-dd}&occurrenceStartMinute={e.StartMinute}");
+    }
+
     // ── Delete event ──────────────────────────────────────────
 
     private async void OnDeleteEventClicked(object? sender, TappedEventArgs e)

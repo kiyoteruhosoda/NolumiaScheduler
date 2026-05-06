@@ -9,4 +9,7 @@ public interface IWeekInteractionMapper
     int SnapToQuarterHour(int minuteOfDay);
     DateTime MapToDateTime(Point point, DateTime weekStartDate, double dayColumnWidth);
     Point MapToPoint(DateTime dateTime, DateTime weekStartDate, double dayColumnWidth);
+    double MinuteToHeight(int minute);
+    int HeightToMinute(double height);
+    int SnapMinute(int minute);
 }
