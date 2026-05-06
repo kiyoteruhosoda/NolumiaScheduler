@@ -123,30 +123,32 @@ public class CalendarEventApplicationService
     public CalendarEvent ChangeFollowingOccurrences(ChangeFollowingOccurrencesCommand command)
     {
         var ev = GetOrThrow(command.EventId);
+        if (!ev.IsRecurring() || ev.RecurringSchedule == null)
+            throw new DomainException("ChangeFollowingOccurrences is only valid for recurring events.");
 
         // 1. 既存イベントの endDate を変更前最終回の前日に切る
         var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
         ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
         _repository.Save(ev);
 
-        // 2. 新しい繰り返しイベントを作成
+        // 2. 新しい繰り返しイベントを作成（future側）
         var newId = new EventId(Guid.NewGuid().ToString());
         var newSchedule = new RecurringEventSchedule(
             command.FromOccurrenceKey.Date,
-            command.NewStartTime ?? ev.RecurringSchedule!.StartTime,
-            command.NewEndTime ?? ev.RecurringSchedule!.EndTime,
+            command.NewAllDay ? null : command.NewStartTime,
+            command.NewAllDay ? null : command.NewEndTime,
             command.NewRecurrenceRule,
-            ev.AllDay);
+            command.NewAllDay);
 
         var newEv = CalendarEvent.CreateRecurring(
             newId,
-            ev.Title,
-            ev.Location,
-            ev.Visibility,
+            new EventTitle(command.NewTitle),
+            command.NewLocation != null ? new Location(command.NewLocation) : null,
+            command.NewVisibility,
             ev.EventType,
             ev.Description,
             ev.TimeZoneId,
-            ev.AllDay,
+            command.NewAllDay,
             newSchedule,
             DateTimeOffset.UtcNow);
 

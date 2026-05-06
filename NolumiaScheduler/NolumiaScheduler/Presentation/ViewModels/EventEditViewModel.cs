@@ -484,12 +484,15 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
                     {
                         SaveThisOccurrence(_editingEventId);
                         if (!string.IsNullOrEmpty(ValidationError)) return;
-                        goto SaveCompletedBranch;
+                        CompleteSaveIfValid();
+                        return;
                     }
 
                     if (scope == RecurringEditScope.ThisAndFollowing)
                     {
-                        ValidationError = "これ以降の編集は未実装です。";
+                        SaveThisAndFollowing(_editingEventId);
+                        if (!string.IsNullOrEmpty(ValidationError)) return;
+                        CompleteSaveIfValid();
                         return;
                     }
                 }
@@ -501,9 +504,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             else
                 SaveRecurring();
 
-            SaveCompletedBranch:
-            if (string.IsNullOrEmpty(ValidationError))
-                SaveCompleted?.Invoke();
+            CompleteSaveIfValid();
         }
         catch (Exception ex)
         {
@@ -511,6 +512,45 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         }
     }
 
+
+    private void CompleteSaveIfValid()
+    {
+        if (string.IsNullOrEmpty(ValidationError))
+            SaveCompleted?.Invoke();
+    }
+
+
+    private void SaveThisAndFollowing(string eventId)
+    {
+        if (EditingOccurrenceKey == null)
+        {
+            ValidationError = "発生日情報がありません。";
+            return;
+        }
+
+        var ev = _eventRepo.FindById(new EventId(eventId));
+        if (ev == null || !ev.IsRecurring())
+        {
+            ValidationError = "繰り返し予定が見つかりません。";
+            return;
+        }
+
+        var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
+
+        var newRule = BuildRecurrenceRule();
+
+        _eventService.ChangeFollowingOccurrences(new ChangeFollowingOccurrencesCommand(
+            eventId,
+            EditingOccurrenceKey,
+            Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            AllDay,
+            newStart,
+            newEnd,
+            newRule));
+    }
 
     private void SaveThisOccurrence(string eventId)
     {

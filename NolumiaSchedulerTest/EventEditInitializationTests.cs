@@ -79,7 +79,7 @@ public class EventEditInitializationTests
         repo.Save(CreateRecurringEvent("rec2"));
         vm.LoadEvent("rec2", new OccurrenceLocalKey(new LocalDateValue(2026,5,6), new LocalTimeValue(9,30,0)));
         vm.Save(RecurringEditScope.ThisAndFollowing);
-        Assert.IsTrue(vm.HasValidationError);
+        Assert.IsFalse(vm.HasValidationError);
     }
 
 
@@ -119,14 +119,44 @@ public class EventEditInitializationTests
         Assert.AreEqual(RecurrenceType.Weekly, saved.RecurringSchedule!.RecurrenceRule.RuleType);
     }
 
+
     [TestMethod]
-    public void これ以降は未実装エラーになる()
+    public void これ以降を選ぶと系列が分割される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-split"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-split", key);
+        vm.Title = "future";
+        vm.Location = "room B";
+        vm.StartTime = new TimeSpan(13, 0, 0);
+        vm.EndTime = new TimeSpan(14, 0, 0);
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var all = repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var original = all.Single(e => e.Id.Value == "rec-split");
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), original.RecurringSchedule!.RecurrenceRule.EndDate);
+
+        var future = all.Single(e => e.Id.Value != "rec-split");
+        Assert.AreEqual("future", future.Title.Value);
+        Assert.AreEqual("room B", future.Location!.Value);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 6), future.RecurringSchedule!.StartDate);
+        Assert.AreEqual(13, future.RecurringSchedule.StartTime!.Hour);
+    }
+
+    [TestMethod]
+    public void これ以降選択で保存できる()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec4"));
         vm.LoadEvent("rec4", new OccurrenceLocalKey(new LocalDateValue(2026,5,6), new LocalTimeValue(9,30,0)));
         vm.Save(RecurringEditScope.ThisAndFollowing);
-        Assert.IsTrue(vm.HasValidationError);
+        Assert.IsFalse(vm.HasValidationError);
     }
 
     private static EventEditViewModel CreateViewModel()

@@ -55,6 +55,10 @@ public sealed record MoveOccurrenceCommand(
 public sealed record ChangeFollowingOccurrencesCommand(
     string EventId,
     OccurrenceLocalKey FromOccurrenceKey,
+    string NewTitle,
+    string? NewLocation,
+    Visibility NewVisibility,
+    bool NewAllDay,
     LocalTimeValue? NewStartTime,
     LocalTimeValue? NewEndTime,
     RecurrenceRule NewRecurrenceRule);
