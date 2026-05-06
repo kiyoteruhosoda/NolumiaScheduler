@@ -1,6 +1,7 @@
 using Microsoft.Maui.Controls;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.Resources.Strings;
 using MauiApp = Microsoft.Maui.Controls.Application;
@@ -11,16 +12,21 @@ public partial class CalendarPage : ContentPage
 {
     private readonly CalendarViewModel _vm;
     private readonly ICalendarEventRepository _eventRepo;
+    private readonly IWeekInteractionCompletionService _interactionCompletionService;
 
     private Color _rowHoverColor = Color.FromArgb("#e8eaed");
     private Color _iconHoverColor = Color.FromArgb("#e0e0e0");
     private Color _outlineHoverColor = Color.FromArgb("#e8f0fe");
 
-    public CalendarPage(CalendarViewModel vm, ICalendarEventRepository eventRepo)
+    public CalendarPage(
+        CalendarViewModel vm,
+        ICalendarEventRepository eventRepo,
+        IWeekInteractionCompletionService interactionCompletionService)
     {
         InitializeComponent();
         _vm = vm;
         _eventRepo = eventRepo;
+        _interactionCompletionService = interactionCompletionService;
         BindingContext = vm;
     }
 
@@ -131,14 +137,12 @@ public partial class CalendarPage : ContentPage
 
     private async void OnWeekEventDragCompleted(object? sender, Controls.WeekEventDragCompletedEventArgs e)
     {
-        // state machine導入後: drag完了は通知のみ（保存/遷移は次工程）
-        await Task.CompletedTask;
+        await _interactionCompletionService.HandleDragCompletedAsync(e);
     }
 
     private async void OnWeekEventResizeCompleted(object? sender, Controls.WeekEventResizeCompletedEventArgs e)
     {
-        // state machine導入後: resize完了は通知のみ（保存/遷移は次工程）
-        await Task.CompletedTask;
+        await _interactionCompletionService.HandleResizeCompletedAsync(e);
     }
 
     // ── Delete event ──────────────────────────────────────────

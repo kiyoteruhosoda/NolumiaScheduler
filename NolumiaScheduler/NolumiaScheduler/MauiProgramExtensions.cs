@@ -57,6 +57,7 @@ public static class MauiProgramExtensions
         builder.Services.AddSingleton<IWeekEventLayoutStrategy, DefaultWeekEventLayoutStrategy>();
         builder.Services.AddSingleton<IWeekInteractionMapper, WeekInteractionMapper>();
         builder.Services.AddSingleton<IWeekDragInteractionService, NoOpWeekDragInteractionService>();
+        builder.Services.AddSingleton<IWeekInteractionCompletionService, NavigateWeekInteractionCompletionService>();
 
         // ViewModels
         builder.Services.AddTransient<CalendarViewModel>();
