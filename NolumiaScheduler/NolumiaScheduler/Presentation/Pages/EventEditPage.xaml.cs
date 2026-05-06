@@ -1,4 +1,5 @@
 using NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.Pages;
 
@@ -46,6 +47,35 @@ public partial class EventEditPage : ContentPage
             var minute = int.TryParse(_startMinuteRaw, out var parsedMinute) ? parsedMinute : 9 * 60;
             _vm.InitializeNewEvent(date, minute);
         }
+    }
+
+
+    private async void OnSaveClicked(object? sender, EventArgs e)
+    {
+        if (!_vm.RequiresRecurringEditScopeSelection)
+        {
+            _vm.RequestSave();
+            return;
+        }
+
+        var action = await DisplayActionSheetAsync(
+            "繰り返し予定の編集",
+            AppResources.CancelButton,
+            null,
+            "この予定のみ",
+            "これ以降の予定",
+            "すべての予定");
+
+        var scope = action switch
+        {
+            var a when a == "この予定のみ" => RecurringEditScope.ThisOccurrence,
+            var a when a == "これ以降の予定" => RecurringEditScope.ThisAndFollowing,
+            var a when a == "すべての予定" => RecurringEditScope.EntireSeries,
+            _ => (RecurringEditScope?)null
+        };
+
+        if (scope != null)
+            _vm.Save(scope);
     }
 
     private Domain.ValueObjects.OccurrenceLocalKey? BuildOccurrenceKey()

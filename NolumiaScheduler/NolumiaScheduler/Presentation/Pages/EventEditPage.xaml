@@ -352,7 +352,7 @@
 
             <!-- ── Save ── -->
             <Button Text="{x:Static res:AppResources.SaveButton}"
-                    Command="{Binding SaveCommand}"
+                    Clicked="OnSaveClicked"
                     BackgroundColor="{StaticResource GCalBlue}"
                     TextColor="{StaticResource White}"
                     FontSize="15"

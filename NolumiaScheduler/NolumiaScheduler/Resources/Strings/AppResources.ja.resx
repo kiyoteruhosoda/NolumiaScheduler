@@ -75,4 +75,25 @@
   <data name="MonthYearFormat" xml:space="preserve"><value>yyyy年M月</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>M月d日 (ddd)</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>ja-JP</value></data>
+  <data name="EditRecurringEventTitle" xml:space="preserve">
+    <value>繰り返し予定の編集</value>
+  </data>
+  <data name="EditThisOccurrence" xml:space="preserve">
+    <value>この予定のみ</value>
+  </data>
+  <data name="EditThisAndFollowing" xml:space="preserve">
+    <value>これ以降の予定</value>
+  </data>
+  <data name="EditEntireSeries" xml:space="preserve">
+    <value>すべての予定</value>
+  </data>
+  <data name="EditRecurringScopeRequired" xml:space="preserve">
+    <value>編集範囲を選択してください。</value>
+  </data>
+  <data name="EditThisOccurrenceNotImplemented" xml:space="preserve">
+    <value>この予定のみの編集は未実装です。</value>
+  </data>
+  <data name="EditThisAndFollowingNotImplemented" xml:space="preserve">
+    <value>これ以降の編集は未実装です。</value>
+  </data>
 </root>

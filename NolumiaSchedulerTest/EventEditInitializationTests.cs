@@ -53,6 +53,35 @@ public class EventEditInitializationTests
         Assert.AreEqual(key, vm.EditingOccurrenceKey);
     }
 
+
+    [TestMethod]
+    public void 単発予定編集では範囲選択不要()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateSingleEvent("single"));
+        vm.LoadEvent("single");
+        Assert.IsFalse(vm.RequiresRecurringEditScopeSelection);
+    }
+
+    [TestMethod]
+    public void 繰り返し予定かつoccurrenceありは範囲選択が必要()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec"));
+        vm.LoadEvent("rec", new OccurrenceLocalKey(new LocalDateValue(2026,5,6), new LocalTimeValue(9,30,0)));
+        Assert.IsTrue(vm.RequiresRecurringEditScopeSelection);
+    }
+
+    [TestMethod]
+    public void 範囲未実装の選択はエラーで停止する()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec2"));
+        vm.LoadEvent("rec2", new OccurrenceLocalKey(new LocalDateValue(2026,5,6), new LocalTimeValue(9,30,0)));
+        vm.Save(RecurringEditScope.ThisOccurrence);
+        Assert.IsTrue(vm.HasValidationError);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();
@@ -75,6 +104,18 @@ public class EventEditInitializationTests
         var now = DateTimeOffset.UtcNow;
         var start = new DateTimeOffset(2026,5,6,9,30,0,TimeSpan.FromHours(9));
         return CalendarEvent.CreateSingle(new EventId(id), new EventTitle("x"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false, new SingleEventSchedule(start, start.AddHours(1)), now);
+    }
+
+
+    private static CalendarEvent CreateRecurringEvent(string id)
+    {
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var now = DateTimeOffset.UtcNow;
+        return CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false,
+            new RecurringEventSchedule(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), new LocalTimeValue(10, 30, 0),
+                new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31), weekly: new WeeklyRule([Weekday.Wednesday])), false),
+            now);
     }
 
     private sealed class InMemoryEventRepo : ICalendarEventRepository

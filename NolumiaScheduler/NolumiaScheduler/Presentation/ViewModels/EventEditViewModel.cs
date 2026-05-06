@@ -74,7 +74,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         _eventRepo = eventRepo;
         _calendarRepo = calendarRepo;
 
-        SaveCommand = new Command(Save);
+        SaveCommand = new Command(RequestSave);
 
         // Default: Mon selected for weekly
         _weekMon = true;
@@ -85,6 +85,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     public bool IsEditing => _editingEventId != null;
     public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
+    public bool RequiresRecurringEditScopeSelection => IsEditing && IsRecurring && IsOccurrenceEditing;
 
     public void InitializeNewEvent(DateOnly date, int startMinute)
     {
@@ -113,6 +114,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsEditing));
         OnPropertyChanged(nameof(PageTitle));
         OnPropertyChanged(nameof(IsOccurrenceEditing));
+        OnPropertyChanged(nameof(RequiresRecurringEditScopeSelection));
 
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
@@ -446,7 +448,9 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     // ── Save logic ────────────────────────────────────────────
 
-    private void Save()
+    public void RequestSave() => Save(null);
+
+    public void Save(RecurringEditScope? scope = null)
     {
         ValidationError = "";
 
@@ -459,7 +463,30 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         try
         {
             if (_editingEventId != null)
+            {
+                if (RequiresRecurringEditScopeSelection)
+                {
+                    if (scope == null)
+                    {
+                        ValidationError = "編集範囲を選択してください。";
+                        return;
+                    }
+
+                    if (scope == RecurringEditScope.ThisOccurrence)
+                    {
+                        ValidationError = "この予定のみの編集は未実装です。";
+                        return;
+                    }
+
+                    if (scope == RecurringEditScope.ThisAndFollowing)
+                    {
+                        ValidationError = "これ以降の編集は未実装です。";
+                        return;
+                    }
+                }
+
                 UpdateExisting(_editingEventId);
+            }
             else if (!IsRecurring)
                 SaveSingle();
             else
