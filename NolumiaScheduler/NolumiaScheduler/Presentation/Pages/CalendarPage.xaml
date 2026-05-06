@@ -298,7 +298,7 @@
                 <CollectionView.ItemTemplate>
                     <DataTemplate x:DataType="vm:WeekDayColumn">
                         <Grid RowDefinitions="Auto,*" Margin="1,0" WidthRequest="180">
-                            <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" />
+                            <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" FontAttributes="{Binding HeaderFontAttributes}" TextColor="{Binding HeaderTextColor}" />
                             <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{Binding DayBackgroundColor}">
                                 <AbsoluteLayout BindableLayout.ItemsSource="{Binding GuideLines}" InputTransparent="True">
                                     <BindableLayout.ItemTemplate>
@@ -326,6 +326,9 @@
                                                     StrokeShape="RoundRectangle 4"
                                                     AbsoluteLayout.LayoutBounds="{Binding LeftRatio}, {Binding Top}, {Binding WidthRatio}, {Binding Height}"
                                                     AbsoluteLayout.LayoutFlags="XProportional,WidthProportional">
+                                                <Border.GestureRecognizers>
+                                                    <TapGestureRecognizer Tapped="OnWeekEventBlockTapped" />
+                                                </Border.GestureRecognizers>
                                                 <VerticalStackLayout Spacing="0">
                                                     <Label Text="{Binding TimeLabel}" FontSize="9" TextColor="White" />
                                                     <Label Text="{Binding Title}" FontSize="10" TextColor="White" LineBreakMode="TailTruncation" />

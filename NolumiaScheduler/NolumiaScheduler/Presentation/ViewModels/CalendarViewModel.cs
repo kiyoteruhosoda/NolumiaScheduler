@@ -9,6 +9,7 @@ using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
@@ -20,6 +21,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private readonly IOccurrenceExpander _expander;
     private readonly CalendarEventApplicationService _eventService;
     private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
+    private readonly DateTime _today = DateTime.Today.Date;
 
     private DateTime _month;
     private CalendarDayCell? _selectedCell;
@@ -36,13 +38,14 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         ICalendarEventRepository events,
         IBusinessCalendarRepository businessCalendars,
         IOccurrenceExpander expander,
-        CalendarEventApplicationService eventService)
+        CalendarEventApplicationService eventService,
+        IWeekEventLayoutStrategy weekEventLayoutStrategy)
     {
         _events = events;
         _businessCalendars = businessCalendars;
         _expander = expander;
         _eventService = eventService;
-        _weekEventLayoutStrategy = new DefaultWeekEventLayoutStrategy();
+        _weekEventLayoutStrategy = weekEventLayoutStrategy;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
 
@@ -292,7 +295,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             WeekHeaderDays.Add(header);
             var isHoliday = _businessCalendars.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
 
-            var col = new WeekDayColumn(header, isHoliday);
+            var isToday = date.Date == _today;
+            var col = new WeekDayColumn(header, isHoliday, isToday);
             for (var h = 0; h < 24; h++)
             {
                 col.GuideLines.Add(new HourGuideLine(h));

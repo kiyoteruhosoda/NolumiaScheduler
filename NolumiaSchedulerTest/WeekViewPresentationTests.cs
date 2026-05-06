@@ -1,4 +1,5 @@
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 
 namespace NolumiaSchedulerTest;

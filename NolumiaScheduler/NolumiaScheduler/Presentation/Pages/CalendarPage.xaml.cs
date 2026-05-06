@@ -118,6 +118,12 @@ public partial class CalendarPage : ContentPage
             await Shell.Current.GoToAsync($"EventEdit?eventId={item.EventId}");
     }
 
+
+    private async void OnWeekEventBlockTapped(object? sender, TappedEventArgs e)
+    {
+        if (sender is Border b && b.BindingContext is WeekEventBlock block)
+            await Shell.Current.GoToAsync($"EventEdit?eventId={block.EventId}");
+    }
     // ── Delete event ──────────────────────────────────────────
 
     private async void OnDeleteEventClicked(object? sender, TappedEventArgs e)

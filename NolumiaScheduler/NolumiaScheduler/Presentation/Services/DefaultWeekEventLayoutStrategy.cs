@@ -1,4 +1,6 @@
-namespace NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.Presentation.ViewModels;
+
+namespace NolumiaScheduler.Presentation.Services;
 
 public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
 {
@@ -24,9 +26,11 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
 
         foreach (var s in segments)
         {
-            var duration = Math.Max(20, s.End - s.Start);
+            var duration = Math.Max(24, s.End - s.Start);
             blocks.Add(new WeekEventBlock
             {
+                EventId = s.Item.EventId,
+                OccurrenceKey = s.Item.OccurrenceKey.ToString() ?? string.Empty,
                 Title = s.Item.Title,
                 TimeLabel = s.Item.TimeRange,
                 BackgroundColor = s.Item.DotColor,
