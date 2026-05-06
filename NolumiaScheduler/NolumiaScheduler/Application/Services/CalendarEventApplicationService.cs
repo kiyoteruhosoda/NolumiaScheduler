@@ -75,15 +75,31 @@ public class CalendarEventApplicationService
     public void OverrideOccurrence(OverrideOccurrenceCommand command)
     {
         var ev = GetOrThrow(command.EventId);
+        if (!ev.IsRecurring())
+            throw new DomainException("OverrideOccurrence is only valid for recurring events.");
 
         var exceptionOverride = new ExceptionOverride(
-            title: command.Title != null ? new EventTitle(command.Title) : null,
+            title: new EventTitle(command.Title),
             location: command.Location != null ? new Location(command.Location) : null,
             visibility: command.Visibility,
-            startTime: command.StartTime,
-            endTime: command.EndTime);
+            startTime: command.AllDay ? null : command.StartTime,
+            endTime: command.AllDay ? null : command.EndTime);
 
         ev.OverrideOccurrence(command.OccurrenceKey, exceptionOverride, DateTimeOffset.UtcNow);
+
+        if (!command.OccurrenceKey.Date.Equals(command.Date))
+        {
+            var move = new EventMove(
+                command.OccurrenceKey,
+                command.Date,
+                command.AllDay ? null : command.StartTime,
+                command.AllDay ? null : command.EndTime,
+                new EventTitle(command.Title),
+                command.Location != null ? new Location(command.Location) : null,
+                command.Visibility);
+            ev.MoveOccurrence(move, DateTimeOffset.UtcNow);
+        }
+
         _repository.Save(ev);
     }
 

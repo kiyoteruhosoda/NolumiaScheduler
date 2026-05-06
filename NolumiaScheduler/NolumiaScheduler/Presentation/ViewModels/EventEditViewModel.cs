@@ -519,33 +519,20 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             return;
         }
 
-        var newDate = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(StartDate.Date));
-        LocalTimeValue? newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
-        LocalTimeValue? newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
+        var date = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(StartDate.Date));
+        var start = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        var end = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
 
-        
-
-        var originalDate = EditingOccurrenceKey.Date;
-        var originalStart = EditingOccurrenceKey.Time;
-        var shouldMove = !originalDate.Equals(newDate) ||
-                         (originalStart != null && newStart != null && !originalStart.Equals(newStart)) ||
-                         (originalStart == null && newStart != null) ||
-                         (originalStart != null && newStart == null) ||
-                         !string.Equals(ev.Title.Value, Title.Trim(), StringComparison.Ordinal) ||
-                         !string.Equals(ev.Location?.Value ?? string.Empty, (string.IsNullOrWhiteSpace(Location) ? string.Empty : Location.Trim()), StringComparison.Ordinal);
-
-        if (shouldMove)
-        {
-            _eventService.MoveOccurrence(new MoveOccurrenceCommand(
-                eventId,
-                EditingOccurrenceKey,
-                newDate,
-                newStart,
-                newEnd,
-                Title.Trim(),
-                string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
-                NolumiaScheduler.Domain.ValueObjects.Visibility.Public));
-        }
+        _eventService.OverrideOccurrence(new OverrideOccurrenceCommand(
+            eventId,
+            EditingOccurrenceKey,
+            Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            AllDay,
+            date,
+            start,
+            end));
     }
 
     private void UpdateExisting(string eventId)

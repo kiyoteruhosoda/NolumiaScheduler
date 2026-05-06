@@ -34,9 +34,11 @@ public sealed record SkipOccurrenceCommand(
 public sealed record OverrideOccurrenceCommand(
     string EventId,
     OccurrenceLocalKey OccurrenceKey,
-    string? Title,
+    string Title,
     string? Location,
-    Visibility? Visibility,
+    Visibility Visibility,
+    bool AllDay,
+    LocalDateValue Date,
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime);
 
