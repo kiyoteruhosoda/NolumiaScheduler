@@ -12,6 +12,7 @@ public partial class WeekCalendarView : ContentView
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
+    public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
 
     public WeekCalendarView()
     {
@@ -75,6 +76,19 @@ public partial class WeekCalendarView : ContentView
                     b.IsSelected = b.EventId == SelectedEventId;
             }
         }
+    }
+
+
+    // Drag本実装前の統合ポイント: 将来Pan/LongPressから呼ぶ
+    public void CompleteDrag(string eventId, Point point, DateTime weekStartDate)
+    {
+        var dt = _mapper.MapToDateTime(point, weekStartDate, WeekDayColumnWidth);
+        EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
+        {
+            EventId = eventId,
+            TargetDateTime = dt,
+            TargetStartMinute = dt.Hour * 60 + dt.Minute
+        });
     }
 
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)

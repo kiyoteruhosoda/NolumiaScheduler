@@ -129,6 +129,12 @@ public partial class CalendarPage : ContentPage
         await Shell.Current.GoToAsync($"EventEdit?startDate={e.Date:yyyy-MM-dd}&startMinute={e.StartMinute}");
     }
 
+    private async void OnWeekEventDragCompleted(object? sender, Controls.WeekEventDragCompletedEventArgs e)
+    {
+        // ドラッグ本実装前の統合ポイント: まずは occurrence編集画面をターゲット時刻付きで開く
+        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.TargetDateTime:yyyy-MM-dd}&occurrenceStartMinute={e.TargetStartMinute}");
+    }
+
     // ── Delete event ──────────────────────────────────────────
 
     private async void OnDeleteEventClicked(object? sender, TappedEventArgs e)
