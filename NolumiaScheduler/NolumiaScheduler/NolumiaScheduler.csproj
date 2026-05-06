@@ -59,4 +59,18 @@
 	  <ProjectReference Include="..\..\NolumiaScheduler.Domain\NolumiaScheduler.Domain.csproj" />
 	</ItemGroup>
 
+	<ItemGroup>
+	  <!-- Neutral (English) resources — embedded; Designer.cs is hand-maintained -->
+	  <EmbeddedResource Include="Resources\Strings\AppResources.resx">
+	    <LogicalName>NolumiaScheduler.Resources.Strings.AppResources.resources</LogicalName>
+	  </EmbeddedResource>
+	  <!-- Japanese satellite resources -->
+	  <EmbeddedResource Include="Resources\Strings\AppResources.ja.resx">
+	    <LogicalName>NolumiaScheduler.Resources.Strings.AppResources.ja.resources</LogicalName>
+	    <Culture>ja</Culture>
+	  </EmbeddedResource>
+	  <!-- Hand-maintained Designer; exclude from auto-generation -->
+	  <Compile Include="Resources\Strings\AppResources.Designer.cs" />
+	</ItemGroup>
+
 </Project>

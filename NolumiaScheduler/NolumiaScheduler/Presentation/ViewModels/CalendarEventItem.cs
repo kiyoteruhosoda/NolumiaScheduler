@@ -1,4 +1,5 @@
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -14,7 +15,7 @@ public sealed class CalendarEventItem
 
         if (occ.AllDay)
         {
-            TimeRange = "終日";
+            TimeRange = AppResources.AllDay;
         }
         else if (occ.StartTime != null && occ.EndTime != null)
         {
@@ -26,8 +27,8 @@ public sealed class CalendarEventItem
         }
 
         var badges = new List<string>();
-        if (IsMoved) badges.Add("振替");
-        if (IsOverridden) badges.Add("変更済み");
+        if (IsMoved) badges.Add(AppResources.BadgeMoved);
+        if (IsOverridden) badges.Add(AppResources.BadgeModified);
         BadgeText = badges.Count > 0 ? string.Join("  ", badges) : null;
 
         DotColor = IsMoved ? Color.FromArgb("#9c27b0") :

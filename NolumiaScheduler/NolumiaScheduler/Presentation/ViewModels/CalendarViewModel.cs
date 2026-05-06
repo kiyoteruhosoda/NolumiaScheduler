@@ -5,6 +5,7 @@ using System.Windows.Input;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -69,8 +70,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         cell.IsSelected = true;
 
         var date = cell.Date.ToDateOnly();
-        SelectedDayLabel = date.ToString("M月d日 (ddd)",
-            System.Globalization.CultureInfo.CreateSpecificCulture("ja-JP"));
+        SelectedDayLabel = date.ToString(AppResources.SelectedDayFormat, AppResources.FormatCulture);
         HasSelectedDay = true;
 
         SelectedDayEvents.Clear();
@@ -103,7 +103,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
     private void LoadMonth()
     {
-        MonthYearTitle = _month.ToString("yyyy年M月");
+        MonthYearTitle = _month.ToString(AppResources.MonthYearFormat, AppResources.FormatCulture);
 
         var today = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(DateTime.Today));
         var monthFrom = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_month));

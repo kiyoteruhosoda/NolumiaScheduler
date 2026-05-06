@@ -2,13 +2,14 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:NolumiaScheduler.Presentation.ViewModels"
+             xmlns:res="clr-namespace:NolumiaScheduler.Resources.Strings"
              x:Class="NolumiaScheduler.Presentation.Pages.CalendarPage"
              x:DataType="vm:CalendarViewModel"
-             Title="カレンダー">
+             Title="{x:Static res:AppResources.CalendarTitle}">
 
     <Grid RowDefinitions="48,32,*,Auto">
 
-        <!-- Header: [←] [yyyy年M月] [今日] [→] -->
+        <!-- Header: [←] [yyyy年M月 / MMMM yyyy] [Today/今日] [→] -->
         <Grid Grid.Row="0"
               ColumnDefinitions="48,*,Auto,48"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
@@ -33,7 +34,7 @@
                    VerticalOptions="Center" />
 
             <Button Grid.Column="2"
-                    Text="今日"
+                    Text="{x:Static res:AppResources.TodayButton}"
                     Command="{Binding GoTodayCommand}"
                     BackgroundColor="Transparent"
                     BorderWidth="0"
@@ -54,30 +55,37 @@
                     VerticalOptions="Fill" />
         </Grid>
 
-        <!-- Day-of-week labels: 日 月 火 水 木 金 土 -->
+        <!-- Day-of-week labels (from resources) -->
         <Grid Grid.Row="1"
               ColumnDefinitions="*,*,*,*,*,*,*"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
 
-            <Label Grid.Column="0" Text="日" FontSize="11"
+            <Label Grid.Column="0"
+                   Text="{x:Static res:AppResources.DaySun}" FontSize="11"
                    TextColor="{StaticResource GCalRed}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
-            <Label Grid.Column="1" Text="月" FontSize="11"
+            <Label Grid.Column="1"
+                   Text="{x:Static res:AppResources.DayMon}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
-            <Label Grid.Column="2" Text="火" FontSize="11"
+            <Label Grid.Column="2"
+                   Text="{x:Static res:AppResources.DayTue}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
-            <Label Grid.Column="3" Text="水" FontSize="11"
+            <Label Grid.Column="3"
+                   Text="{x:Static res:AppResources.DayWed}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
-            <Label Grid.Column="4" Text="木" FontSize="11"
+            <Label Grid.Column="4"
+                   Text="{x:Static res:AppResources.DayThu}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
-            <Label Grid.Column="5" Text="金" FontSize="11"
+            <Label Grid.Column="5"
+                   Text="{x:Static res:AppResources.DayFri}" FontSize="11"
                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
-            <Label Grid.Column="6" Text="土" FontSize="11"
+            <Label Grid.Column="6"
+                   Text="{x:Static res:AppResources.DaySat}" FontSize="11"
                    TextColor="{StaticResource GCalBlue}"
                    HorizontalOptions="Center" VerticalOptions="Center" />
         </Grid>
