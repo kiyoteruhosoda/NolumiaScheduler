@@ -111,11 +111,12 @@
         </Grid>
 
         <!-- ── Separator: header / day-of-week ── -->
-        <BoxView Grid.Row="5"
+        <BoxView Grid.Row="2"
                  BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
 
         <!-- ── Day-of-week labels ── -->
-        <Grid Grid.Row="2"
+        <Grid Grid.Row="3"
+              IsVisible="{Binding IsMonthMode}"
               ColumnDefinitions="*,*,*,*,*,*,*"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
 
@@ -150,11 +151,11 @@
         </Grid>
 
         <!-- ── Separator: day-of-week / calendar grid ── -->
-        <BoxView Grid.Row="3"
+        <BoxView Grid.Row="4" IsVisible="{Binding IsMonthMode}"
                  BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
 
         <!-- ── 6×7 calendar grid ── -->
-        <CollectionView Grid.Row="4"
+        <CollectionView Grid.Row="5" IsVisible="{Binding IsMonthMode}"
                         x:Name="DayCellsView"
                         ItemsSource="{Binding DayCells}"
                         SelectionMode="Single"

@@ -179,7 +179,6 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private void RefreshAfterChange()
     {
         var previousDate = _selectedCell?.Date;
-        BuildWeekScaffold();
         LoadMonth();
         LoadWeek();
         if (previousDate != null)
@@ -190,11 +189,21 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         }
     }
 
-    private void Navigate(int months)
+    private void Navigate(int step)
     {
         ClearSelection();
-        _month = _month.AddMonths(months);
-        BuildWeekScaffold();
+
+        if (IsWeekMode)
+        {
+            _weekStartDate = _weekStartDate.AddDays(step * 7);
+            _month = new DateTime(_weekStartDate.Year, _weekStartDate.Month, 1);
+            LoadWeek();
+            MonthYearTitle = $"{_weekStartDate:yyyy年M月d日} - {_weekStartDate.AddDays(6):M月d日}";
+            return;
+        }
+
+        _month = _month.AddMonths(step);
+        _weekStartDate = _month.AddDays(-(int)_month.DayOfWeek);
         LoadMonth();
         LoadWeek();
     }
@@ -204,7 +213,6 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         ClearSelection();
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
         _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
-        BuildWeekScaffold();
         LoadMonth();
         LoadWeek();
     }
