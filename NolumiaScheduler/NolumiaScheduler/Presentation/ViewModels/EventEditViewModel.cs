@@ -288,8 +288,8 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     public bool IsWeekly           => _repeatTypeIndex == (int)ViewModels.RepeatTypeIndex.Weekly;
     public bool IsMonthly          => _repeatTypeIndex == (int)ViewModels.RepeatTypeIndex.Monthly;
     public bool IsYearly           => _repeatTypeIndex == (int)ViewModels.RepeatTypeIndex.Yearly;
-    public bool IsMonthlyDayOfMonth  => _monthlyRuleIndex == (int)MonthlyRuleIndex.DayOfMonth;
-    public bool IsMonthlyNthWeekday  => _monthlyRuleIndex == (int)MonthlyRuleIndex.NthWeekday;
+    public bool IsMonthlyDayOfMonth  => _monthlyRuleIndex == (int)ViewModels.MonthlyRuleIndex.DayOfMonth;
+    public bool IsMonthlyNthWeekday  => _monthlyRuleIndex == (int)ViewModels.MonthlyRuleIndex.NthWeekday;
     public bool IsYearlyDayOfMonth   => _yearlyRuleIndex == 0;
     public bool IsYearlyNthWeekday   => _yearlyRuleIndex == 1;
     public bool HasAdjustment        => _adjustmentIndex != (int)ViewModels.AdjustmentIndex.None;
@@ -367,7 +367,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         _eventService.CreateSingleEvent(new CreateSingleEventCommand(
             Title.Trim(),
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
-            Visibility.Public,
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             null, null,
             tz,
             AllDay,
@@ -394,7 +394,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         _eventService.CreateRecurringEvent(new CreateRecurringEventCommand(
             Title.Trim(),
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
-            Visibility.Public,
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             null, null,
             "Asia/Tokyo",
             AllDay,
@@ -429,10 +429,10 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
 
     private MonthlyRule BuildMonthlyRule() =>
-        (MonthlyRuleIndex)_monthlyRuleIndex switch
+        (ViewModels.MonthlyRuleIndex)_monthlyRuleIndex switch
         {
-            MonthlyRuleIndex.DayOfMonth  => new DayOfMonthMonthlyRule(_dayOfMonth),
-            MonthlyRuleIndex.NthWeekday  => new NthWeekdayMonthlyRule(
+            ViewModels.MonthlyRuleIndex.DayOfMonth  => new DayOfMonthMonthlyRule(_dayOfMonth),
+            ViewModels.MonthlyRuleIndex.NthWeekday  => new NthWeekdayMonthlyRule(
                 PickerIndexToWeekIndex(_weekIndexPickerIndex),
                 (Weekday)_monthlyWeekdayIndex),
             _ => throw new InvalidOperationException()

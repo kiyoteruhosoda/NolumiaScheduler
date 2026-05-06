@@ -1,6 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
+using Microsoft.Maui.Controls;
 using NolumiaScheduler.Domain.ValueObjects;
+using MauiApplication = Microsoft.Maui.Controls.Application;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -38,7 +40,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
         get
         {
             if (IsToday || IsSelected) return Colors.White;
-            var isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+            var isDark = MauiApplication.Current?.RequestedTheme == AppTheme.Dark;
             if (IsCurrentMonth)
                 return isDark ? Colors.White : ResourceColor("GCalTextPrimary");
             return ResourceColor(isDark ? "GCalOutOfMonthTextDark" : "GCalOutOfMonthText");
@@ -71,7 +73,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
 
     private static Color ResourceColor(string key)
     {
-        if (Application.Current?.Resources.TryGetValue(key, out var val) == true && val is Color c)
+        if (MauiApplication.Current?.Resources.TryGetValue(key, out var val) == true && val is Color c)
             return c;
         return key switch
         {

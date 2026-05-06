@@ -7,6 +7,8 @@ using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Infrastructure.Json.Repositories;
 using NolumiaScheduler.Presentation.Pages;
 using NolumiaScheduler.Presentation.ViewModels;
+using DomainEventId = NolumiaScheduler.Domain.ValueObjects.EventId;
+using DomainVisibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
 
 namespace NolumiaScheduler;
 
@@ -74,10 +76,10 @@ public static class MauiProgramExtensions
 
         // Weekly Monday standup 10:00–10:30
         var standup = CalendarEvent.CreateRecurring(
-            new EventId(Guid.NewGuid().ToString()),
+            new DomainEventId(Guid.NewGuid().ToString()),
             new EventTitle("週次スタンドアップ"),
             location: null,
-            Visibility.Public,
+            DomainVisibility.Public,
             eventType: null,
             description: null,
             tz,
@@ -101,10 +103,10 @@ public static class MauiProgramExtensions
         var startOfDay = new DateTimeOffset(todayDate.Year, todayDate.Month, todayDate.Day, 0, 0, 0, tzOffset);
 
         var todayEvent = CalendarEvent.CreateSingle(
-            new EventId(Guid.NewGuid().ToString()),
+            new DomainEventId(Guid.NewGuid().ToString()),
             new EventTitle("本日のタスク"),
             location: null,
-            Visibility.Public,
+            DomainVisibility.Public,
             eventType: null,
             description: null,
             tz,
@@ -115,10 +117,10 @@ public static class MauiProgramExtensions
 
         // Yearly anniversary on April 1
         var anniversary = CalendarEvent.CreateRecurring(
-            new EventId(Guid.NewGuid().ToString()),
+            new DomainEventId(Guid.NewGuid().ToString()),
             new EventTitle("創立記念日"),
             location: null,
-            Visibility.Public,
+            DomainVisibility.Public,
             eventType: null,
             description: null,
             tz,
