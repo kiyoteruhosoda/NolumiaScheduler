@@ -27,6 +27,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private bool _selectedDayHasNoEvents;
     private bool _selectedDayIsHoliday;
     private string _selectedDayHolidayText = "";
+    private CalendarDisplayMode _displayMode = CalendarDisplayMode.Month;
+    private DateTime _weekStartDate;
 
     public CalendarViewModel(
         ICalendarEventRepository events,
@@ -39,19 +41,28 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         _expander = expander;
         _eventService = eventService;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
 
         DayCells = [];
         SelectedDayEvents = [];
+        WeekTimeSlots = [];
+        WeekHeaderDays = [];
 
         PreviousMonthCommand = new Command(() => Navigate(-1));
         NextMonthCommand = new Command(() => Navigate(1));
         GoTodayCommand = new Command(GoToday);
+        SwitchToMonthViewCommand = new Command(() => SetDisplayMode(CalendarDisplayMode.Month));
+        SwitchToWeekViewCommand = new Command(() => SetDisplayMode(CalendarDisplayMode.Week));
 
+        BuildWeekScaffold();
         LoadMonth();
+        LoadWeek();
     }
 
     public ObservableCollection<CalendarDayCell> DayCells { get; }
     public ObservableCollection<CalendarEventItem> SelectedDayEvents { get; }
+    public ObservableCollection<WeekTimeSlot> WeekTimeSlots { get; }
+    public ObservableCollection<string> WeekHeaderDays { get; }
 
     public string MonthYearTitle
     {
@@ -92,6 +103,25 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ICommand PreviousMonthCommand { get; }
     public ICommand NextMonthCommand { get; }
     public ICommand GoTodayCommand { get; }
+    public ICommand SwitchToMonthViewCommand { get; }
+    public ICommand SwitchToWeekViewCommand { get; }
+
+
+    public CalendarDisplayMode DisplayMode
+    {
+        get => _displayMode;
+        private set
+        {
+            if (_displayMode == value) return;
+            _displayMode = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsMonthMode));
+            OnPropertyChanged(nameof(IsWeekMode));
+        }
+    }
+
+    public bool IsMonthMode => DisplayMode == CalendarDisplayMode.Month;
+    public bool IsWeekMode => DisplayMode == CalendarDisplayMode.Week;
 
     public void SelectDay(CalendarDayCell cell)
     {
@@ -149,7 +179,9 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private void RefreshAfterChange()
     {
         var previousDate = _selectedCell?.Date;
+        BuildWeekScaffold();
         LoadMonth();
+        LoadWeek();
         if (previousDate != null)
         {
             var newCell = DayCells.FirstOrDefault(c => c.Date.Equals(previousDate));
@@ -162,14 +194,19 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     {
         ClearSelection();
         _month = _month.AddMonths(months);
+        BuildWeekScaffold();
         LoadMonth();
+        LoadWeek();
     }
 
     private void GoToday()
     {
         ClearSelection();
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
+        _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+        BuildWeekScaffold();
         LoadMonth();
+        LoadWeek();
     }
 
     private void ClearSelection()
@@ -181,6 +218,35 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         SelectedDayIsHoliday = false;
         SelectedDayHolidayText = "";
         SelectedDayEvents.Clear();
+    }
+
+    private void SetDisplayMode(CalendarDisplayMode mode)
+    {
+        DisplayMode = mode;
+        if (mode == CalendarDisplayMode.Month)
+        {
+            MonthYearTitle = _month.ToString(AppResources.MonthYearFormat, AppResources.FormatCulture);
+        }
+        else
+        {
+            MonthYearTitle = $"{_weekStartDate:yyyy年M月d日} - {_weekStartDate.AddDays(6):M月d日}";
+        }
+    }
+
+    private void BuildWeekScaffold()
+    {
+        WeekTimeSlots.Clear();
+        for (var h = 0; h < 24; h++) WeekTimeSlots.Add(new WeekTimeSlot(h));
+    }
+
+    private void LoadWeek()
+    {
+        WeekHeaderDays.Clear();
+        for (var i = 0; i < 7; i++)
+        {
+            var d = _weekStartDate.AddDays(i);
+            WeekHeaderDays.Add(d.ToString("M/d(ddd)", AppResources.FormatCulture));
+        }
     }
 
     private void LoadMonth()

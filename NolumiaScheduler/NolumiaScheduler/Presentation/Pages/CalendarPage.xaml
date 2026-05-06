@@ -45,7 +45,7 @@
           4  6×7 calendar grid (*)
           5  Selected-day events panel (Auto)
     -->
-    <Grid RowDefinitions="48,1,36,1,*,Auto">
+    <Grid RowDefinitions="48,40,1,36,1,*,Auto">
 
         <!-- ── Header ── -->
         <Grid Grid.Row="0"
@@ -104,8 +104,14 @@
                     VerticalOptions="Fill" />
         </Grid>
 
+
+        <Grid Grid.Row="1" ColumnDefinitions="*,*" Padding="12,4" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+            <Button Grid.Column="0" Text="{x:Static res:AppResources.MonthViewLabel}" Command="{Binding SwitchToMonthViewCommand}" />
+            <Button Grid.Column="1" Text="{x:Static res:AppResources.WeekViewLabel}" Command="{Binding SwitchToWeekViewCommand}" />
+        </Grid>
+
         <!-- ── Separator: header / day-of-week ── -->
-        <BoxView Grid.Row="1"
+        <BoxView Grid.Row="5"
                  BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
 
         <!-- ── Day-of-week labels ── -->
@@ -247,8 +253,27 @@
             </CollectionView.ItemTemplate>
         </CollectionView>
 
+
+        <Grid Grid.Row="5" IsVisible="{Binding IsWeekMode}" RowDefinitions="Auto,*" ColumnDefinitions="56,*" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+            <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,*,*,*,*,*,*">
+                <Label Grid.Column="0" Text="{Binding WeekHeaderDays[0]}" FontSize="11" HorizontalOptions="Center" />
+                <Label Grid.Column="1" Text="{Binding WeekHeaderDays[1]}" FontSize="11" HorizontalOptions="Center" />
+                <Label Grid.Column="2" Text="{Binding WeekHeaderDays[2]}" FontSize="11" HorizontalOptions="Center" />
+                <Label Grid.Column="3" Text="{Binding WeekHeaderDays[3]}" FontSize="11" HorizontalOptions="Center" />
+                <Label Grid.Column="4" Text="{Binding WeekHeaderDays[4]}" FontSize="11" HorizontalOptions="Center" />
+                <Label Grid.Column="5" Text="{Binding WeekHeaderDays[5]}" FontSize="11" HorizontalOptions="Center" />
+                <Label Grid.Column="6" Text="{Binding WeekHeaderDays[6]}" FontSize="11" HorizontalOptions="Center" />
+            </Grid>
+            <CollectionView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding WeekTimeSlots}">
+                <CollectionView.ItemTemplate><DataTemplate x:DataType="vm:WeekTimeSlot"><Label Text="{Binding HourLabel}" FontSize="10" HeightRequest="30" /></DataTemplate></CollectionView.ItemTemplate>
+            </CollectionView>
+            <ScrollView Grid.Row="1" Grid.Column="1">
+                <Label Text="{x:Static res:AppResources.WeekViewHint}" FontSize="12" Margin="8"/>
+            </ScrollView>
+        </Grid>
+
         <!-- ── Selected-day events panel ── -->
-        <Grid Grid.Row="5"
+        <Grid Grid.Row="6"
               IsVisible="{Binding HasSelectedDay}"
               RowDefinitions="1,44,Auto,Auto,Auto"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
