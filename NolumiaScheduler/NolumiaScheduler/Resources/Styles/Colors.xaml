@@ -24,6 +24,12 @@
     <Color x:Key="GCalBorder">#e0e0e0</Color>
     <Color x:Key="GCalBorderDark">#3c3c3c</Color>
     <Color x:Key="GCalSelectedCircle">#70757a</Color>
+    <!-- Moved-event chip (purple) -->
+    <Color x:Key="GCalEventMoved">#9c27b0</Color>
+    <Color x:Key="GCalEventMovedDark">#ce93d8</Color>
+    <!-- Out-of-current-month day number -->
+    <Color x:Key="GCalOutOfMonthText">#bdbdbd</Color>
+    <Color x:Key="GCalOutOfMonthTextDark">#555555</Color>
 
     <Color x:Key="Primary">#512BD4</Color>
     <Color x:Key="PrimaryDark">#ac99ea</Color>

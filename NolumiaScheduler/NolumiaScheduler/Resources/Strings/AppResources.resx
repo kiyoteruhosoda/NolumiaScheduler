@@ -19,6 +19,7 @@
   <data name="AllDay" xml:space="preserve"><value>All day</value></data>
   <data name="BadgeMoved" xml:space="preserve"><value>Moved</value></data>
   <data name="BadgeModified" xml:space="preserve"><value>Modified</value></data>
+  <data name="NoEventsLabel" xml:space="preserve"><value>No events</value></data>
 
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>

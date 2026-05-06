@@ -29,14 +29,21 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     public string DayLabel => Date.Day.ToString();
 
     public Color CircleColor =>
-        IsToday ? Color.FromArgb("#1a73e8") :
-        IsSelected ? Color.FromArgb("#70757a") :
+        IsToday ? ResourceColor("GCalBlue") :
+        IsSelected ? ResourceColor("GCalSelectedCircle") :
         Colors.Transparent;
 
-    public Color DayTextColor =>
-        (IsToday || IsSelected) ? Colors.White :
-        IsCurrentMonth ? Color.FromArgb("#202124") :
-        Color.FromArgb("#b0b0b0");
+    public Color DayTextColor
+    {
+        get
+        {
+            if (IsToday || IsSelected) return Colors.White;
+            var isDark = Application.Current?.RequestedTheme == AppTheme.Dark;
+            if (IsCurrentMonth)
+                return isDark ? Colors.White : ResourceColor("GCalTextPrimary");
+            return ResourceColor(isDark ? "GCalOutOfMonthTextDark" : "GCalOutOfMonthText");
+        }
+    }
 
     public EventOccurrence? FirstEvent => Events.Count > 0 ? Events[0] : null;
     public EventOccurrence? SecondEvent => Events.Count > 1 ? Events[1] : null;
@@ -57,9 +64,26 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     private static Color EventChipColor(EventOccurrence? occ)
     {
         if (occ == null) return Colors.Transparent;
-        if (occ.IsMoved) return Color.FromArgb("#9c27b0");
-        if (occ.IsOverridden) return Color.FromArgb("#1e8e3e");
-        return Color.FromArgb("#1a73e8");
+        if (occ.IsMoved) return ResourceColor("GCalEventMoved");
+        if (occ.IsOverridden) return ResourceColor("GCalGreen");
+        return ResourceColor("GCalBlue");
+    }
+
+    private static Color ResourceColor(string key)
+    {
+        if (Application.Current?.Resources.TryGetValue(key, out var val) == true && val is Color c)
+            return c;
+        return key switch
+        {
+            "GCalBlue"               => Color.FromArgb("#1a73e8"),
+            "GCalSelectedCircle"     => Color.FromArgb("#70757a"),
+            "GCalTextPrimary"        => Color.FromArgb("#202124"),
+            "GCalGreen"              => Color.FromArgb("#1e8e3e"),
+            "GCalEventMoved"         => Color.FromArgb("#9c27b0"),
+            "GCalOutOfMonthText"     => Color.FromArgb("#bdbdbd"),
+            "GCalOutOfMonthTextDark" => Color.FromArgb("#555555"),
+            _ => Colors.Gray
+        };
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

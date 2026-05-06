@@ -19,6 +19,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private string _monthYearTitle = "";
     private string _selectedDayLabel = "";
     private bool _hasSelectedDay;
+    private bool _selectedDayHasNoEvents;
 
     public CalendarViewModel(ICalendarEventRepository events, IOccurrenceExpander expander)
     {
@@ -57,6 +58,12 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         private set { _hasSelectedDay = value; OnPropertyChanged(); }
     }
 
+    public bool SelectedDayHasNoEvents
+    {
+        get => _selectedDayHasNoEvents;
+        private set { _selectedDayHasNoEvents = value; OnPropertyChanged(); }
+    }
+
     public ICommand PreviousMonthCommand { get; }
     public ICommand NextMonthCommand { get; }
     public ICommand GoTodayCommand { get; }
@@ -76,6 +83,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         SelectedDayEvents.Clear();
         foreach (var occ in cell.Events)
             SelectedDayEvents.Add(new CalendarEventItem(occ));
+        SelectedDayHasNoEvents = SelectedDayEvents.Count == 0;
     }
 
     private void Navigate(int months)
@@ -98,6 +106,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             _selectedCell.IsSelected = false;
         _selectedCell = null;
         HasSelectedDay = false;
+        SelectedDayHasNoEvents = false;
         SelectedDayEvents.Clear();
     }
 

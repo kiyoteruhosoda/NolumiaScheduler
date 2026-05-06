@@ -40,7 +40,8 @@ public static class AppResources
     public static string DayFri => Get(nameof(DayFri));
     public static string DaySat => Get(nameof(DaySat));
 
-    public static string AllDay        => Get(nameof(AllDay));
+    public static string AllDay         => Get(nameof(AllDay));
+    public static string NoEventsLabel  => Get(nameof(NoEventsLabel));
     public static string BadgeMoved    => Get(nameof(BadgeMoved));
     public static string BadgeModified => Get(nameof(BadgeModified));
 
