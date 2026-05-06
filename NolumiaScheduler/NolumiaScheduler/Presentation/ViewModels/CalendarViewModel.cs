@@ -288,11 +288,16 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         for (var i = 0; i < 7; i++)
         {
             var date = _weekStartDate.AddDays(i);
-            var header = date.ToString("ddd d", CultureInfo.InvariantCulture);
+            var header = date.ToString("ddd M/d", AppResources.FormatCulture);
             WeekHeaderDays.Add(header);
             var isHoliday = _businessCalendars.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
 
             var col = new WeekDayColumn(header, isHoliday);
+            for (var h = 0; h < 24; h++)
+            {
+                col.GuideLines.Add(new HourGuideLine(h));
+                col.GuideLines.Add(new HalfHourGuideLine(h));
+            }
             foreach (var b in _weekEventLayoutStrategy.Layout(weekly[i])) col.EventBlocks.Add(b);
             WeekDayColumns.Add(col);
         }
@@ -303,7 +308,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private static string FormatWeekRangeTitle(DateTime weekStartDate)
     {
         var weekEndDate = weekStartDate.AddDays(6);
-        return $"{weekStartDate:MMM d, yyyy} - {weekEndDate:MMM d, yyyy}";
+        return $"{weekStartDate:yyyy/MM/dd (ddd)} - {weekEndDate:yyyy/MM/dd (ddd)}";
     }
 
     private void LoadMonth()
