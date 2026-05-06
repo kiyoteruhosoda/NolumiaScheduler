@@ -132,15 +132,32 @@ public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
     {
         var d = NewHolidayDate;
         var date = new LocalDateValue(d.Year, d.Month, d.Day);
-
-        // Avoid duplicates in the in-memory list
-        if (Holidays.Any(h => h.Date.Equals(date))) return;
-
         var name = string.IsNullOrWhiteSpace(NewHolidayName) ? null : NewHolidayName.Trim();
-        Holidays.Add(CreateHolidayItem(date, name));
 
+        var existing = Holidays.FirstOrDefault(h => h.Date.Equals(date));
+        if (existing != null)
+        {
+            // Ask user whether to replace
+            ReplaceHolidayRequested?.Invoke(date, name, existing);
+            return;
+        }
+
+        Holidays.Add(CreateHolidayItem(date, name));
         NewHolidayName = "";
     }
+
+    public void ReplaceHoliday(LocalDateValue date, string? name)
+    {
+        var existing = Holidays.FirstOrDefault(h => h.Date.Equals(date));
+        if (existing != null)
+            Holidays.Remove(existing);
+
+        Holidays.Add(CreateHolidayItem(date, name));
+        NewHolidayName = "";
+    }
+
+    // Fires when a duplicate date is added; args: date, new name, existing item
+    public event Action<LocalDateValue, string?, HolidayDisplayItem>? ReplaceHolidayRequested;
 
     private HolidayDisplayItem CreateHolidayItem(LocalDateValue date, string? name)
     {
@@ -175,18 +192,16 @@ public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
         {
             _service.Update(new UpdateBusinessCalendarCommand(_calendarId, Name.Trim(), workdays));
 
-            // Sync holidays: reload current state from repo then apply diffs
+            // Full sync: snapshot existing dates, remove all, then re-add desired.
+            // This correctly handles additions, removals, AND name changes.
             var existing = _repo.FindById(new BusinessCalendarId(_calendarId))!;
-            var existingDates = existing.Holidays.Select(h => h.Date).ToHashSet();
-            var desiredDates = Holidays.Select(h => h.Date).ToHashSet();
+            var datesToRemove = existing.Holidays.Select(h => h.Date).ToList();
+
+            foreach (var date in datesToRemove)
+                _service.RemoveHoliday(new RemoveHolidayCommand(_calendarId, date));
 
             foreach (var h in Holidays)
-                if (!existingDates.Contains(h.Date))
-                    _service.AddHoliday(new AddHolidayCommand(_calendarId, h.Date, h.Name));
-
-            foreach (var date in existingDates)
-                if (!desiredDates.Contains(date))
-                    _service.RemoveHoliday(new RemoveHolidayCommand(_calendarId, date));
+                _service.AddHoliday(new AddHolidayCommand(_calendarId, h.Date, h.Name));
         }
 
         SaveCompleted?.Invoke();

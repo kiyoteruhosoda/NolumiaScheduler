@@ -38,7 +38,7 @@ public class ValueObjectTests
     {
         var t1 = new LocalTimeValue(9, 0, 0);
         var t2 = new LocalTimeValue(10, 0, 0);
-        Assert.IsTrue(t1.CompareTo(t2) < 0);
+        Assert.IsLessThan(0, t1.CompareTo(t2));
     }
 
     [TestMethod]

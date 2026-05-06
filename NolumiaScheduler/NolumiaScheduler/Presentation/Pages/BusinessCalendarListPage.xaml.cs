@@ -19,16 +19,16 @@ public partial class BusinessCalendarListPage : ContentPage
         _vm.Reload();
     }
 
-    private async void OnCalendarSelected(object sender, SelectionChangedEventArgs e)
+    private async void OnCalendarSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.FirstOrDefault() is BusinessCalendarSummary item)
         {
-            ((CollectionView)sender).SelectedItem = null;
+            ((CollectionView)sender!).SelectedItem = null;
             await Shell.Current.GoToAsync($"BusinessCalendarEdit?calendarId={item.Id}");
         }
     }
 
-    private async void OnAddCalendarClicked(object sender, EventArgs e)
+    private async void OnAddCalendarClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("BusinessCalendarEdit");
     }

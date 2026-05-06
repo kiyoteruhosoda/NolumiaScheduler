@@ -41,7 +41,7 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 4, 30),
             null);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         var occ = results[0];
         Assert.AreEqual(new LocalDateValue(2026, 4, 21), occ.Date);
         Assert.AreEqual(new LocalTimeValue(14, 0, 0), occ.StartTime);
@@ -59,7 +59,7 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 5, 31),
             null);
 
-        Assert.AreEqual(0, results.Count);
+        Assert.IsEmpty(results);
     }
 
     [TestMethod]
@@ -77,7 +77,7 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 5, 31),
             null);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         var occ = results[0];
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), occ.Date);
         Assert.IsTrue(occ.AllDay);
@@ -99,7 +99,7 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 4, 30),
             null);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         var occ = results[0];
         // start in JST is 2026-04-25 23:00
         Assert.AreEqual(new LocalDateValue(2026, 4, 25), occ.Date);
@@ -244,7 +244,7 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 5, 31),
             calendar);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         Assert.AreEqual(new LocalDateValue(2026, 5, 8), results[0].Date);
     }
 
@@ -255,7 +255,7 @@ public class EventScenarioE2ETests
     {
         var ev = JsonScenarioLoader.LoadEvent(SkipOnceJson);
 
-        Assert.AreEqual(1, ev.Exceptions.Count);
+        Assert.HasCount(1, ev.Exceptions);
         Assert.IsTrue(ev.HasExceptionFor(new OccurrenceLocalKey(
             new LocalDateValue(2026, 5, 11), new LocalTimeValue(16, 0, 0))));
 
@@ -282,7 +282,7 @@ public class EventScenarioE2ETests
     {
         var ev = JsonScenarioLoader.LoadEvent(OverrideOnceJson);
 
-        Assert.AreEqual(1, ev.Exceptions.Count);
+        Assert.HasCount(1, ev.Exceptions);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 20),
@@ -290,7 +290,7 @@ public class EventScenarioE2ETests
             null);
 
         // Tuesdays in range: 4/21, 4/28, 5/5, 5/12, 5/19, 5/26 → 6 occurrences.
-        Assert.AreEqual(6, results.Count);
+        Assert.HasCount(6, results);
 
         var overridden = results.Single(r => r.Date.Equals(new LocalDateValue(2026, 5, 12)));
         Assert.IsTrue(overridden.IsOverridden);
@@ -315,7 +315,7 @@ public class EventScenarioE2ETests
     {
         var ev = JsonScenarioLoader.LoadEvent(MoveOnceJson);
 
-        Assert.AreEqual(1, ev.Moves.Count);
+        Assert.HasCount(1, ev.Moves);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 6, 1),
@@ -323,7 +323,7 @@ public class EventScenarioE2ETests
             null);
 
         // Original 1st-Monday-of-June (6/1) must not appear; moved 6/2 should.
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         var moved = results[0];
         Assert.IsTrue(moved.IsMoved);
         Assert.AreEqual(new LocalDateValue(2026, 6, 2), moved.Date);
@@ -358,7 +358,7 @@ public class EventScenarioE2ETests
         };
         CollectionAssert.AreEqual(expected, results.Select(r => r.Date).ToArray());
         Assert.IsFalse(results.Any(r => r.Date.Equals(new LocalDateValue(2026, 6, 1))));
-        Assert.AreEqual(1, results.Count(r => r.IsMoved));
+        Assert.HasCount(1, results.Where(r => r.IsMoved).ToList());
     }
 
     // ---------- Business calendar ----------
@@ -372,7 +372,7 @@ public class EventScenarioE2ETests
         Assert.AreEqual("Japan Default Business Calendar", calendar.Name);
 
         var workdays = calendar.Workdays.ToHashSet();
-        Assert.AreEqual(5, workdays.Count);
+        Assert.HasCount(5, workdays);
         Assert.IsTrue(workdays.SetEquals(new[]
         {
             Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday,

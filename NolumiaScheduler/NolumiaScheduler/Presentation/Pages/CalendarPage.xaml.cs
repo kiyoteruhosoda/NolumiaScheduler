@@ -1,7 +1,9 @@
+using Microsoft.Maui.Controls;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.Resources.Strings;
+using MauiApp = Microsoft.Maui.Controls.Application;
 
 namespace NolumiaScheduler.Presentation.Pages;
 
@@ -9,6 +11,10 @@ public partial class CalendarPage : ContentPage
 {
     private readonly CalendarViewModel _vm;
     private readonly ICalendarEventRepository _eventRepo;
+
+    // Colors for hover, resolved once after page is loaded
+    private Color _hoverColor = Color.FromArgb("#e0e0e0");
+    private Color _transparentColor = Colors.Transparent;
 
     public CalendarPage(CalendarViewModel vm, ICalendarEventRepository eventRepo)
     {
@@ -18,21 +24,45 @@ public partial class CalendarPage : ContentPage
         BindingContext = vm;
     }
 
-    private void OnDayCellSelected(object sender, SelectionChangedEventArgs e)
+    protected override void OnHandlerChanged()
+    {
+        base.OnHandlerChanged();
+        if (MauiApp.Current?.Resources.TryGetValue("GCalBorder", out var light) == true && light is Color lc)
+            _hoverColor = lc;
+        if (MauiApp.Current?.Resources.TryGetValue("GCalBorderDark", out var dark) == true && dark is Color dc)
+        {
+            var isDark = MauiApp.Current.RequestedTheme == AppTheme.Dark;
+            if (isDark) _hoverColor = dc;
+        }
+    }
+
+    private void OnEventItemPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.BackgroundColor = _hoverColor;
+    }
+
+    private void OnEventItemPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (sender is Border border)
+            border.BackgroundColor = _transparentColor;
+    }
+
+    private void OnDayCellSelected(object? sender, SelectionChangedEventArgs e)
     {
         if (e.CurrentSelection.FirstOrDefault() is CalendarDayCell cell)
         {
             _vm.SelectDay(cell);
-            ((CollectionView)sender).SelectedItem = null;
+            ((CollectionView)sender!).SelectedItem = null;
         }
     }
 
-    private async void OnNewEventClicked(object sender, EventArgs e)
+    private async void OnNewEventClicked(object? sender, EventArgs e)
     {
         await Shell.Current.GoToAsync("EventEdit");
     }
 
-    private async void OnEditEventClicked(object sender, EventArgs e)
+    private async void OnEditEventClicked(object? sender, EventArgs e)
     {
         if (sender is Button btn && btn.BindingContext is CalendarEventItem item)
         {
@@ -40,7 +70,7 @@ public partial class CalendarPage : ContentPage
         }
     }
 
-    private async void OnDeleteEventClicked(object sender, EventArgs e)
+    private async void OnDeleteEventClicked(object? sender, EventArgs e)
     {
         if (sender is not Button btn || btn.BindingContext is not CalendarEventItem item)
             return;
@@ -50,7 +80,7 @@ public partial class CalendarPage : ContentPage
 
         if (ev.IsRecurring())
         {
-            var action = await DisplayActionSheet(
+            var action = await DisplayActionSheetAsync(
                 AppResources.DeleteEventTitle,
                 AppResources.CancelButton,
                 null,
@@ -64,7 +94,7 @@ public partial class CalendarPage : ContentPage
         }
         else
         {
-            var confirmed = await DisplayAlert(
+            var confirmed = await DisplayAlertAsync(
                 AppResources.DeleteEventTitle,
                 item.Title,
                 AppResources.DeleteButton,

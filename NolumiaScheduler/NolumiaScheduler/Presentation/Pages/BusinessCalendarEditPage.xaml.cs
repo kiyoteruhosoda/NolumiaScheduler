@@ -1,4 +1,6 @@
+using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.Pages;
 
@@ -20,13 +22,32 @@ public partial class BusinessCalendarEditPage : ContentPage
 
         vm.SaveCompleted   += async () => await Shell.Current.GoToAsync("..");
         vm.DeleteCompleted += async () => await Shell.Current.GoToAsync("..");
+
+        vm.ReplaceHolidayRequested += OnReplaceHolidayRequested;
     }
 
-    private void OnAddHolidayClicked(object sender, EventArgs e)
+    private async void OnReplaceHolidayRequested(LocalDateValue date, string? newName, HolidayDisplayItem existing)
     {
-        // Unfocus the Entry so its TwoWay binding commits the text to the ViewModel
+        var message = string.IsNullOrEmpty(existing.Name)
+            ? existing.FormattedDate
+            : $"{existing.FormattedDate}  {existing.Name}";
+
+        var replace = await DisplayAlertAsync(
+            AppResources.HolidaysLabel,
+            string.Format(AppResources.ReplaceHolidayMessage, message),
+            AppResources.ReplaceButton,
+            AppResources.CancelButton);
+
+        if (replace)
+            _vm.ReplaceHoliday(date, newName);
+    }
+
+    private void OnAddHolidayClicked(object? sender, EventArgs e)
+    {
+        // Capture the text first, then unfocus (unfocusing may clear the binding)
+        var name = HolidayNameEntry.Text ?? "";
+        _vm.NewHolidayName = name;
         HolidayNameEntry.Unfocus();
-        _vm.NewHolidayName = HolidayNameEntry.Text ?? "";
         _vm.AddHolidayCommand.Execute(null);
     }
 }

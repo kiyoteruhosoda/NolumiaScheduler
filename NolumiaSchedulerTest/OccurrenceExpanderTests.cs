@@ -30,7 +30,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 1),
             new LocalDateValue(2026, 4, 30), null);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         Assert.AreEqual("テスト", results[0].Title.Value);
     }
 
@@ -50,7 +50,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 1),
             new LocalDateValue(2026, 4, 30), null);
 
-        Assert.AreEqual(0, results.Count);
+        Assert.IsEmpty(results);
     }
 
     [TestMethod]
@@ -63,7 +63,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 20),
             new LocalDateValue(2026, 4, 30), null);
 
-        Assert.AreEqual(2, results.Count);
+        Assert.HasCount(2, results);
     }
 
     [TestMethod]
@@ -77,7 +77,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 20),
             new LocalDateValue(2026, 4, 30), null);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         Assert.AreEqual(new LocalDateValue(2026, 4, 20), results[0].Date);
     }
 
@@ -111,7 +111,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 20),
             new LocalDateValue(2026, 4, 30), null);
 
-        Assert.AreEqual(2, results.Count);
+        Assert.HasCount(2, results);
         var moved = results.First(r => r.IsMoved);
         Assert.AreEqual(new LocalDateValue(2026, 4, 28), moved.Date);
         Assert.AreEqual(14, moved.StartTime!.Hour);
@@ -144,7 +144,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 6, 30), null);
 
         // April 2nd Monday = 13, May = 11, June = 8
-        Assert.AreEqual(3, results.Count);
+        Assert.HasCount(3, results);
         Assert.AreEqual(new LocalDateValue(2026, 4, 13), results[0].Date);
         Assert.AreEqual(new LocalDateValue(2026, 5, 11), results[1].Date);
         Assert.AreEqual(new LocalDateValue(2026, 6, 8), results[2].Date);
@@ -186,7 +186,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 5, 31), calendar);
 
         // May 4 is holiday, May 3 is holiday, so should shift backward to May 1 (Friday)
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), results[0].Date);
     }
 
@@ -215,7 +215,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 1, 1),
             new LocalDateValue(2028, 12, 31), null);
 
-        Assert.AreEqual(3, results.Count);
+        Assert.HasCount(3, results);
         Assert.AreEqual(new LocalDateValue(2026, 4, 20), results[0].Date);
         Assert.AreEqual(new LocalDateValue(2027, 4, 20), results[1].Date);
         Assert.AreEqual(new LocalDateValue(2028, 4, 20), results[2].Date);
@@ -247,7 +247,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 30), null);
 
         // Mondays in [4/20, 4/30]: 4/20, 4/27
-        Assert.AreEqual(2, results.Count);
+        Assert.HasCount(2, results);
         Assert.IsTrue(results.All(r => r.AllDay));
         Assert.IsTrue(results.All(r => r.StartTime is null));
         Assert.IsTrue(results.All(r => r.EndTime is null));
@@ -279,7 +279,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 27),
             new LocalDateValue(2026, 5, 31), null);
 
-        Assert.AreEqual(0, results.Count);
+        Assert.IsEmpty(results);
     }
 
     [TestMethod]
@@ -316,7 +316,7 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 5, 1),
             new LocalDateValue(2026, 5, 31), calendar);
 
-        Assert.AreEqual(1, results.Count);
+        Assert.HasCount(1, results);
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), results[0].Date);
     }
 

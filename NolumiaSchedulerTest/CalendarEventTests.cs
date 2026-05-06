@@ -95,7 +95,7 @@ public class CalendarEventTests
         ev.SkipOccurrence(key, Now);
 
         Assert.IsTrue(ev.HasExceptionFor(key));
-        Assert.AreEqual(1, ev.Exceptions.Count);
+        Assert.HasCount(1, ev.Exceptions);
         Assert.AreEqual(ExceptionType.Skip, ev.Exceptions[0].Type);
     }
 
@@ -124,7 +124,7 @@ public class CalendarEventTests
         ev.MoveOccurrence(move, Now);
 
         Assert.IsTrue(ev.HasMoveFor(key));
-        Assert.AreEqual(1, ev.Moves.Count);
+        Assert.HasCount(1, ev.Moves);
     }
 
     [TestMethod]
@@ -226,7 +226,7 @@ public class CalendarEventTests
         ev.RemoveOccurrenceMove(key, Now);
 
         Assert.IsFalse(ev.HasMoveFor(key));
-        Assert.AreEqual(0, ev.Moves.Count);
+        Assert.IsEmpty(ev.Moves);
     }
 
     [TestMethod]

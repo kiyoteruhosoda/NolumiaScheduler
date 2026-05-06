@@ -99,6 +99,8 @@ public static class AppResources
     public static string EditButton              => Get(nameof(EditButton));
     public static string DeleteButton            => Get(nameof(DeleteButton));
     public static string CancelButton            => Get(nameof(CancelButton));
+    public static string ReplaceButton           => Get(nameof(ReplaceButton));
+    public static string ReplaceHolidayMessage   => Get(nameof(ReplaceHolidayMessage));
     public static string DeleteEventTitle        => Get(nameof(DeleteEventTitle));
     public static string DeleteOccurrence        => Get(nameof(DeleteOccurrence));
     public static string DeleteAllOccurrences    => Get(nameof(DeleteAllOccurrences));
