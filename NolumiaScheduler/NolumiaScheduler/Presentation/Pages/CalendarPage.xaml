@@ -16,7 +16,10 @@
           4  6×7 calendar grid (*)
           5  Selected-day events panel (Auto)
     -->
-    <Grid RowDefinitions="48,1,36,1,*,Auto">
+    <AbsoluteLayout>
+    <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
+          AbsoluteLayout.LayoutFlags="All"
+          RowDefinitions="48,1,36,1,*,Auto">
 
         <!-- ── Header ── -->
         <Grid Grid.Row="0"
@@ -272,4 +275,20 @@
         </Grid>
 
     </Grid>
+
+    <!-- FAB: New Event -->
+    <Button AbsoluteLayout.LayoutBounds="1,1,56,56"
+            AbsoluteLayout.LayoutFlags="PositionProportional"
+            Margin="0,0,20,20"
+            Text="+"
+            FontSize="28"
+            WidthRequest="56"
+            HeightRequest="56"
+            CornerRadius="28"
+            BackgroundColor="{StaticResource GCalBlue}"
+            TextColor="{StaticResource White}"
+            Padding="0"
+            Clicked="OnNewEventClicked" />
+
+    </AbsoluteLayout>
 </ContentPage>

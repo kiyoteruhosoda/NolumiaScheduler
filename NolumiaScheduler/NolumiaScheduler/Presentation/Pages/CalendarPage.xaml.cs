@@ -21,4 +21,15 @@ public partial class CalendarPage : ContentPage
             ((CollectionView)sender).SelectedItem = null;
         }
     }
+
+    private async void OnNewEventClicked(object sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("EventEdit");
+    }
+
+    protected override void OnAppearing()
+    {
+        base.OnAppearing();
+        _vm.ReloadCurrentMonth();
+    }
 }

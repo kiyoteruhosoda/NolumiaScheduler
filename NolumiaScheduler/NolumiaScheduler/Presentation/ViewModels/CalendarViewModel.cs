@@ -2,6 +2,7 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
@@ -12,6 +13,7 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 public sealed class CalendarViewModel : INotifyPropertyChanged
 {
     private readonly ICalendarEventRepository _events;
+    private readonly IBusinessCalendarRepository _businessCalendars;
     private readonly IOccurrenceExpander _expander;
 
     private DateTime _month;
@@ -21,9 +23,13 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private bool _hasSelectedDay;
     private bool _selectedDayHasNoEvents;
 
-    public CalendarViewModel(ICalendarEventRepository events, IOccurrenceExpander expander)
+    public CalendarViewModel(
+        ICalendarEventRepository events,
+        IBusinessCalendarRepository businessCalendars,
+        IOccurrenceExpander expander)
     {
         _events = events;
+        _businessCalendars = businessCalendars;
         _expander = expander;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
 
@@ -86,6 +92,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         SelectedDayHasNoEvents = SelectedDayEvents.Count == 0;
     }
 
+    public void ReloadCurrentMonth() => LoadMonth();
+
     private void Navigate(int months)
     {
         ClearSelection();
@@ -121,9 +129,22 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
         var byDate = new Dictionary<string, List<EventOccurrence>>();
 
+        // Build a lookup of business calendars for occurrence expansion (holiday shifting)
+        var calendarCache = new Dictionary<string, BusinessCalendar>();
+        BusinessCalendar? GetCalendar(string? id)
+        {
+            if (id == null) return null;
+            if (!calendarCache.TryGetValue(id, out var cal))
+                calendarCache[id] = cal = _businessCalendars.FindById(new BusinessCalendarId(id))!;
+            return cal;
+        }
+
         foreach (var ev in _events.FindAll())
         {
-            foreach (var occ in _expander.Expand(ev, monthFrom, monthTo, null))
+            var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
+            var calendar = GetCalendar(calId);
+
+            foreach (var occ in _expander.Expand(ev, monthFrom, monthTo, calendar))
             {
                 var key = occ.Date.ToString();
                 if (!byDate.TryGetValue(key, out var list))

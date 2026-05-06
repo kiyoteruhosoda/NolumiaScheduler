@@ -11,5 +11,6 @@ namespace NolumiaScheduler.Domain.Repositories
         BusinessCalendar? FindById(BusinessCalendarId id);
         IReadOnlyList<BusinessCalendar> FindAll();
         void Save(BusinessCalendar calendar);
+        void Delete(BusinessCalendarId id);
     }
 }

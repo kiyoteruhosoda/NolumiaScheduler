@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
+using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
-using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
@@ -26,8 +26,11 @@ public static class MauiProgramExtensions
         builder.Logging.AddDebug();
 #endif
 
+        // Domain services
         builder.Services.AddSingleton<IBusinessDayShiftService, BusinessDayShiftService>();
         builder.Services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
+
+        // Repositories
         builder.Services.AddSingleton<ICalendarEventRepository>(_ =>
         {
             var dir = Path.Combine(FileSystem.AppDataDirectory, "events");
@@ -35,8 +38,28 @@ public static class MauiProgramExtensions
             SeedSampleEvents(repo);
             return repo;
         });
+
+        builder.Services.AddSingleton<IBusinessCalendarRepository>(_ =>
+        {
+            var dir = Path.Combine(FileSystem.AppDataDirectory, "business-calendars");
+            return new JsonBusinessCalendarRepository(dir);
+        });
+
+        // Application services
+        builder.Services.AddSingleton<CalendarEventApplicationService>();
+        builder.Services.AddSingleton<BusinessCalendarApplicationService>();
+
+        // ViewModels
         builder.Services.AddTransient<CalendarViewModel>();
+        builder.Services.AddTransient<BusinessCalendarListViewModel>();
+        builder.Services.AddTransient<BusinessCalendarEditViewModel>();
+        builder.Services.AddTransient<EventEditViewModel>();
+
+        // Pages
         builder.Services.AddTransient<CalendarPage>();
+        builder.Services.AddTransient<BusinessCalendarListPage>();
+        builder.Services.AddTransient<BusinessCalendarEditPage>();
+        builder.Services.AddTransient<EventEditPage>();
 
         return builder;
     }

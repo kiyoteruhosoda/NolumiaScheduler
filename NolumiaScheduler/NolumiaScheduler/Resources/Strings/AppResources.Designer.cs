@@ -42,11 +42,58 @@ public static class AppResources
 
     public static string AllDay         => Get(nameof(AllDay));
     public static string NoEventsLabel  => Get(nameof(NoEventsLabel));
-    public static string BadgeMoved    => Get(nameof(BadgeMoved));
-    public static string BadgeModified => Get(nameof(BadgeModified));
+    public static string BadgeMoved     => Get(nameof(BadgeMoved));
+    public static string BadgeModified  => Get(nameof(BadgeModified));
 
     public static string MonthYearFormat   => Get(nameof(MonthYearFormat));
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
+
+    // Tabs
+    public static string CalendarTab        => Get(nameof(CalendarTab));
+    public static string BusinessCalendarsTab => Get(nameof(BusinessCalendarsTab));
+
+    // Business Calendar List
+    public static string NoCalendarsLabel  => Get(nameof(NoCalendarsLabel));
+    public static string AddCalendarButton => Get(nameof(AddCalendarButton));
+
+    // Business Calendar Edit
+    public static string NewCalendarTitle      => Get(nameof(NewCalendarTitle));
+    public static string EditCalendarTitle     => Get(nameof(EditCalendarTitle));
+    public static string CalendarNamePlaceholder => Get(nameof(CalendarNamePlaceholder));
+    public static string WorkdaysLabel         => Get(nameof(WorkdaysLabel));
+    public static string HolidaysLabel         => Get(nameof(HolidaysLabel));
+    public static string AddHolidayButton      => Get(nameof(AddHolidayButton));
+    public static string HolidayNamePlaceholder => Get(nameof(HolidayNamePlaceholder));
+    public static string SaveButton            => Get(nameof(SaveButton));
+    public static string DeleteCalendarButton  => Get(nameof(DeleteCalendarButton));
+
+    // Event Edit
+    public static string NewEventTitle          => Get(nameof(NewEventTitle));
+    public static string EventTitlePlaceholder  => Get(nameof(EventTitlePlaceholder));
+    public static string EventLocationPlaceholder => Get(nameof(EventLocationPlaceholder));
+    public static string StartLabel             => Get(nameof(StartLabel));
+    public static string EndLabel               => Get(nameof(EndLabel));
+    public static string RepeatLabel            => Get(nameof(RepeatLabel));
+    public static string RepeatNone             => Get(nameof(RepeatNone));
+    public static string RepeatWeekly           => Get(nameof(RepeatWeekly));
+    public static string RepeatMonthly          => Get(nameof(RepeatMonthly));
+    public static string RepeatYearly           => Get(nameof(RepeatYearly));
+    public static string WeekdaysLabel          => Get(nameof(WeekdaysLabel));
+    public static string MonthlyDayOfMonth      => Get(nameof(MonthlyDayOfMonth));
+    public static string MonthlyNthWeekday      => Get(nameof(MonthlyNthWeekday));
+    public static string DayLabel               => Get(nameof(DayLabel));
+    public static string MonthLabel             => Get(nameof(MonthLabel));
+    public static string WeekIndexLabel         => Get(nameof(WeekIndexLabel));
+    public static string NthWeekLast            => Get(nameof(NthWeekLast));
+    public static string IntervalLabel          => Get(nameof(IntervalLabel));
+    public static string EndDateLabel           => Get(nameof(EndDateLabel));
+    public static string AdjustmentLabel        => Get(nameof(AdjustmentLabel));
+    public static string AdjustmentNone         => Get(nameof(AdjustmentNone));
+    public static string AdjustmentForward      => Get(nameof(AdjustmentForward));
+    public static string AdjustmentBackward     => Get(nameof(AdjustmentBackward));
+    public static string BusinessCalendarLabel  => Get(nameof(BusinessCalendarLabel));
+    public static string ErrorTitleRequired     => Get(nameof(ErrorTitleRequired));
+    public static string ErrorWeekdayRequired   => Get(nameof(ErrorWeekdayRequired));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;

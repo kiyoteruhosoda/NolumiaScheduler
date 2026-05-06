@@ -21,6 +21,53 @@
   <data name="BadgeModified" xml:space="preserve"><value>Modified</value></data>
   <data name="NoEventsLabel" xml:space="preserve"><value>No events</value></data>
 
+  <!-- Tabs -->
+  <data name="CalendarTab" xml:space="preserve"><value>Calendar</value></data>
+  <data name="BusinessCalendarsTab" xml:space="preserve"><value>Business Calendars</value></data>
+
+  <!-- Business Calendar List -->
+  <data name="NoCalendarsLabel" xml:space="preserve"><value>No business calendars</value></data>
+  <data name="AddCalendarButton" xml:space="preserve"><value>+ New Calendar</value></data>
+
+  <!-- Business Calendar Edit -->
+  <data name="NewCalendarTitle" xml:space="preserve"><value>New Calendar</value></data>
+  <data name="EditCalendarTitle" xml:space="preserve"><value>Edit Calendar</value></data>
+  <data name="CalendarNamePlaceholder" xml:space="preserve"><value>Calendar name</value></data>
+  <data name="WorkdaysLabel" xml:space="preserve"><value>Working Days</value></data>
+  <data name="HolidaysLabel" xml:space="preserve"><value>Holidays</value></data>
+  <data name="AddHolidayButton" xml:space="preserve"><value>Add</value></data>
+  <data name="HolidayNamePlaceholder" xml:space="preserve"><value>Holiday name (optional)</value></data>
+  <data name="SaveButton" xml:space="preserve"><value>Save</value></data>
+  <data name="DeleteCalendarButton" xml:space="preserve"><value>Delete Calendar</value></data>
+
+  <!-- Event Edit -->
+  <data name="NewEventTitle" xml:space="preserve"><value>New Event</value></data>
+  <data name="EventTitlePlaceholder" xml:space="preserve"><value>Title</value></data>
+  <data name="EventLocationPlaceholder" xml:space="preserve"><value>Location (optional)</value></data>
+  <data name="StartLabel" xml:space="preserve"><value>Start</value></data>
+  <data name="EndLabel" xml:space="preserve"><value>End</value></data>
+  <data name="RepeatLabel" xml:space="preserve"><value>Repeat</value></data>
+  <data name="RepeatNone" xml:space="preserve"><value>None</value></data>
+  <data name="RepeatWeekly" xml:space="preserve"><value>Weekly</value></data>
+  <data name="RepeatMonthly" xml:space="preserve"><value>Monthly</value></data>
+  <data name="RepeatYearly" xml:space="preserve"><value>Yearly</value></data>
+  <data name="WeekdaysLabel" xml:space="preserve"><value>Days</value></data>
+  <data name="MonthlyDayOfMonth" xml:space="preserve"><value>Day of month</value></data>
+  <data name="MonthlyNthWeekday" xml:space="preserve"><value>Nth weekday</value></data>
+  <data name="DayLabel" xml:space="preserve"><value>Day</value></data>
+  <data name="MonthLabel" xml:space="preserve"><value>Month</value></data>
+  <data name="WeekIndexLabel" xml:space="preserve"><value>Week No.</value></data>
+  <data name="NthWeekLast" xml:space="preserve"><value>Last</value></data>
+  <data name="IntervalLabel" xml:space="preserve"><value>Interval</value></data>
+  <data name="EndDateLabel" xml:space="preserve"><value>End Date</value></data>
+  <data name="AdjustmentLabel" xml:space="preserve"><value>Holiday Shift</value></data>
+  <data name="AdjustmentNone" xml:space="preserve"><value>None</value></data>
+  <data name="AdjustmentForward" xml:space="preserve"><value>Next Business Day</value></data>
+  <data name="AdjustmentBackward" xml:space="preserve"><value>Prev Business Day</value></data>
+  <data name="BusinessCalendarLabel" xml:space="preserve"><value>Business Calendar</value></data>
+  <data name="ErrorTitleRequired" xml:space="preserve"><value>Title is required.</value></data>
+  <data name="ErrorWeekdayRequired" xml:space="preserve"><value>Select at least one day.</value></data>
+
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>
