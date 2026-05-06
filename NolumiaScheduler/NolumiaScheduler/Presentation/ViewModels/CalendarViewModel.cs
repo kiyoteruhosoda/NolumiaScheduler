@@ -47,6 +47,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         SelectedDayEvents = [];
         WeekTimeSlots = [];
         WeekHeaderDays = [];
+        WeekDayColumns = [];
 
         PreviousMonthCommand = new Command(() => Navigate(-1));
         NextMonthCommand = new Command(() => Navigate(1));
@@ -63,6 +64,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ObservableCollection<CalendarEventItem> SelectedDayEvents { get; }
     public ObservableCollection<WeekTimeSlot> WeekTimeSlots { get; }
     public ObservableCollection<string> WeekHeaderDays { get; }
+    public ObservableCollection<WeekDayColumn> WeekDayColumns { get; }
+    public double WeekCanvasHeight => 24 * 60;
 
     public string MonthYearTitle
     {
@@ -250,11 +253,109 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private void LoadWeek()
     {
         WeekHeaderDays.Clear();
+        WeekDayColumns.Clear();
+
+        var from = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate));
+        var to = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate.AddDays(6)));
+
+        var weekly = new Dictionary<int, List<CalendarEventItem>>();
+        for (var i = 0; i < 7; i++) weekly[i] = [];
+
+        var calendarCache = new Dictionary<string, BusinessCalendar>();
+        BusinessCalendar? GetCalendar(string? id)
+        {
+            if (id == null) return null;
+            if (!calendarCache.TryGetValue(id, out var cal))
+                calendarCache[id] = cal = _businessCalendars.FindById(new BusinessCalendarId(id))!;
+            return cal;
+        }
+
+        foreach (var ev in _events.FindAll())
+        {
+            var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
+            var calendar = GetCalendar(calId);
+            foreach (var occ in _expander.Expand(ev, from, to, calendar))
+            {
+                var dayIdx = (int)(occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue).Date - _weekStartDate.Date).TotalDays;
+                if (dayIdx is < 0 or > 6) continue;
+                weekly[dayIdx].Add(new CalendarEventItem(occ));
+            }
+        }
+
         for (var i = 0; i < 7; i++)
         {
-            var d = _weekStartDate.AddDays(i);
-            WeekHeaderDays.Add(d.ToString("M/d(ddd)", AppResources.FormatCulture));
+            var date = _weekStartDate.AddDays(i);
+            WeekHeaderDays.Add(date.ToString("M/d(ddd)", AppResources.FormatCulture));
+
+            var col = new WeekDayColumn(date.ToString("M/d(ddd)", AppResources.FormatCulture));
+            foreach (var b in LayoutDayBlocks(weekly[i])) col.EventBlocks.Add(b);
+            WeekDayColumns.Add(col);
         }
+
+        OnPropertyChanged(nameof(WeekCanvasHeight));
+    }
+
+    private static IReadOnlyList<WeekEventBlock> LayoutDayBlocks(IReadOnlyList<CalendarEventItem> events)
+    {
+        var segments = events.Select(e =>
+        {
+            var (start, end) = GetRange(e);
+            return new Segment(e, start, end);
+        }).OrderBy(s => s.Start).ThenBy(s => s.End).ToList();
+
+        var blocks = new List<WeekEventBlock>();
+        var active = new List<Segment>();
+
+        foreach (var seg in segments)
+        {
+            active.RemoveAll(a => a.End <= seg.Start);
+            var used = active.Select(a => a.Column).ToHashSet();
+            var col = 0;
+            while (used.Contains(col)) col++;
+            seg.Column = col;
+            active.Add(seg);
+            seg.ColumnCount = Math.Max(seg.ColumnCount, active.Max(a => a.Column) + 1);
+            foreach (var a in active) a.ColumnCount = Math.Max(a.ColumnCount, seg.ColumnCount);
+        }
+
+        foreach (var s in segments)
+        {
+            var duration = Math.Max(20, s.End - s.Start);
+            blocks.Add(new WeekEventBlock
+            {
+                Title = s.Item.Title,
+                TimeLabel = s.Item.TimeRange,
+                BackgroundColor = s.Item.DotColor,
+                Top = s.Start,
+                Height = duration,
+                LeftRatio = s.ColumnCount <= 1 ? 0 : (double)s.Column / s.ColumnCount,
+                WidthRatio = s.ColumnCount <= 1 ? 1 : 1d / s.ColumnCount,
+            });
+        }
+
+        return blocks;
+    }
+
+    private static (int Start, int End) GetRange(CalendarEventItem item)
+    {
+        if (item.IsAllDay) return (0, 60);
+        var split = item.TimeRange.Split('–', StringSplitOptions.TrimEntries);
+        if (split.Length != 2) return (0, 60);
+        var st = TimeOnly.Parse(split[0]);
+        var ed = TimeOnly.Parse(split[1]);
+        var s = st.Hour * 60 + st.Minute;
+        var e = ed.Hour * 60 + ed.Minute;
+        if (e <= s) e = s + 60;
+        return (s, e);
+    }
+
+    private sealed class Segment(CalendarEventItem item, int start, int end)
+    {
+        public CalendarEventItem Item { get; } = item;
+        public int Start { get; } = start;
+        public int End { get; } = end;
+        public int Column { get; set; }
+        public int ColumnCount { get; set; } = 1;
     }
 
     private void LoadMonth()

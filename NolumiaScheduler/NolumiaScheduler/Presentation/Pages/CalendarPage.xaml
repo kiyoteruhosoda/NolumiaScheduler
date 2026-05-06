@@ -256,21 +256,73 @@
 
 
         <Grid Grid.Row="5" IsVisible="{Binding IsWeekMode}" RowDefinitions="Auto,*" ColumnDefinitions="56,*" BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
-            <Grid Grid.Row="0" Grid.Column="1" ColumnDefinitions="*,*,*,*,*,*,*">
-                <Label Grid.Column="0" Text="{Binding WeekHeaderDays[0]}" FontSize="11" HorizontalOptions="Center" />
-                <Label Grid.Column="1" Text="{Binding WeekHeaderDays[1]}" FontSize="11" HorizontalOptions="Center" />
-                <Label Grid.Column="2" Text="{Binding WeekHeaderDays[2]}" FontSize="11" HorizontalOptions="Center" />
-                <Label Grid.Column="3" Text="{Binding WeekHeaderDays[3]}" FontSize="11" HorizontalOptions="Center" />
-                <Label Grid.Column="4" Text="{Binding WeekHeaderDays[4]}" FontSize="11" HorizontalOptions="Center" />
-                <Label Grid.Column="5" Text="{Binding WeekHeaderDays[5]}" FontSize="11" HorizontalOptions="Center" />
-                <Label Grid.Column="6" Text="{Binding WeekHeaderDays[6]}" FontSize="11" HorizontalOptions="Center" />
-            </Grid>
-            <CollectionView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding WeekTimeSlots}">
-                <CollectionView.ItemTemplate><DataTemplate x:DataType="vm:WeekTimeSlot"><Label Text="{Binding HourLabel}" FontSize="10" HeightRequest="30" /></DataTemplate></CollectionView.ItemTemplate>
+            <CollectionView Grid.Row="1" Grid.Column="0" ItemsSource="{Binding WeekTimeSlots}" SelectionMode="None">
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WeekTimeSlot">
+                        <Label Text="{Binding HourLabel}" FontSize="10" HeightRequest="60" VerticalTextAlignment="Start" />
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
             </CollectionView>
-            <ScrollView Grid.Row="1" Grid.Column="1">
-                <Label Text="{x:Static res:AppResources.WeekViewHint}" FontSize="12" Margin="8"/>
-            </ScrollView>
+
+            <CollectionView Grid.Row="0" Grid.RowSpan="2" Grid.Column="1" ItemsSource="{Binding WeekDayColumns}" SelectionMode="None">
+                <CollectionView.ItemsLayout>
+                    <GridItemsLayout Orientation="Vertical" Span="7" />
+                </CollectionView.ItemsLayout>
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:WeekDayColumn">
+                        <Grid RowDefinitions="Auto,*" Margin="1,0">
+                            <Label Grid.Row="0" Text="{Binding Header}" FontSize="11" HorizontalOptions="Center" Margin="0,2" />
+                            <AbsoluteLayout Grid.Row="1" HeightRequest="{Binding Source={RelativeSource AncestorType={x:Type vm:CalendarViewModel}}, Path=WeekCanvasHeight}" BackgroundColor="{AppThemeBinding Light=#F8F9FA, Dark=#1E1E1E}">
+                                <BoxView Color="{AppThemeBinding Light=#E0E0E0, Dark=#333333}" AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All" />
+                                <VerticalStackLayout AbsoluteLayout.LayoutBounds="0,0,1,1" AbsoluteLayout.LayoutFlags="All" Spacing="0" InputTransparent="True">
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                    <BoxView HeightRequest="60" Color="Transparent" />
+                                </VerticalStackLayout>
+                                <FlexLayout BindableLayout.ItemsSource="{Binding EventBlocks}" Direction="Column" />
+                                <AbsoluteLayout BindableLayout.ItemsSource="{Binding EventBlocks}">
+                                    <BindableLayout.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:WeekEventBlock">
+                                            <Border Padding="3"
+                                                    BackgroundColor="{Binding BackgroundColor}"
+                                                    StrokeThickness="0"
+                                                    StrokeShape="RoundRectangle 4"
+                                                    AbsoluteLayout.LayoutBounds="{Binding LeftRatio}, {Binding Top}, {Binding WidthRatio}, {Binding Height}"
+                                                    AbsoluteLayout.LayoutFlags="XProportional,WidthProportional">
+                                                <VerticalStackLayout Spacing="0">
+                                                    <Label Text="{Binding TimeLabel}" FontSize="9" TextColor="White" />
+                                                    <Label Text="{Binding Title}" FontSize="10" TextColor="White" LineBreakMode="TailTruncation" />
+                                                </VerticalStackLayout>
+                                            </Border>
+                                        </DataTemplate>
+                                    </BindableLayout.ItemTemplate>
+                                </AbsoluteLayout>
+                            </AbsoluteLayout>
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
         </Grid>
 
         <!-- ── Selected-day events panel ── -->
