@@ -94,7 +94,11 @@ public partial class WeekCalendarView : ContentView
         typeof(WeekCalendarView),
         propertyChanged: (bindable, _, _) => { var view = (WeekCalendarView)bindable; view.UpdateVirtualizedRanges(); view.BuildWeekColumns(); });
     public IEnumerable? WeekAllDayEventBlocks { get => (IEnumerable?)GetValue(WeekAllDayEventBlocksProperty); set => SetValue(WeekAllDayEventBlocksProperty, value); }
-    public static readonly BindableProperty WeekAllDayEventBlocksProperty = BindableProperty.Create(nameof(WeekAllDayEventBlocks), typeof(IEnumerable), typeof(WeekCalendarView), propertyChanged: (_, _, _) => { });
+    public static readonly BindableProperty WeekAllDayEventBlocksProperty = BindableProperty.Create(
+        nameof(WeekAllDayEventBlocks),
+        typeof(IEnumerable),
+        typeof(WeekCalendarView),
+        propertyChanged: (bindable, _, _) => ((WeekCalendarView)bindable).BuildWeekColumns());
     public double WeekAllDayLaneHeight { get => (double)GetValue(WeekAllDayLaneHeightProperty); set => SetValue(WeekAllDayLaneHeightProperty, value); }
     public static readonly BindableProperty WeekAllDayLaneHeightProperty = BindableProperty.Create(nameof(WeekAllDayLaneHeight), typeof(double), typeof(WeekCalendarView), 28d);
     public double WeekCanvasHeight { get => (double)GetValue(WeekCanvasHeightProperty); set => SetValue(WeekCanvasHeightProperty, value); }
@@ -205,7 +209,8 @@ public partial class WeekCalendarView : ContentView
             Padding = new Thickness(6, 2),
             StrokeThickness = 0,
             StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 4 },
-            HeightRequest = 20
+            HeightRequest = 20,
+            Opacity = 0.82
         };
         border.SetBinding(BackgroundColorProperty, nameof(WeekAllDayEventBlock.BackgroundColor));
         AbsoluteLayout.SetLayoutBounds(border, new Rect(0, block.Top + 1, 1, 20));
