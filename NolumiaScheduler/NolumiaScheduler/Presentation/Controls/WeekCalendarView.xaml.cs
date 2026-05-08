@@ -1,8 +1,6 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using System.Collections.ObjectModel;
-using System.Globalization;
-using Microsoft.Maui.Layouts;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 
@@ -130,6 +128,8 @@ public partial class WeekCalendarView : ContentView
         WeekBodyGrid.ColumnDefinitions.Clear();
         WeekBodyGrid.Children.Clear();
 
+        WeekDayColumnWidth = WeekBodyGrid.Width > 0 ? WeekBodyGrid.Width / 7d : WeekDayColumnWidth;
+
         for (var i = 0; i < days.Count; i++)
         {
             WeekHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
@@ -157,6 +157,11 @@ public partial class WeekCalendarView : ContentView
             BindableLayout.SetItemTemplate(eventsLayer, CreateWeekEventTemplate());
             lane.Children.Add(eventsLayer);
 
+            var overlay = new WeekInteractionOverlayView { ZIndex = 999 };
+            overlay.SetBinding(WeekInteractionOverlayView.PreviewProperty, new Binding(nameof(InteractionPreview), source: this));
+            overlay.SetBinding(HeightRequestProperty, new Binding(nameof(WeekCanvasHeight), source: this));
+            lane.Children.Add(overlay);
+
             Grid.SetColumn(lane, i);
             WeekBodyGrid.Children.Add(lane);
         }
@@ -176,14 +181,30 @@ public partial class WeekCalendarView : ContentView
             };
             border.SetBinding(BackgroundColorProperty, nameof(WeekEventBlock.BackgroundColor));
             border.SetBinding(AbsoluteLayout.LayoutBoundsProperty, nameof(WeekEventBlock.Bounds));
-            border.SetBinding(AbsoluteLayout.LayoutFlagsProperty, new Binding(path: ".", converter: new WeekEventLayoutFlagsConverter()));
-            border.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command<TappedEventArgs>(e => OnEventBlockTapped(border, e)) });
+            AbsoluteLayout.SetLayoutFlags(border, AbsoluteLayoutFlags.XProportional | AbsoluteLayoutFlags.WidthProportional);
 
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += OnEventBlockTapped;
+            border.GestureRecognizers.Add(tap);
+            var blockPan = new PanGestureRecognizer();
+            blockPan.PanUpdated += OnEventBlockPanUpdated;
+            border.GestureRecognizers.Add(blockPan);
+
+            var grid = new Grid { RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Star), new RowDefinition(14) } };
             var title = new Label { FontSize = 10, TextColor = Colors.White, LineBreakMode = LineBreakMode.TailTruncation };
             title.SetBinding(Label.TextProperty, nameof(WeekEventBlock.Title));
             var time = new Label { FontSize = 9, TextColor = Colors.White };
             time.SetBinding(Label.TextProperty, nameof(WeekEventBlock.TimeLabel));
-            border.Content = new VerticalStackLayout { Spacing = 0, Children = { time, title } };
+            grid.Add(new VerticalStackLayout { Spacing = 0, Children = { time, title } });
+
+            var resizeHandle = new BoxView { Opacity = 0.001, BackgroundColor = Colors.Transparent };
+            var resizePan = new PanGestureRecognizer();
+            resizePan.PanUpdated += OnResizeHandlePanUpdated;
+            resizeHandle.GestureRecognizers.Add(resizePan);
+            Grid.SetRow(resizeHandle, 1);
+            grid.Add(resizeHandle);
+
+            border.Content = grid;
             return border;
         });
 

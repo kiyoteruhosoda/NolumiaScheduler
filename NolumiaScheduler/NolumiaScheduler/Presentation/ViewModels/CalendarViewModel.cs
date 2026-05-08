@@ -3,7 +3,6 @@ using System.ComponentModel;
 using System.Globalization;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using Microsoft.Maui.Devices;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
@@ -79,7 +78,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ObservableCollection<WeekAllDayEventBlock> WeekAllDayEventBlocks { get; }
     public double WeekAllDayLaneHeight => Math.Max(28, (WeekAllDayEventBlocks.Count == 0 ? 1 : WeekAllDayEventBlocks.Max(x => x.Row + 1)) * 24);
     public double WeekCanvasHeight => 24 * 60;
-    public double WeekDayColumnWidth => Math.Max(96, (DeviceDisplay.MainDisplayInfo.Width / DeviceDisplay.MainDisplayInfo.Density - 72) / 7);
+    public double WeekDayColumnWidth => 120;
     public DateTime WeekStartDate => _weekStartDate.Date;
     public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
     public double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;
