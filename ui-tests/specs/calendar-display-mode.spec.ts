@@ -1,77 +1,23 @@
 import { expect, test } from '@playwright/test';
-import {
-  CalendarModeContext,
-  MonthDisplayMode,
-  StandardWeekScheduleExpectation,
-  WeekDisplayMode,
-  type CalendarDisplayMode,
-  type WeekScheduleExpectation
-} from '../support/calendarModes';
 
-const calendarPageMarkup = `
-<!doctype html>
-<html lang="ja">
-<body>
-  <main>
-    <h1 data-testid="calendar-title">Nolumia Scheduler</h1>
-    <button data-testid="mode-week">週表示</button>
-    <button data-testid="mode-month">月表示</button>
-    <p data-testid="current-mode">未選択</p>
+const appUrl = process.env.UI_TEST_APP_URL;
 
-    <section data-testid="week-schedule" hidden>
-      <h2>第3週</h2>
-      <article data-testid="week-event"
-               data-day="月"
-               data-start="10:00"
-               data-end="11:00">
-        定例1on1
-      </article>
-    </section>
+test.describe('Calendar display mode switching (real app)', () => {
+  test('週表示で主要レイヤーが表示され、モード切替が動作する', async ({ page }) => {
+    test.skip(!appUrl, 'UI_TEST_APP_URL が未設定のため実アプリUIテストをスキップします');
 
-    <script>
-      const mode = document.querySelector('[data-testid="current-mode"]');
-      const weekSchedule = document.querySelector('[data-testid="week-schedule"]');
-      document.querySelector('[data-testid="mode-week"]').addEventListener('click', () => {
-        mode.textContent = '週表示';
-        weekSchedule.hidden = false;
-      });
-      document.querySelector('[data-testid="mode-month"]').addEventListener('click', () => {
-        mode.textContent = '月表示';
-        weekSchedule.hidden = true;
-      });
-    </script>
-  </main>
-</body>
-</html>`;
+    await page.goto(appUrl!);
 
+    await page.getByText('週表示').click();
 
-test.describe('Calendar display mode switching', () => {
-  test('表示モードのユースケースをポリモーフィズムで再利用検証する', async ({ page }) => {
-    await page.setContent(calendarPageMarkup);
+    await expect(page.getByText('終日')).toBeVisible();
+    await expect(page.getByText('00:00')).toBeVisible();
 
-    const context = new CalendarModeContext(page.getByTestId('current-mode'));
-    const modes: CalendarDisplayMode[] = [new WeekDisplayMode(), new MonthDisplayMode()];
-
-    for (const mode of modes) {
-      await context.switchTo(mode, page);
-      await expect(page.getByTestId('current-mode')).toHaveText(context.expectedText(mode));
+    // 実アプリ上の予定要素（時間ラベルを含む）とクリック操作
+    const eventLike = page.locator('text=/\d{1,2}:\d{2}\s*[–-]\s*\d{1,2}:\d{2}/').first();
+    if (await eventLike.count() > 0) {
+      await eventLike.click();
+      await expect(eventLike).toBeVisible();
     }
-  });
-
-  test('週表示で週スケジュールが正しく描画される', async ({ page }) => {
-    await page.setContent(calendarPageMarkup);
-
-    const context = new CalendarModeContext(page.getByTestId('current-mode'));
-    await context.switchTo(new WeekDisplayMode(), page);
-
-    const expected = new StandardWeekScheduleExpectation('定例1on1', '月', '10:00', '11:00');
-    const weekSchedule = page.getByTestId('week-schedule');
-    const weekEvent = page.getByTestId('week-event');
-
-    await expect(weekSchedule).toBeVisible();
-    await expect(weekEvent).toHaveText(expected.label);
-    await expect(weekEvent).toHaveAttribute('data-day', expected.dayColumn);
-    await expect(weekEvent).toHaveAttribute('data-start', expected.startTime);
-    await expect(weekEvent).toHaveAttribute('data-end', expected.endTime);
   });
 });

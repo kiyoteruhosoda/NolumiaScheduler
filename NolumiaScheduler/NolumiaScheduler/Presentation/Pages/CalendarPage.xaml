@@ -299,7 +299,7 @@
 
         <!-- ── Selected-day events panel ── -->
         <Grid Grid.Row="6"
-              IsVisible="{Binding HasSelectedDay}"
+              IsVisible="{Binding IsMonthModeAndHasSelectedDay}"
               RowDefinitions="1,44,Auto,Auto,Auto"
               BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}">
 
