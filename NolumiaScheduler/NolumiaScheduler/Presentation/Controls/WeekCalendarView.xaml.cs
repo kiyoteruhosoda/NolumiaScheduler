@@ -177,7 +177,7 @@ public partial class WeekCalendarView : ContentView
 
 
 
-    private static DataTemplate CreateAllDayEventTemplate()
+    private DataTemplate CreateAllDayEventTemplate()
         => new(() =>
         {
             var border = new Border
