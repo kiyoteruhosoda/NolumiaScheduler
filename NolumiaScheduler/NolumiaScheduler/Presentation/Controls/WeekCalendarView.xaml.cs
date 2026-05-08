@@ -150,16 +150,22 @@ public partial class WeekCalendarView : ContentView
             bg.SetBinding(WeekGridBackgroundView.IsCurrentWeekProperty, new Binding(nameof(IsCurrentWeek), source: this));
             bg.SetBinding(WeekGridBackgroundView.CurrentTimeLineTopProperty, new Binding(nameof(CurrentTimeLineTop), source: this));
             bg.SetBinding(HeightRequestProperty, new Binding(nameof(WeekCanvasHeight), source: this));
+            AbsoluteLayout.SetLayoutBounds(bg, new Rect(0, 0, 1, 1));
+            AbsoluteLayout.SetLayoutFlags(bg, AbsoluteLayoutFlags.All);
             lane.Children.Add(bg);
 
             var eventsLayer = new AbsoluteLayout();
             BindableLayout.SetItemsSource(eventsLayer, day.VisibleEventBlocks);
             BindableLayout.SetItemTemplate(eventsLayer, CreateWeekEventTemplate());
+            AbsoluteLayout.SetLayoutBounds(eventsLayer, new Rect(0, 0, 1, 1));
+            AbsoluteLayout.SetLayoutFlags(eventsLayer, AbsoluteLayoutFlags.All);
             lane.Children.Add(eventsLayer);
 
             var overlay = new WeekInteractionOverlayView { ZIndex = 999 };
             overlay.SetBinding(WeekInteractionOverlayView.PreviewProperty, new Binding(nameof(InteractionPreview), source: this));
             overlay.SetBinding(HeightRequestProperty, new Binding(nameof(WeekCanvasHeight), source: this));
+            AbsoluteLayout.SetLayoutBounds(overlay, new Rect(0, 0, 1, 1));
+            AbsoluteLayout.SetLayoutFlags(overlay, AbsoluteLayoutFlags.All);
             lane.Children.Add(overlay);
 
             Grid.SetColumn(lane, i);
