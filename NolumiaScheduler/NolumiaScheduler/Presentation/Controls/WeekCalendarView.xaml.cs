@@ -38,7 +38,6 @@ public partial class WeekCalendarView : ContentView
         _mapper = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();
         _gestureArbitrationService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
         _autoScrollService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
-        BindableLayout.SetItemTemplate(WeekAllDayEventsLayer, CreateAllDayEventTemplate());
         SizeChanged += (_, _) => BuildWeekColumns();
     }
 
@@ -126,6 +125,8 @@ public partial class WeekCalendarView : ContentView
 
         WeekHeaderGrid.ColumnDefinitions.Clear();
         WeekHeaderGrid.Children.Clear();
+        WeekAllDayGrid.ColumnDefinitions.Clear();
+        WeekAllDayGrid.Children.Clear();
         WeekBodyGrid.ColumnDefinitions.Clear();
         WeekBodyGrid.Children.Clear();
 
@@ -134,12 +135,17 @@ public partial class WeekCalendarView : ContentView
         for (var i = 0; i < days.Count; i++)
         {
             WeekHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            WeekAllDayGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
             WeekBodyGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 
             var day = days[i];
             var header = new Border { StrokeThickness = 0, BackgroundColor = day.HeaderBackgroundColor, Content = new Label { Text = day.Header, FontSize = 11, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center, TextColor = day.HeaderTextColor } };
             Grid.SetColumn(header, i);
             WeekHeaderGrid.Children.Add(header);
+
+            var allDayLane = BuildAllDayLane(day.Date);
+            Grid.SetColumn(allDayLane, i);
+            WeekAllDayGrid.Children.Add(allDayLane);
 
             var lane = new AbsoluteLayout { BindingContext = day, HeightRequest = WeekCanvasHeight, BackgroundColor = day.DayBackgroundColor };
             var laneTap = new TapGestureRecognizer();
@@ -174,33 +180,50 @@ public partial class WeekCalendarView : ContentView
         }
     }
 
+    private AbsoluteLayout BuildAllDayLane(DateTime day)
+    {
+        var lane = new AbsoluteLayout { BackgroundColor = Colors.Transparent };
+        var blocks = (WeekAllDayEventBlocks as IEnumerable)?
+            .OfType<WeekAllDayEventBlock>()
+            .Where(block => block.StartDate.Date <= day.Date && block.EndDate.Date >= day.Date)
+            .ToList() ?? [];
 
-
-
-    private DataTemplate CreateAllDayEventTemplate()
-        => new(() =>
+        foreach (var block in blocks)
         {
-            var border = new Border
-            {
-                Padding = new Thickness(6, 2),
-                StrokeThickness = 1,
-                Stroke = Color.FromArgb("#FFFFFF80"),
-                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 }
-            };
-            border.SetBinding(BackgroundColorProperty, nameof(WeekAllDayEventBlock.BackgroundColor));
-            border.SetBinding(AbsoluteLayout.LayoutBoundsProperty, nameof(WeekAllDayEventBlock.LayoutBounds));
-            AbsoluteLayout.SetLayoutFlags(border, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.XProportional | Microsoft.Maui.Layouts.AbsoluteLayoutFlags.WidthProportional);
+            var chip = CreateAllDayChip(block);
+            lane.Children.Add(chip);
+        }
 
-            var tap = new TapGestureRecognizer();
-            tap.Tapped += OnAllDayBlockTapped;
-            border.GestureRecognizers.Add(tap);
+        return lane;
+    }
 
-            var label = new Label { FontSize = 10, TextColor = Colors.White, LineBreakMode = LineBreakMode.TailTruncation };
-            label.SetBinding(Label.TextProperty, nameof(WeekAllDayEventBlock.Title));
-            border.Content = label;
+    private Border CreateAllDayChip(WeekAllDayEventBlock block)
+    {
+        var border = new Border
+        {
+            BindingContext = block,
+            Padding = new Thickness(6, 2),
+            StrokeThickness = 0,
+            StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 4 },
+            HeightRequest = 20
+        };
+        border.SetBinding(BackgroundColorProperty, nameof(WeekAllDayEventBlock.BackgroundColor));
+        AbsoluteLayout.SetLayoutBounds(border, new Rect(0, block.Top + 1, 1, 20));
+        AbsoluteLayout.SetLayoutFlags(border, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.WidthProportional);
 
-            return border;
-        });
+        var tap = new TapGestureRecognizer();
+        tap.Tapped += OnAllDayBlockTapped;
+        border.GestureRecognizers.Add(tap);
+
+        var label = new Label { FontSize = 10, TextColor = Colors.White, LineBreakMode = LineBreakMode.TailTruncation };
+        label.SetBinding(Label.TextProperty, nameof(WeekAllDayEventBlock.Title));
+        border.Content = label;
+        return border;
+    }
+
+
+
+
     private DataTemplate CreateWeekEventTemplate()
         => new(() =>
         {
