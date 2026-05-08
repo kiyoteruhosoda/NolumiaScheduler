@@ -99,7 +99,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public bool HasSelectedDay
     {
         get => _hasSelectedDay;
-        private set { _hasSelectedDay = value; OnPropertyChanged(); }
+        private set { _hasSelectedDay = value; OnPropertyChanged(); OnPropertyChanged(nameof(IsMonthModeAndHasSelectedDay)); }
     }
 
     public bool SelectedDayHasNoEvents
@@ -137,11 +137,13 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsMonthMode));
             OnPropertyChanged(nameof(IsWeekMode));
+            OnPropertyChanged(nameof(IsMonthModeAndHasSelectedDay));
         }
     }
 
     public bool IsMonthMode => DisplayMode == CalendarDisplayMode.Month;
     public bool IsWeekMode => DisplayMode == CalendarDisplayMode.Week;
+    public bool IsMonthModeAndHasSelectedDay => IsMonthMode && HasSelectedDay;
 
     public void SelectDay(CalendarDayCell cell)
     {

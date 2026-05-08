@@ -1,6 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using Microsoft.Maui.Layouts;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 
@@ -38,6 +40,7 @@ public partial class WeekCalendarView : ContentView
         _mapper = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();
         _gestureArbitrationService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
         _autoScrollService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
+        SizeChanged += (_, _) => BuildWeekColumns();
     }
 
     protected override async void OnHandlerChanged()
@@ -91,7 +94,7 @@ public partial class WeekCalendarView : ContentView
         nameof(WeekDayColumns),
         typeof(IEnumerable),
         typeof(WeekCalendarView),
-        propertyChanged: (bindable, _, _) => ((WeekCalendarView)bindable).UpdateVirtualizedRanges());
+        propertyChanged: (bindable, _, _) => { var view = (WeekCalendarView)bindable; view.UpdateVirtualizedRanges(); view.BuildWeekColumns(); });
     public IEnumerable? WeekAllDayEventBlocks { get => (IEnumerable?)GetValue(WeekAllDayEventBlocksProperty); set => SetValue(WeekAllDayEventBlocksProperty, value); }
     public static readonly BindableProperty WeekAllDayEventBlocksProperty = BindableProperty.Create(nameof(WeekAllDayEventBlocks), typeof(IEnumerable), typeof(WeekCalendarView), propertyChanged: (_, _, _) => { });
     public double WeekAllDayLaneHeight { get => (double)GetValue(WeekAllDayLaneHeightProperty); set => SetValue(WeekAllDayLaneHeightProperty, value); }
@@ -114,6 +117,75 @@ public partial class WeekCalendarView : ContentView
 
     public string? SelectedEventId { get => (string?)GetValue(SelectedEventIdProperty); set => SetValue(SelectedEventIdProperty, value); }
     public static readonly BindableProperty SelectedEventIdProperty = BindableProperty.Create(nameof(SelectedEventId), typeof(string), typeof(WeekCalendarView), null);
+
+
+    private void BuildWeekColumns()
+    {
+        if (WeekDayColumns is not IEnumerable cols) return;
+        var days = cols.OfType<WeekDayColumn>().Take(7).ToList();
+        if (days.Count == 0) return;
+
+        WeekHeaderGrid.ColumnDefinitions.Clear();
+        WeekHeaderGrid.Children.Clear();
+        WeekBodyGrid.ColumnDefinitions.Clear();
+        WeekBodyGrid.Children.Clear();
+
+        for (var i = 0; i < days.Count; i++)
+        {
+            WeekHeaderGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+            WeekBodyGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
+
+            var day = days[i];
+            var header = new Border { StrokeThickness = 0, BackgroundColor = day.HeaderBackgroundColor, Content = new Label { Text = day.Header, FontSize = 11, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center, TextColor = day.HeaderTextColor } };
+            Grid.SetColumn(header, i);
+            WeekHeaderGrid.Children.Add(header);
+
+            var lane = new AbsoluteLayout { BindingContext = day, HeightRequest = WeekCanvasHeight, BackgroundColor = day.DayBackgroundColor };
+            var laneTap = new TapGestureRecognizer();
+            laneTap.Tapped += OnEmptySlotTapped;
+            lane.GestureRecognizers.Add(laneTap);
+
+            var bg = new WeekGridBackgroundView();
+            bg.SetBinding(WeekGridBackgroundView.IsTodayProperty, nameof(WeekDayColumn.IsToday));
+            bg.SetBinding(WeekGridBackgroundView.IsCurrentWeekProperty, new Binding(nameof(IsCurrentWeek), source: this));
+            bg.SetBinding(WeekGridBackgroundView.CurrentTimeLineTopProperty, new Binding(nameof(CurrentTimeLineTop), source: this));
+            bg.SetBinding(HeightRequestProperty, new Binding(nameof(WeekCanvasHeight), source: this));
+            lane.Children.Add(bg);
+
+            var eventsLayer = new AbsoluteLayout();
+            BindableLayout.SetItemsSource(eventsLayer, day.VisibleEventBlocks);
+            BindableLayout.SetItemTemplate(eventsLayer, CreateWeekEventTemplate());
+            lane.Children.Add(eventsLayer);
+
+            Grid.SetColumn(lane, i);
+            WeekBodyGrid.Children.Add(lane);
+        }
+    }
+
+
+    private DataTemplate CreateWeekEventTemplate()
+        => new(() =>
+        {
+            var border = new Border
+            {
+                Padding = new Thickness(6, 4),
+                StrokeThickness = 1,
+                Stroke = Colors.Transparent,
+                StrokeShape = new RoundRectangle { CornerRadius = 6 },
+                MinimumHeightRequest = 44
+            };
+            border.SetBinding(BackgroundColorProperty, nameof(WeekEventBlock.BackgroundColor));
+            border.SetBinding(AbsoluteLayout.LayoutBoundsProperty, nameof(WeekEventBlock.Bounds));
+            border.SetBinding(AbsoluteLayout.LayoutFlagsProperty, new Binding(path: ".", converter: new WeekEventLayoutFlagsConverter()));
+            border.GestureRecognizers.Add(new TapGestureRecognizer { Command = new Command<TappedEventArgs>(e => OnEventBlockTapped(border, e)) });
+
+            var title = new Label { FontSize = 10, TextColor = Colors.White, LineBreakMode = LineBreakMode.TailTruncation };
+            title.SetBinding(Label.TextProperty, nameof(WeekEventBlock.Title));
+            var time = new Label { FontSize = 9, TextColor = Colors.White };
+            time.SetBinding(Label.TextProperty, nameof(WeekEventBlock.TimeLabel));
+            border.Content = new VerticalStackLayout { Spacing = 0, Children = { time, title } };
+            return border;
+        });
 
     private void OnEventBlockTapped(object? sender, TappedEventArgs e)
     {
@@ -286,10 +358,8 @@ public partial class WeekCalendarView : ContentView
     private void OnEmptySlotTapped(object? sender, TappedEventArgs e)
     {
         if (sender is not AbsoluteLayout layout || layout.BindingContext is not WeekDayColumn dayColumn) return;
-        var point = e.GetPosition(layout);
-        if (point is null) return;
-
-        var startMinute = _mapper.MapToMinute(point.Value.Y);
+        var point = e.GetPosition(layout) ?? new Point(0,0);
+        var startMinute = _mapper.MapToMinute(point.Y);
         EmptySlotTapped?.Invoke(this, new WeekEmptySlotTappedEventArgs { Date = dayColumn.Date, StartMinute = startMinute });
     }
 
