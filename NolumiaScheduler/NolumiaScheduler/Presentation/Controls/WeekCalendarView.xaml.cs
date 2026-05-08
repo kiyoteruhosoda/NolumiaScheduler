@@ -152,21 +152,21 @@ public partial class WeekCalendarView : ContentView
             bg.SetBinding(WeekGridBackgroundView.CurrentTimeLineTopProperty, new Binding(nameof(CurrentTimeLineTop), source: this));
             bg.SetBinding(HeightRequestProperty, new Binding(nameof(WeekCanvasHeight), source: this));
             AbsoluteLayout.SetLayoutBounds(bg, new Rect(0, 0, 1, 1));
-            AbsoluteLayout.SetLayoutFlags(bg, AbsoluteLayoutFlags.All);
+            AbsoluteLayout.SetLayoutFlags(bg, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.All);
             lane.Children.Add(bg);
 
             var eventsLayer = new AbsoluteLayout();
             BindableLayout.SetItemsSource(eventsLayer, day.VisibleEventBlocks);
             BindableLayout.SetItemTemplate(eventsLayer, CreateWeekEventTemplate());
             AbsoluteLayout.SetLayoutBounds(eventsLayer, new Rect(0, 0, 1, 1));
-            AbsoluteLayout.SetLayoutFlags(eventsLayer, AbsoluteLayoutFlags.All);
+            AbsoluteLayout.SetLayoutFlags(eventsLayer, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.All);
             lane.Children.Add(eventsLayer);
 
             var overlay = new WeekInteractionOverlayView { ZIndex = 999 };
             overlay.SetBinding(WeekInteractionOverlayView.PreviewProperty, new Binding(nameof(InteractionPreview), source: this));
             overlay.SetBinding(HeightRequestProperty, new Binding(nameof(WeekCanvasHeight), source: this));
             AbsoluteLayout.SetLayoutBounds(overlay, new Rect(0, 0, 1, 1));
-            AbsoluteLayout.SetLayoutFlags(overlay, AbsoluteLayoutFlags.All);
+            AbsoluteLayout.SetLayoutFlags(overlay, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.All);
             lane.Children.Add(overlay);
 
             Grid.SetColumn(lane, i);
@@ -185,11 +185,11 @@ public partial class WeekCalendarView : ContentView
                 Padding = new Thickness(6, 2),
                 StrokeThickness = 1,
                 Stroke = Color.FromArgb("#FFFFFF80"),
-                StrokeShape = new RoundRectangle { CornerRadius = 6 }
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 }
             };
             border.SetBinding(BackgroundColorProperty, nameof(WeekAllDayEventBlock.BackgroundColor));
             border.SetBinding(AbsoluteLayout.LayoutBoundsProperty, nameof(WeekAllDayEventBlock.LayoutBounds));
-            AbsoluteLayout.SetLayoutFlags(border, AbsoluteLayoutFlags.XProportional | AbsoluteLayoutFlags.WidthProportional);
+            AbsoluteLayout.SetLayoutFlags(border, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.XProportional | Microsoft.Maui.Layouts.AbsoluteLayoutFlags.WidthProportional);
 
             var tap = new TapGestureRecognizer();
             tap.Tapped += OnAllDayBlockTapped;
@@ -209,12 +209,12 @@ public partial class WeekCalendarView : ContentView
                 Padding = new Thickness(6, 4),
                 StrokeThickness = 1,
                 Stroke = Colors.Transparent,
-                StrokeShape = new RoundRectangle { CornerRadius = 6 },
+                StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
                 MinimumHeightRequest = 44
             };
             border.SetBinding(BackgroundColorProperty, nameof(WeekEventBlock.BackgroundColor));
             border.SetBinding(AbsoluteLayout.LayoutBoundsProperty, nameof(WeekEventBlock.Bounds));
-            AbsoluteLayout.SetLayoutFlags(border, AbsoluteLayoutFlags.XProportional | AbsoluteLayoutFlags.WidthProportional);
+            AbsoluteLayout.SetLayoutFlags(border, Microsoft.Maui.Layouts.AbsoluteLayoutFlags.XProportional | Microsoft.Maui.Layouts.AbsoluteLayoutFlags.WidthProportional);
 
             var tap = new TapGestureRecognizer();
             tap.Tapped += OnEventBlockTapped;
