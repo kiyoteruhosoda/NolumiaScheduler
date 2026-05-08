@@ -38,6 +38,7 @@ public partial class WeekCalendarView : ContentView
         _mapper = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();
         _gestureArbitrationService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
         _autoScrollService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
+        BindableLayout.SetItemTemplate(WeekAllDayEventsLayer, CreateAllDayEventTemplate());
         SizeChanged += (_, _) => BuildWeekColumns();
     }
 
@@ -174,6 +175,32 @@ public partial class WeekCalendarView : ContentView
     }
 
 
+
+
+    private DataTemplate CreateAllDayEventTemplate()
+        => new(() =>
+        {
+            var border = new Border
+            {
+                Padding = new Thickness(6, 2),
+                StrokeThickness = 1,
+                Stroke = Color.FromArgb("#FFFFFF80"),
+                StrokeShape = new RoundRectangle { CornerRadius = 6 }
+            };
+            border.SetBinding(BackgroundColorProperty, nameof(WeekAllDayEventBlock.BackgroundColor));
+            border.SetBinding(AbsoluteLayout.LayoutBoundsProperty, nameof(WeekAllDayEventBlock.LayoutBounds));
+            AbsoluteLayout.SetLayoutFlags(border, AbsoluteLayoutFlags.XProportional | AbsoluteLayoutFlags.WidthProportional);
+
+            var tap = new TapGestureRecognizer();
+            tap.Tapped += OnAllDayBlockTapped;
+            border.GestureRecognizers.Add(tap);
+
+            var label = new Label { FontSize = 10, TextColor = Colors.White, LineBreakMode = LineBreakMode.TailTruncation };
+            label.SetBinding(Label.TextProperty, nameof(WeekAllDayEventBlock.Title));
+            border.Content = label;
+
+            return border;
+        });
     private DataTemplate CreateWeekEventTemplate()
         => new(() =>
         {
