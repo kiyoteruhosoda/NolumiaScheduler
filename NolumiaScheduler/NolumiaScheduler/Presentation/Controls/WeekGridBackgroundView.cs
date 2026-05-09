@@ -20,12 +20,6 @@ public sealed class WeekGridBackgroundView : GraphicsView
     {
         public void Draw(ICanvas canvas, RectF dirtyRect)
         {
-            if (owner.IsToday)
-            {
-                canvas.FillColor = Color.FromArgb("#eef6ff");
-                canvas.FillRectangle(dirtyRect);
-            }
-
             for (var h = 0; h < 24; h++)
             {
                 var y = h * 60;
@@ -45,6 +39,18 @@ public sealed class WeekGridBackgroundView : GraphicsView
                 canvas.StrokeSize = 2;
                 canvas.DrawLine(0, y, dirtyRect.Width, y);
             }
+
+            if (!owner.IsToday) return;
+
+            canvas.StrokeColor = Color.FromArgb("#1A73E8");
+            canvas.StrokeSize = 2f;
+            const float inset = 1.5f;
+            var rect = new RectF(
+                inset,
+                inset,
+                Math.Max(0, dirtyRect.Width - inset * 2),
+                Math.Max(0, dirtyRect.Height - inset * 2));
+            canvas.DrawRoundedRectangle(rect, 6);
         }
     }
 }
