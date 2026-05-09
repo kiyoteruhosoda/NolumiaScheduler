@@ -301,7 +301,7 @@ public partial class WeekCalendarView : ContentView
         label.FontSize = style.FontSize;
         label.MaxLines = style.MaxLines;
         label.LineBreakMode = style.LineBreakMode;
-        label.SetBinding(Label.TextProperty, style.IsCompact ? nameof(WeekEventBlock.TimeLabel) : nameof(WeekEventBlock.Title));
+        label.SetBinding(Label.TextProperty, nameof(WeekEventBlock.Title));
     }
 
     private static WeekEventVisualStyle ResolveEventVisualStyle(WeekEventBlock block)
@@ -323,12 +323,11 @@ public partial class WeekCalendarView : ContentView
         Thickness Padding,
         double FontSize,
         int MaxLines,
-        LineBreakMode LineBreakMode,
-        bool IsCompact)
+        LineBreakMode LineBreakMode)
     {
-        public static WeekEventVisualStyle Compact() => new(new Thickness(4, 1, 4, 1), 9, 1, LineBreakMode.TailTruncation, true);
-        public static WeekEventVisualStyle SemiCompact() => new(new Thickness(5, 2, 5, 2), 9.5, 1, LineBreakMode.TailTruncation, false);
-        public static WeekEventVisualStyle Regular() => new(new Thickness(6, 3, 6, 2), 10, 2, LineBreakMode.WordWrap, false);
+        public static WeekEventVisualStyle Compact() => new(new Thickness(4, 1, 4, 1), 9, 1, LineBreakMode.TailTruncation);
+        public static WeekEventVisualStyle SemiCompact() => new(new Thickness(5, 2, 5, 2), 9.5, 1, LineBreakMode.TailTruncation);
+        public static WeekEventVisualStyle Regular() => new(new Thickness(6, 3, 6, 2), 10, 2, LineBreakMode.WordWrap);
     }
 
     private void OnEventBlockTapped(object? sender, TappedEventArgs e)
