@@ -5,6 +5,7 @@ namespace NolumiaScheduler.Presentation.Services;
 public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
 {
     private const int MinimumEventHeight = 24;
+    private const double ColumnGapRatio = 0.015;
 
     public IReadOnlyList<WeekEventBlock> Layout(IReadOnlyList<CalendarEventItem> events)
     {
@@ -77,6 +78,18 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
     private static WeekEventBlock ToBlock(Segment segment)
     {
         var duration = Math.Max(MinimumEventHeight, segment.End - segment.Start);
+        double leftRatio, widthRatio;
+        if (segment.ColumnCount <= 1)
+        {
+            leftRatio  = 0d;
+            widthRatio = 1d;
+        }
+        else
+        {
+            // gap is placed between columns only (ColumnCount-1 gaps total)
+            widthRatio = (1d - ColumnGapRatio * (segment.ColumnCount - 1)) / segment.ColumnCount;
+            leftRatio  = segment.Column * (widthRatio + ColumnGapRatio);
+        }
 
         return new WeekEventBlock
         {
@@ -90,17 +103,13 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             BackgroundColor = segment.Item.DotColor,
             Top = segment.Start,
             Height = duration,
-            LeftRatio = segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
-            WidthRatio = segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
-            Bounds = new Rect(
-                segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
-                segment.Start,
-                segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
-                duration),
+            LeftRatio = leftRatio,
+            WidthRatio = widthRatio,
+            Bounds = new Rect(leftRatio, segment.Start, widthRatio, duration),
             ResizeHandleBounds = new Rect(
-                segment.ColumnCount <= 1 ? 0 : (double)segment.Column / segment.ColumnCount,
+                leftRatio,
                 Math.Max(segment.Start, segment.Start + duration - 16),
-                segment.ColumnCount <= 1 ? 1 : 1d / segment.ColumnCount,
+                widthRatio,
                 16),
         };
     }
