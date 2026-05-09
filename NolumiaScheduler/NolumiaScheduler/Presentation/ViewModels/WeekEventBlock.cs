@@ -17,6 +17,18 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
     public required double LeftRatio { get; init; }
     public required double WidthRatio { get; init; }
     public required Rect Bounds { get; init; }
+
+    private Rect _layoutBounds;
+    public Rect LayoutBounds
+    {
+        get => _layoutBounds;
+        private set
+        {
+            if (_layoutBounds == value) return;
+            _layoutBounds = value;
+            PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(LayoutBounds)));
+        }
+    }
     public required Rect ResizeHandleBounds { get; init; }
 
     private bool _isResizePreview;
@@ -34,4 +46,14 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
     }
 
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+
+    public void UpdateLayoutBounds(double weekDayColumnWidth)
+    {
+        var safeWidth = Math.Max(0, weekDayColumnWidth);
+        var leftPx = LeftRatio * safeWidth;
+        var widthPx = Math.Max(0, WidthRatio * safeWidth);
+        LayoutBounds = new Rect(leftPx, Top, widthPx, Height);
+    }
+
 }
