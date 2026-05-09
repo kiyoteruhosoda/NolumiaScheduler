@@ -52,28 +52,69 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
 
     private static void AssignColumns(List<Segment> group)
     {
-        var active = new List<Segment>();
-        var maxColumn = 0;
+        var columns = new List<List<Segment>>();
 
         foreach (var segment in group.OrderBy(s => s.Start).ThenBy(s => s.End))
         {
-            active.RemoveAll(a => a.End <= segment.Start);
-            var used = active.Select(a => a.Column).ToHashSet();
-
             var column = 0;
-            while (used.Contains(column)) column++;
+            while (column < columns.Count && columns[column].Any(existing => Overlaps(existing, segment)))
+            {
+                column++;
+            }
+
+            if (column == columns.Count)
+            {
+                columns.Add([]);
+            }
 
             segment.Column = column;
-            maxColumn = Math.Max(maxColumn, column);
-            active.Add(segment);
+            columns[column].Add(segment);
         }
 
-        var columnCount = maxColumn + 1;
         foreach (var segment in group)
         {
-            segment.ColumnCount = columnCount;
+            segment.ColumnCount = ResolveConcurrentColumnCount(segment, group);
+            segment.ColumnSpan = ResolveExpandableSpan(segment, columns);
         }
     }
+
+    private static int ResolveConcurrentColumnCount(Segment pivot, IEnumerable<Segment> group)
+    {
+        var overlaps = group.Where(other => Overlaps(pivot, other)).ToList();
+        if (overlaps.Count == 0) return 1;
+
+        var checkpoints = overlaps
+            .Select(other => Math.Max(pivot.Start, other.Start))
+            .Distinct()
+            .OrderBy(minute => minute)
+            .ToList();
+
+        var maxConcurrent = 1;
+        foreach (var minute in checkpoints)
+        {
+            var concurrent = overlaps.Count(other => other.Start <= minute && minute < other.End);
+            maxConcurrent = Math.Max(maxConcurrent, concurrent);
+        }
+
+        return maxConcurrent;
+    }
+
+    private static int ResolveExpandableSpan(Segment pivot, IReadOnlyList<List<Segment>> columns)
+    {
+        var span = 1;
+        for (var nextColumn = pivot.Column + 1; nextColumn < columns.Count; nextColumn++)
+        {
+            if (columns[nextColumn].Any(other => Overlaps(pivot, other)))
+                break;
+
+            span++;
+        }
+
+        return Math.Max(1, span);
+    }
+
+    private static bool Overlaps(Segment left, Segment right)
+        => left.Start < right.End && right.Start < left.End;
 
     private static WeekEventBlock ToBlock(Segment segment)
     {
@@ -86,9 +127,11 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
         }
         else
         {
-            // gap is placed between columns only (ColumnCount-1 gaps total)
-            widthRatio = (1d - ColumnGapRatio * (segment.ColumnCount - 1)) / segment.ColumnCount;
-            leftRatio  = segment.Column * (widthRatio + ColumnGapRatio);
+            // 同時重複数に応じた基準レーン幅を算出し、右側に空き列がある場合は拡張する
+            var effectiveColumns = Math.Max(segment.ColumnCount, segment.Column + segment.ColumnSpan);
+            var baseWidthRatio = (1d - ColumnGapRatio * (effectiveColumns - 1)) / effectiveColumns;
+            widthRatio = baseWidthRatio * segment.ColumnSpan + ColumnGapRatio * (segment.ColumnSpan - 1);
+            leftRatio  = segment.Column * (baseWidthRatio + ColumnGapRatio);
         }
 
         return new WeekEventBlock
@@ -121,5 +164,6 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
         public int End { get; } = Math.Max(start + 1, end);
         public int Column { get; set; }
         public int ColumnCount { get; set; } = 1;
+        public int ColumnSpan { get; set; } = 1;
     }
 }
