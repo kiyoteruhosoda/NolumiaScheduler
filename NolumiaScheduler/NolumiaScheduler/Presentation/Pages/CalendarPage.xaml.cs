@@ -28,6 +28,7 @@ public partial class CalendarPage : ContentPage
         _eventRepo = eventRepo;
         _interactionCompletionService = interactionCompletionService;
         BindingContext = vm;
+        SizeChanged += OnPageSizeChanged;
     }
 
     protected override void OnHandlerChanged()
@@ -98,6 +99,16 @@ public partial class CalendarPage : ContentPage
     }
 
     // ── Calendar grid ─────────────────────────────────────────
+
+    private void OnPageSizeChanged(object? sender, EventArgs e)
+    {
+        if (Height <= 0) return;
+        // Fixed heights: header(48) + mode bar(40) + sep(1) + dow labels(36) + sep(1) = 126
+        const double fixedHeight = 126;
+        var available = Height - fixedHeight;
+        if (available <= 0) return;
+        _vm.DayCellHeight = Math.Max(60, available / 6.0);
+    }
 
     private void OnDayCellSelected(object? sender, SelectionChangedEventArgs e)
     {

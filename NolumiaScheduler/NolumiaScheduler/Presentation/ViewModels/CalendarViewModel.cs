@@ -32,7 +32,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private bool _selectedDayHasNoEvents;
     private bool _selectedDayIsHoliday;
     private string _selectedDayHolidayText = "";
-    private CalendarDisplayMode _displayMode = CalendarDisplayMode.Month;
+    private CalendarDisplayMode _displayMode = CalendarDisplayMode.Week;
     private DateTime _weekStartDate;
 
     public CalendarViewModel(
@@ -64,6 +64,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         GoTodayCommand = new Command(GoToday);
         SwitchToMonthViewCommand = new Command(() => SetDisplayMode(CalendarDisplayMode.Month));
         SwitchToWeekViewCommand = new Command(() => SetDisplayMode(CalendarDisplayMode.Week));
+        CloseSelectedDayCommand = new Command(ClearSelection);
 
         BuildWeekScaffold();
         LoadMonth();
@@ -80,6 +81,27 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public double WeekCanvasHeight => 24 * 60;
     public double WeekDayColumnWidth => 120;
     public DateTime WeekStartDate => _weekStartDate.Date;
+
+    private double _dayCellHeight = 88;
+    public double DayCellHeight
+    {
+        get => _dayCellHeight;
+        set
+        {
+            if (Math.Abs(_dayCellHeight - value) < 0.5) return;
+            _dayCellHeight = value;
+            OnPropertyChanged();
+            UpdateDayCellChipCount();
+        }
+    }
+
+    private void UpdateDayCellChipCount()
+    {
+        // dayLabel=30, holiday=14, topPadding=2 => remaining for chips
+        var chipCount = Math.Max(1, (int)((_dayCellHeight - 46) / 19));
+        foreach (var cell in DayCells)
+            cell.AvailableChipCount = chipCount;
+    }
     public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
     public double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;
 
@@ -124,6 +146,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     public ICommand GoTodayCommand { get; }
     public ICommand SwitchToMonthViewCommand { get; }
     public ICommand SwitchToWeekViewCommand { get; }
+    public ICommand CloseSelectedDayCommand { get; }
 
 
     public CalendarDisplayMode DisplayMode
@@ -449,6 +472,8 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
                 HolidayName = holidayName,
             });
         }
+
+        UpdateDayCellChipCount();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

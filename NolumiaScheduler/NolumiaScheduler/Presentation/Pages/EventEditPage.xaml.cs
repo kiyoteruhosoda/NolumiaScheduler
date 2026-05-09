@@ -50,6 +50,11 @@ public partial class EventEditPage : ContentPage
     }
 
 
+    private async void OnCancelClicked(object? sender, EventArgs e)
+    {
+        await Shell.Current.GoToAsync("..");
+    }
+
     private async void OnSaveClicked(object? sender, EventArgs e)
     {
         if (!_vm.RequiresRecurringEditScopeSelection)

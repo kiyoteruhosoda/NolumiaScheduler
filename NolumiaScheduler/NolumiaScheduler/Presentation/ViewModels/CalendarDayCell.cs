@@ -73,14 +73,35 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     public EventOccurrence? SecondEvent => Events.Count > 1 ? Events[1] : null;
     public int ExtraCount => Events.Count > 2 ? Events.Count - 2 : 0;
 
-    public bool HasFirstEvent => FirstEvent != null;
+    private int _availableChipCount = 2;
+    public int AvailableChipCount
+    {
+        get => _availableChipCount;
+        set
+        {
+            if (_availableChipCount == value) return;
+            _availableChipCount = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(VisibleEvents));
+            OnPropertyChanged(nameof(VisibleExtraCount));
+            OnPropertyChanged(nameof(HasMoreEvents));
+            OnPropertyChanged(nameof(ShowSecondChip));
+            OnPropertyChanged(nameof(MoreText));
+        }
+    }
+
+    public IReadOnlyList<CalendarEventChip> VisibleEvents =>
+        Events.Take(_availableChipCount).Select(e => new CalendarEventChip(e)).ToList();
+
+    public int VisibleExtraCount =>
+        Events.Count > _availableChipCount ? Events.Count - _availableChipCount : 0;
     public bool HasSecondEvent => SecondEvent != null;
-    public bool HasMoreEvents => ExtraCount > 0;
+    public bool HasMoreEvents => VisibleExtraCount > 0;
     public bool ShowSecondChip => HasSecondEvent && !HasMoreEvents;
 
     public string? FirstEventTitle => FirstEvent?.Title.Value;
     public string? SecondEventTitle => SecondEvent?.Title.Value;
-    public string MoreText => $"+{ExtraCount}";
+    public string MoreText => $"+{VisibleExtraCount}";
 
     public Color FirstEventColor => EventChipColor(FirstEvent);
     public Color SecondEventColor => EventChipColor(SecondEvent);
