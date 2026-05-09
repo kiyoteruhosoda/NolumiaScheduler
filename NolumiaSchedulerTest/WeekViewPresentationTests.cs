@@ -99,6 +99,36 @@ public class WeekViewPresentationTests
         Assert.IsTrue(blocks.All(b => Math.Abs(b.LeftRatio) < 0.0001));
     }
 
+
+    [TestMethod]
+    public void 連鎖重複は実際の同時件数に応じて幅を使い切る()
+    {
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("a", 10, 0, 11, 0, false),
+            CreateItem("b", 10, 30, 11, 30, false),
+            CreateItem("c", 11, 0, 12, 0, false),
+        ]).ToDictionary(x => x.EventId);
+
+        Assert.IsTrue(Math.Abs(blocks["a"].WidthRatio - 0.5d) < 0.02);
+        Assert.IsTrue(Math.Abs(blocks["b"].WidthRatio - 0.5d) < 0.02);
+        Assert.IsTrue(Math.Abs(blocks["c"].WidthRatio - 0.5d) < 0.02);
+    }
+
+    [TestMethod]
+    public void 長い予定と短い予定の組み合わせでも右側の空白列を作らない()
+    {
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("long", 9, 0, 12, 0, false),
+            CreateItem("short1", 9, 30, 10, 0, false),
+            CreateItem("short2", 10, 30, 11, 0, false),
+        ]).ToDictionary(x => x.EventId);
+
+        Assert.IsTrue(blocks["long"].WidthRatio > 0.48);
+        Assert.IsTrue(blocks["short1"].WidthRatio > 0.48);
+        Assert.IsTrue(blocks["short2"].WidthRatio > 0.48);
+    }
     [TestMethod]
     public void 終日イベントは終日レーンに配置される()
     {
