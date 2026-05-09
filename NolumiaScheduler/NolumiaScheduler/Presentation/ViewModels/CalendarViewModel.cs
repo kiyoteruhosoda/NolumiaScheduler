@@ -356,6 +356,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         }
 
         OnPropertyChanged(nameof(WeekCanvasHeight));
+        OnPropertyChanged(nameof(IsCurrentWeek));
         OnPropertyChanged(nameof(WeekStartDate));
         OnPropertyChanged(nameof(WeekAllDayLaneHeight));
     }

@@ -39,21 +39,48 @@ public partial class WeekCalendarView : ContentView
         _gestureArbitrationService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
         _autoScrollService = Microsoft.Maui.Controls.Application.Current?.Handler?.MauiContext?.Services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
         SizeChanged += (_, _) => BuildWeekColumns();
+        WeekBodyGrid.SizeChanged += OnWeekBodyGridSizeChanged;
+        WeekScroll.SizeChanged += OnWeekScrollSizeChanged;
+        Loaded += OnLoaded;
     }
 
-    protected override async void OnHandlerChanged()
+    protected override void OnHandlerChanged()
     {
         base.OnHandlerChanged();
-        await ScrollToCurrentTimeAsync();
+    }
+
+    private bool _initialScrollDone;
+
+    private void OnWeekScrollSizeChanged(object? sender, EventArgs e)
+    {
+        if (_initialScrollDone) return;
+        if (WeekScroll.Height <= 0) return;
+        _initialScrollDone = true;
+        Dispatcher.Dispatch(async () =>
+        {
+            const double nineAmPx = 9 * 60;
+            var anchor = CurrentTimeLineTop > 0 && IsCurrentWeek ? CurrentTimeLineTop - 240 : nineAmPx;
+            var y = Math.Max(0, anchor);
+            await WeekScroll.ScrollToAsync(0, y, false);
+        });
+    }
+
+    private async void OnLoaded(object? sender, EventArgs e)
+    {
+        await Dispatcher.DispatchAsync(async () => await ScrollToCurrentTimeAsync());
     }
 
     public async Task ScrollToCurrentTimeAsync()
     {
-        var y = Math.Max(0, CurrentTimeLineTop - 240);
-        await WeekScroll.ScrollToAsync(0, y, false);
+        const double nineAmPx = 9 * 60;
+        var anchor = CurrentTimeLineTop > 0 && IsCurrentWeek ? CurrentTimeLineTop - 240 : nineAmPx;
+        var y = Math.Max(0, anchor);
+        if (WeekScroll.Height > 0)
+        {
+            _initialScrollDone = true;
+            await WeekScroll.ScrollToAsync(0, y, false);
+        }
     }
-
-
     private void TransitionTo(WeekInteractionState next, WeekEventBlock? block = null, Point? point = null)
     {
         _interactionState = next;
@@ -120,11 +147,26 @@ public partial class WeekCalendarView : ContentView
         120d,
         propertyChanged: (bindable, _, _) => ((WeekCalendarView)bindable).UpdateEventBlockLayoutBounds());
     public bool IsCurrentWeek { get => (bool)GetValue(IsCurrentWeekProperty); set => SetValue(IsCurrentWeekProperty, value); }
-    public static readonly BindableProperty IsCurrentWeekProperty = BindableProperty.Create(nameof(IsCurrentWeek), typeof(bool), typeof(WeekCalendarView), false);
+    public static readonly BindableProperty IsCurrentWeekProperty = BindableProperty.Create(
+        nameof(IsCurrentWeek),
+        typeof(bool),
+        typeof(WeekCalendarView),
+        false,
+        propertyChanged: (bindable, _, _) =>
+        {
+            var view = (WeekCalendarView)bindable;
+            view._initialScrollDone = false;
+            if (view.WeekScroll.Height > 0)
+                view.Dispatcher.Dispatch(async () => await view.ScrollToCurrentTimeAsync());
+        });
     public double CurrentTimeLineTop { get => (double)GetValue(CurrentTimeLineTopProperty); set => SetValue(CurrentTimeLineTopProperty, value); }
     public static readonly BindableProperty CurrentTimeLineTopProperty = BindableProperty.Create(nameof(CurrentTimeLineTop), typeof(double), typeof(WeekCalendarView), 0d);
     public DateTime WeekStartDate { get => (DateTime)GetValue(WeekStartDateProperty); set => SetValue(WeekStartDateProperty, value); }
-    public static readonly BindableProperty WeekStartDateProperty = BindableProperty.Create(nameof(WeekStartDate), typeof(DateTime), typeof(WeekCalendarView), DateTime.Today);
+    public static readonly BindableProperty WeekStartDateProperty = BindableProperty.Create(
+        nameof(WeekStartDate),
+        typeof(DateTime),
+        typeof(WeekCalendarView),
+        DateTime.Today);
     public int VisibleStartMinute { get => (int)GetValue(VisibleStartMinuteProperty); private set => SetValue(VisibleStartMinuteProperty, value); }
     public static readonly BindableProperty VisibleStartMinuteProperty = BindableProperty.Create(nameof(VisibleStartMinute), typeof(int), typeof(WeekCalendarView), 0);
     public int VisibleEndMinute { get => (int)GetValue(VisibleEndMinuteProperty); private set => SetValue(VisibleEndMinuteProperty, value); }
@@ -134,6 +176,16 @@ public partial class WeekCalendarView : ContentView
     public string? SelectedEventId { get => (string?)GetValue(SelectedEventIdProperty); set => SetValue(SelectedEventIdProperty, value); }
     public static readonly BindableProperty SelectedEventIdProperty = BindableProperty.Create(nameof(SelectedEventId), typeof(string), typeof(WeekCalendarView), null);
 
+
+    private void OnWeekBodyGridSizeChanged(object? sender, EventArgs e)
+    {
+        if (WeekBodyGrid.Width <= 0) return;
+        if (WeekDayColumns is not IEnumerable cols) return;
+        var count = cols.OfType<WeekDayColumn>().Take(7).Count();
+        if (count == 0) return;
+        var columnSpacing = WeekBodyGrid.ColumnSpacing;
+        WeekDayColumnWidth = (WeekBodyGrid.Width - columnSpacing * (count - 1)) / count;
+    }
 
     private void BuildWeekColumns()
     {
@@ -148,7 +200,9 @@ public partial class WeekCalendarView : ContentView
         WeekBodyGrid.ColumnDefinitions.Clear();
         WeekBodyGrid.Children.Clear();
 
-        WeekDayColumnWidth = WeekBodyGrid.Width > 0 ? WeekBodyGrid.Width / 7d : WeekDayColumnWidth;
+        var columnSpacing = WeekBodyGrid.ColumnSpacing;
+        if (WeekBodyGrid.Width > 0)
+            WeekDayColumnWidth = (WeekBodyGrid.Width - columnSpacing * (days.Count - 1)) / days.Count;
         UpdateEventBlockLayoutBounds();
 
         for (var i = 0; i < days.Count; i++)
