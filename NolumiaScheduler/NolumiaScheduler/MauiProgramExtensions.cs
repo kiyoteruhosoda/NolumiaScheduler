@@ -52,6 +52,8 @@ public static class MauiProgramExtensions
         builder.Services.AddSingleton<CalendarEventApplicationService>();
         builder.Services.AddSingleton<BusinessCalendarApplicationService>();
 
+        // Alarm
+        builder.Services.AddSingleton<IAlarmService, AlarmService>();
 
         // Presentation services
         builder.Services.AddSingleton<IWeekEventLayoutStrategy, DefaultWeekEventLayoutStrategy>();
@@ -128,7 +130,7 @@ public static class MauiProgramExtensions
         // Yearly anniversary on April 1
         var anniversary = CalendarEvent.CreateRecurring(
             new DomainEventId(Guid.NewGuid().ToString()),
-            new EventTitle("創立記念日"),
+            new EventTitle("创立記念日"),
             location: null,
             DomainVisibility.Public,
             eventType: null,
