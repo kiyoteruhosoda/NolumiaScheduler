@@ -350,6 +350,66 @@
                 </Border>
             </VerticalStackLayout>
 
+            <!-- ── Alarm ── -->
+            <Label Text="{x:Static res:AppResources.AlarmLabel}"
+                   FontSize="12"
+                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                   Margin="4,12,0,4" />
+
+            <Border BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}"
+                    StrokeThickness="0"
+                    StrokeShape="RoundRectangle 8"
+                    Padding="12,4"
+                    Margin="0,0,0,16">
+                <VerticalStackLayout Spacing="0">
+
+                    <!-- Enable alarm toggle -->
+                    <Grid ColumnDefinitions="*,Auto" MinimumHeightRequest="48">
+                        <Label Grid.Column="0" Text="{x:Static res:AppResources.AlarmEnable}"
+                               FontSize="14"
+                               TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}"
+                               VerticalOptions="Center" />
+                        <Switch Grid.Column="1" IsToggled="{Binding AlarmEnabled}" OnColor="{StaticResource GCalBlue}" />
+                    </Grid>
+
+                    <!-- Notify options (visible when alarm enabled) -->
+                    <VerticalStackLayout IsVisible="{Binding ShowAlarmNotifyOptions}" Spacing="0">
+
+                        <BoxView HeightRequest="0.5"
+                                 BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
+                        <Grid ColumnDefinitions="*,Auto" MinimumHeightRequest="44">
+                            <Label Grid.Column="0" Text="{x:Static res:AppResources.AlarmNotify15Min}"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}"
+                                   VerticalOptions="Center" />
+                            <CheckBox Grid.Column="1" IsChecked="{Binding AlarmNotify15Min}" Color="{StaticResource GCalBlue}" />
+                        </Grid>
+
+                        <BoxView HeightRequest="0.5"
+                                 BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
+                        <Grid ColumnDefinitions="*,Auto" MinimumHeightRequest="44">
+                            <Label Grid.Column="0" Text="{x:Static res:AppResources.AlarmNotify5Min}"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}"
+                                   VerticalOptions="Center" />
+                            <CheckBox Grid.Column="1" IsChecked="{Binding AlarmNotify5Min}" Color="{StaticResource GCalBlue}" />
+                        </Grid>
+
+                        <BoxView HeightRequest="0.5"
+                                 BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
+                        <Grid ColumnDefinitions="*,Auto" MinimumHeightRequest="44">
+                            <Label Grid.Column="0" Text="{x:Static res:AppResources.AlarmNotify1Min}"
+                                   FontSize="14"
+                                   TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}"
+                                   VerticalOptions="Center" />
+                            <CheckBox Grid.Column="1" IsChecked="{Binding AlarmNotify1Min}" Color="{StaticResource GCalBlue}" />
+                        </Grid>
+
+                    </VerticalStackLayout>
+
+                </VerticalStackLayout>
+            </Border>
+
             <!-- ── Save / Cancel ── -->
             <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,20,0,32">
                 <Button Grid.Column="0"

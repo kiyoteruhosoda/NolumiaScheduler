@@ -27,7 +27,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     private readonly ICalendarEventRepository _eventRepo;
     private readonly IBusinessCalendarRepository _calendarRepo;
 
-    // ── Basic fields ──────────────────────────────────────────
+    // ── Basic fields ────────────────────────────────────────────
     private string _title = "";
     private string _location = "";
     private bool _allDay;
@@ -63,6 +63,12 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     private string _validationError = "";
     private string? _editingEventId;
+
+    // ── Alarm ────────────────────────────────────────────────
+    private bool _alarmEnabled;
+    private bool _alarmNotify15Min = true;
+    private bool _alarmNotify5Min = true;
+    private bool _alarmNotify1Min = true;
 
     // ── Constructor ──────────────────────────────────────────
     public EventEditViewModel(
@@ -146,6 +152,11 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
             LoadRecurrenceRule(sched.RecurrenceRule);
         }
+
+        AlarmEnabled     = ev.Alarm?.IsEnabled   ?? false;
+        AlarmNotify15Min = ev.Alarm?.Notify15Min ?? true;
+        AlarmNotify5Min  = ev.Alarm?.Notify5Min  ?? true;
+        AlarmNotify1Min  = ev.Alarm?.Notify1Min  ?? true;
     }
 
     private void LoadRecurrenceRule(RecurrenceRule rule)
@@ -214,7 +225,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         }
     }
 
-    // ── Picker item lists ─────────────────────────────────────
+    // ── Picker item lists ─────────────────────────────────────────────
 
     public List<string> RepeatTypeItems =>
     [
@@ -253,7 +264,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     public ObservableCollection<string> AvailableCalendarNames { get; } = [];
     private List<string> _availableCalendarIds = [];
 
-    // ── Properties ────────────────────────────────────────────
+    // ── Properties ────────────────────────────────────────────────
 
     public string Title
     {
@@ -420,7 +431,40 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         set { _selectedCalendarIndex = value; OnPropertyChanged(); }
     }
 
-    // ── Computed visibility ──────────────────────────────────
+    // ── Alarm properties ────────────────────────────────────────
+
+    public bool AlarmEnabled
+    {
+        get => _alarmEnabled;
+        set
+        {
+            _alarmEnabled = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(ShowAlarmNotifyOptions));
+        }
+    }
+
+    public bool AlarmNotify15Min
+    {
+        get => _alarmNotify15Min;
+        set { _alarmNotify15Min = value; OnPropertyChanged(); }
+    }
+
+    public bool AlarmNotify5Min
+    {
+        get => _alarmNotify5Min;
+        set { _alarmNotify5Min = value; OnPropertyChanged(); }
+    }
+
+    public bool AlarmNotify1Min
+    {
+        get => _alarmNotify1Min;
+        set { _alarmNotify1Min = value; OnPropertyChanged(); }
+    }
+
+    public bool ShowAlarmNotifyOptions => _alarmEnabled;
+
+    // ── Computed visibility ──────────────────────────────────────────
 
     public bool ShowTimeSection    => !AllDay;
     public bool IsRecurring        => _repeatTypeIndex != (int)ViewModels.RepeatTypeIndex.None;
@@ -454,7 +498,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     public event Action? SaveCompleted;
 
-    // ── Save logic ────────────────────────────────────────────
+    // ── Save logic ────────────────────────────────────────────────
 
     public void RequestSave() => Save(null);
 
@@ -549,7 +593,8 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             AllDay,
             newStart,
             newEnd,
-            newRule));
+            newRule,
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 
     private void SaveThisOccurrence(string eventId)
@@ -618,6 +663,10 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             ev.RescheduleSingle(new SingleEventSchedule(start, end), DateTimeOffset.UtcNow);
         }
 
+        ev.SetAlarm(
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null,
+            DateTimeOffset.UtcNow);
+
         _eventRepo.Save(ev);
     }
 
@@ -649,7 +698,8 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             null, null,
             tz,
             AllDay,
-            start, end));
+            start, end,
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 
     private void SaveRecurring()
@@ -677,7 +727,8 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             "Asia/Tokyo",
             AllDay,
             startDate, startTime, endTime,
-            rule));
+            rule,
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 
     private RecurrenceRule BuildRecurrenceRule()
