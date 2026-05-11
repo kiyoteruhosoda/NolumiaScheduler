@@ -1,4 +1,4 @@
-﻿using NolumiaScheduler.Domain.Entities;
+using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Exceptions;
 using NolumiaScheduler.Domain.ValueObjects;
 using System;
@@ -29,6 +29,9 @@ public class CalendarEvent
     private readonly List<EventMove> _moves;
     public IReadOnlyList<EventMove> Moves => _moves;
 
+    private EventAlarm? _alarm;
+    public EventAlarm? Alarm => _alarm;
+
     public VersionNo Version { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -48,7 +51,8 @@ public class CalendarEvent
         DateTimeOffset createdAt,
         List<EventException>? exceptions = null,
         List<EventMove>? moves = null,
-        VersionNo? version = null)
+        VersionNo? version = null,
+        EventAlarm? alarm = null)
     {
         Id = id ?? throw new ArgumentNullException(nameof(id));
         Kind = kind;
@@ -66,6 +70,7 @@ public class CalendarEvent
         _exceptions = exceptions ?? [];
         _moves = moves ?? [];
         Version = version ?? VersionNo.Initial();
+        _alarm = alarm;
     }
 
     public static CalendarEvent CreateSingle(
@@ -78,7 +83,8 @@ public class CalendarEvent
         TimeZoneId timeZoneId,
         bool allDay,
         SingleEventSchedule schedule,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        EventAlarm? alarm = null)
     {
         return new CalendarEvent(
             id: id,
@@ -92,7 +98,8 @@ public class CalendarEvent
             allDay: allDay,
             singleSchedule: schedule,
             recurringSchedule: null,
-            createdAt: createdAt);
+            createdAt: createdAt,
+            alarm: alarm);
     }
 
     public static CalendarEvent CreateRecurring(
@@ -105,7 +112,8 @@ public class CalendarEvent
         TimeZoneId timeZoneId,
         bool allDay,
         RecurringEventSchedule schedule,
-        DateTimeOffset createdAt)
+        DateTimeOffset createdAt,
+        EventAlarm? alarm = null)
     {
         return new CalendarEvent(
             id: id,
@@ -119,7 +127,8 @@ public class CalendarEvent
             allDay: allDay,
             singleSchedule: null,
             recurringSchedule: schedule,
-            createdAt: createdAt);
+            createdAt: createdAt,
+            alarm: alarm);
     }
 
     public static CalendarEvent Reconstitute(
@@ -138,16 +147,23 @@ public class CalendarEvent
         DateTimeOffset updatedAt,
         List<EventException> exceptions,
         List<EventMove> moves,
-        VersionNo version)
+        VersionNo version,
+        EventAlarm? alarm = null)
     {
         var ev = new CalendarEvent(
             id, kind, title, location, visibility, eventType, description,
             timeZoneId, allDay, singleSchedule, recurringSchedule,
-            createdAt, exceptions, moves, version)
+            createdAt, exceptions, moves, version, alarm)
         {
             UpdatedAt = updatedAt
         };
         return ev;
+    }
+
+    public void SetAlarm(EventAlarm? alarm, DateTimeOffset updatedAt)
+    {
+        _alarm = alarm;
+        Touch(updatedAt);
     }
 
     public void ChangeDetails(
