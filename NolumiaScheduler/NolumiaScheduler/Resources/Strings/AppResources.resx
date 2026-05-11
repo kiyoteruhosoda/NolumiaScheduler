@@ -107,4 +107,18 @@
   <data name="EditThisAndFollowingNotImplemented" xml:space="preserve">
     <value>Editing this and following is not implemented yet.</value>
   </data>
+
+  <!-- Alarm -->
+  <data name="AlarmLabel" xml:space="preserve"><value>Alarm</value></data>
+  <data name="AlarmEnable" xml:space="preserve"><value>Enable Alarm</value></data>
+  <data name="AlarmNotify15Min" xml:space="preserve"><value>15 minutes before</value></data>
+  <data name="AlarmNotify5Min" xml:space="preserve"><value>5 minutes before</value></data>
+  <data name="AlarmNotify1Min" xml:space="preserve"><value>1 minute before</value></data>
+  <data name="AlarmDismiss" xml:space="preserve"><value>Dismiss</value></data>
+  <data name="AlarmSnooze5Min" xml:space="preserve"><value>Snooze 5 min</value></data>
+  <data name="AlarmSnooze1Min" xml:space="preserve"><value>Snooze 1 min</value></data>
+  <data name="AlarmSnoozeReminder" xml:space="preserve"><value>Snoozed reminder: {0}</value></data>
+  <data name="AlarmNotify15MinMsg" xml:space="preserve"><value>Starts in 15 minutes</value></data>
+  <data name="AlarmNotify5MinMsg" xml:space="preserve"><value>Starts in 5 minutes</value></data>
+  <data name="AlarmNotify1MinMsg" xml:space="preserve"><value>Starts in 1 minute</value></data>
 </root>

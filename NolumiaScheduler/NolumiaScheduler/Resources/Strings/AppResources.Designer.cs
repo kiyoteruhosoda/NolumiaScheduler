@@ -54,7 +54,7 @@ public static class AppResources
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
 
     // Tabs
-    public static string CalendarTab        => Get(nameof(CalendarTab));
+    public static string CalendarTab          => Get(nameof(CalendarTab));
     public static string BusinessCalendarsTab => Get(nameof(BusinessCalendarsTab));
 
     // Business Calendar List
@@ -62,43 +62,43 @@ public static class AppResources
     public static string AddCalendarButton => Get(nameof(AddCalendarButton));
 
     // Business Calendar Edit
-    public static string NewCalendarTitle      => Get(nameof(NewCalendarTitle));
-    public static string EditCalendarTitle     => Get(nameof(EditCalendarTitle));
+    public static string NewCalendarTitle        => Get(nameof(NewCalendarTitle));
+    public static string EditCalendarTitle       => Get(nameof(EditCalendarTitle));
     public static string CalendarNamePlaceholder => Get(nameof(CalendarNamePlaceholder));
-    public static string WorkdaysLabel         => Get(nameof(WorkdaysLabel));
-    public static string HolidaysLabel         => Get(nameof(HolidaysLabel));
-    public static string AddHolidayButton      => Get(nameof(AddHolidayButton));
-    public static string HolidayNamePlaceholder => Get(nameof(HolidayNamePlaceholder));
-    public static string SaveButton            => Get(nameof(SaveButton));
-    public static string DeleteCalendarButton  => Get(nameof(DeleteCalendarButton));
+    public static string WorkdaysLabel           => Get(nameof(WorkdaysLabel));
+    public static string HolidaysLabel           => Get(nameof(HolidaysLabel));
+    public static string AddHolidayButton        => Get(nameof(AddHolidayButton));
+    public static string HolidayNamePlaceholder  => Get(nameof(HolidayNamePlaceholder));
+    public static string SaveButton              => Get(nameof(SaveButton));
+    public static string DeleteCalendarButton    => Get(nameof(DeleteCalendarButton));
 
     // Event Edit
-    public static string NewEventTitle          => Get(nameof(NewEventTitle));
-    public static string EventTitlePlaceholder  => Get(nameof(EventTitlePlaceholder));
+    public static string NewEventTitle            => Get(nameof(NewEventTitle));
+    public static string EventTitlePlaceholder    => Get(nameof(EventTitlePlaceholder));
     public static string EventLocationPlaceholder => Get(nameof(EventLocationPlaceholder));
-    public static string StartLabel             => Get(nameof(StartLabel));
-    public static string EndLabel               => Get(nameof(EndLabel));
-    public static string RepeatLabel            => Get(nameof(RepeatLabel));
-    public static string RepeatNone             => Get(nameof(RepeatNone));
-    public static string RepeatWeekly           => Get(nameof(RepeatWeekly));
-    public static string RepeatMonthly          => Get(nameof(RepeatMonthly));
-    public static string RepeatYearly           => Get(nameof(RepeatYearly));
-    public static string WeekdaysLabel          => Get(nameof(WeekdaysLabel));
-    public static string MonthlyDayOfMonth      => Get(nameof(MonthlyDayOfMonth));
-    public static string MonthlyNthWeekday      => Get(nameof(MonthlyNthWeekday));
-    public static string DayLabel               => Get(nameof(DayLabel));
-    public static string MonthLabel             => Get(nameof(MonthLabel));
-    public static string WeekIndexLabel         => Get(nameof(WeekIndexLabel));
-    public static string NthWeekLast            => Get(nameof(NthWeekLast));
-    public static string IntervalLabel          => Get(nameof(IntervalLabel));
-    public static string EndDateLabel           => Get(nameof(EndDateLabel));
-    public static string AdjustmentLabel        => Get(nameof(AdjustmentLabel));
-    public static string AdjustmentNone         => Get(nameof(AdjustmentNone));
-    public static string AdjustmentForward      => Get(nameof(AdjustmentForward));
-    public static string AdjustmentBackward     => Get(nameof(AdjustmentBackward));
-    public static string BusinessCalendarLabel  => Get(nameof(BusinessCalendarLabel));
-    public static string ErrorTitleRequired     => Get(nameof(ErrorTitleRequired));
-    public static string ErrorWeekdayRequired   => Get(nameof(ErrorWeekdayRequired));
+    public static string StartLabel               => Get(nameof(StartLabel));
+    public static string EndLabel                 => Get(nameof(EndLabel));
+    public static string RepeatLabel              => Get(nameof(RepeatLabel));
+    public static string RepeatNone               => Get(nameof(RepeatNone));
+    public static string RepeatWeekly             => Get(nameof(RepeatWeekly));
+    public static string RepeatMonthly            => Get(nameof(RepeatMonthly));
+    public static string RepeatYearly             => Get(nameof(RepeatYearly));
+    public static string WeekdaysLabel            => Get(nameof(WeekdaysLabel));
+    public static string MonthlyDayOfMonth        => Get(nameof(MonthlyDayOfMonth));
+    public static string MonthlyNthWeekday        => Get(nameof(MonthlyNthWeekday));
+    public static string DayLabel                 => Get(nameof(DayLabel));
+    public static string MonthLabel               => Get(nameof(MonthLabel));
+    public static string WeekIndexLabel           => Get(nameof(WeekIndexLabel));
+    public static string NthWeekLast              => Get(nameof(NthWeekLast));
+    public static string IntervalLabel            => Get(nameof(IntervalLabel));
+    public static string EndDateLabel             => Get(nameof(EndDateLabel));
+    public static string AdjustmentLabel          => Get(nameof(AdjustmentLabel));
+    public static string AdjustmentNone           => Get(nameof(AdjustmentNone));
+    public static string AdjustmentForward        => Get(nameof(AdjustmentForward));
+    public static string AdjustmentBackward       => Get(nameof(AdjustmentBackward));
+    public static string BusinessCalendarLabel    => Get(nameof(BusinessCalendarLabel));
+    public static string ErrorTitleRequired       => Get(nameof(ErrorTitleRequired));
+    public static string ErrorWeekdayRequired     => Get(nameof(ErrorWeekdayRequired));
 
     // Event actions
     public static string EditButton              => Get(nameof(EditButton));
@@ -110,6 +110,29 @@ public static class AppResources
     public static string DeleteOccurrence        => Get(nameof(DeleteOccurrence));
     public static string DeleteAllOccurrences    => Get(nameof(DeleteAllOccurrences));
     public static string EditEventTitle          => Get(nameof(EditEventTitle));
+
+    // Recurring edit
+    public static string EditRecurringEventTitle          => Get(nameof(EditRecurringEventTitle));
+    public static string EditThisOccurrence               => Get(nameof(EditThisOccurrence));
+    public static string EditThisAndFollowing             => Get(nameof(EditThisAndFollowing));
+    public static string EditEntireSeries                 => Get(nameof(EditEntireSeries));
+    public static string EditRecurringScopeRequired       => Get(nameof(EditRecurringScopeRequired));
+    public static string EditThisOccurrenceNotImplemented => Get(nameof(EditThisOccurrenceNotImplemented));
+    public static string EditThisAndFollowingNotImplemented => Get(nameof(EditThisAndFollowingNotImplemented));
+
+    // Alarm
+    public static string AlarmLabel          => Get(nameof(AlarmLabel));
+    public static string AlarmEnable         => Get(nameof(AlarmEnable));
+    public static string AlarmNotify15Min    => Get(nameof(AlarmNotify15Min));
+    public static string AlarmNotify5Min     => Get(nameof(AlarmNotify5Min));
+    public static string AlarmNotify1Min     => Get(nameof(AlarmNotify1Min));
+    public static string AlarmDismiss        => Get(nameof(AlarmDismiss));
+    public static string AlarmSnooze5Min     => Get(nameof(AlarmSnooze5Min));
+    public static string AlarmSnooze1Min     => Get(nameof(AlarmSnooze1Min));
+    public static string AlarmSnoozeReminder => Get(nameof(AlarmSnoozeReminder));
+    public static string AlarmNotify15MinMsg => Get(nameof(AlarmNotify15MinMsg));
+    public static string AlarmNotify5MinMsg  => Get(nameof(AlarmNotify5MinMsg));
+    public static string AlarmNotify1MinMsg  => Get(nameof(AlarmNotify1MinMsg));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
