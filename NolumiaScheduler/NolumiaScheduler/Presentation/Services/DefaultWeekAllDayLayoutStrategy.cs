@@ -30,7 +30,7 @@ public sealed class DefaultWeekAllDayLayoutStrategy : IWeekAllDayLayoutStrategy
             span.Row = row;
         }
 
-        return spans.Select(s => new WeekAllDayEventBlock
+        return [.. spans.Select(s => new WeekAllDayEventBlock
         {
             EventId = s.Item.EventId,
             OccurrenceKey = s.Item.OccurrenceKey,
@@ -43,7 +43,7 @@ public sealed class DefaultWeekAllDayLayoutStrategy : IWeekAllDayLayoutStrategy
             BackgroundColor = s.Item.DotColor,
             LeftRatio = s.LeftColumn / 7d,
             WidthRatio = s.WidthColumns / 7d,
-        }).ToList();
+        })];
     }
 
     private static bool IsOverlap(SpanItem a, SpanItem b)

@@ -8,8 +8,14 @@ public sealed class LocalTimeValue : IEquatable<LocalTimeValue>, IComparable<Loc
 
     public LocalTimeValue(int hour, int minute, int second = 0)
     {
-        if (hour < 0 || hour > 23 || minute < 0 || minute > 59 || second < 0 || second > 59)
-            throw new ArgumentOutOfRangeException("Invalid time components.");
+        if (hour < 0 || hour > 23)
+            throw new ArgumentOutOfRangeException(nameof(hour), hour, "Hour must be between 0 and 23.");
+
+        if (minute < 0 || minute > 59)
+            throw new ArgumentOutOfRangeException(nameof(minute), minute, "Minute must be between 0 and 59.");
+
+        if (second < 0 || second > 59)
+            throw new ArgumentOutOfRangeException(nameof(second), second, "Second must be between 0 and 59.");
 
         Hour = hour;
         Minute = minute;

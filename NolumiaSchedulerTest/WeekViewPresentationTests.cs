@@ -7,6 +7,8 @@ namespace NolumiaSchedulerTest;
 [TestClass]
 public class WeekViewPresentationTests
 {
+    private const double EventColumnGapRatio = 0.015d;
+
     [TestMethod]
     public void 時間帯イベントが開始時刻の分位置に配置される()
     {
@@ -71,7 +73,7 @@ public class WeekViewPresentationTests
             CreateItem("b", 9, 0, 10, 0, false),
         ]);
 
-        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - 0.5d) < 0.0001));
+        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - ExpectedWidthRatio(2)) < 0.0001));
     }
 
     [TestMethod]
@@ -84,7 +86,7 @@ public class WeekViewPresentationTests
             CreateItem("c", 9, 45, 10, 15, false),
         ]);
 
-        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - (1d / 3d)) < 0.0001));
+        Assert.IsTrue(blocks.All(b => Math.Abs(b.WidthRatio - ExpectedWidthRatio(3)) < 0.0001));
     }
 
     [TestMethod]
@@ -110,9 +112,9 @@ public class WeekViewPresentationTests
             CreateItem("c", 11, 0, 12, 0, false),
         ]).ToDictionary(x => x.EventId);
 
-        Assert.IsTrue(Math.Abs(blocks["a"].WidthRatio - 0.5d) < 0.02);
-        Assert.IsTrue(Math.Abs(blocks["b"].WidthRatio - 0.5d) < 0.02);
-        Assert.IsTrue(Math.Abs(blocks["c"].WidthRatio - 0.5d) < 0.02);
+        Assert.IsLessThan(0.02, Math.Abs(blocks["a"].WidthRatio - ExpectedWidthRatio(2)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["b"].WidthRatio - ExpectedWidthRatio(3)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["c"].WidthRatio - ExpectedWidthRatio(2)));
     }
 
     [TestMethod]
@@ -125,9 +127,9 @@ public class WeekViewPresentationTests
             CreateItem("short2", 10, 30, 11, 0, false),
         ]).ToDictionary(x => x.EventId);
 
-        Assert.IsTrue(blocks["long"].WidthRatio > 0.48);
-        Assert.IsTrue(blocks["short1"].WidthRatio > 0.48);
-        Assert.IsTrue(blocks["short2"].WidthRatio > 0.48);
+        Assert.IsLessThan(0.02, Math.Abs(blocks["long"].WidthRatio - ExpectedWidthRatio(3)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["short1"].WidthRatio - ExpectedWidthRatio(2)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["short2"].WidthRatio - ExpectedWidthRatio(2)));
     }
     [TestMethod]
     public void 終日イベントは終日レーンに配置される()
@@ -161,6 +163,9 @@ public class WeekViewPresentationTests
         var item = CreateItem("overnight", 22, 0, 2, 0, false);
         Assert.IsTrue(item.CrossesMidnight);
     }
+
+    private static double ExpectedWidthRatio(int columns)
+        => (1d - EventColumnGapRatio * (columns - 1)) / columns;
 
     private static CalendarEventItem CreateItem(string id, int? sh, int? sm, int? eh, int? em, bool allDay)
     {

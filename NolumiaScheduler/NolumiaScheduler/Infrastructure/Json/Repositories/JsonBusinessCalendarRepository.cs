@@ -94,12 +94,12 @@ internal class BusinessCalendarDto
             Id = cal.Id.Value,
             Name = cal.Name,
             TimeZoneId = cal.TimeZoneId.Value,
-            Workdays = cal.Workdays.Select(w => w.ToString()).ToList(),
-            Holidays = cal.Holidays.Select(h => new HolidayDto
+            Workdays = [.. cal.Workdays.Select(w => w.ToString())],
+            Holidays = [.. cal.Holidays.Select(h => new HolidayDto
             {
                 Date = h.Date.ToString(),
                 Name = h.Name
-            }).ToList()
+            })]
         };
     }
 }

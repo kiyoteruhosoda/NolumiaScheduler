@@ -6,7 +6,7 @@ public sealed class VersionNo
 
     public VersionNo(int value)
     {
-        if (value < 0) throw new ArgumentOutOfRangeException(nameof(value));
+        ArgumentOutOfRangeException.ThrowIfNegative(value);
         Value = value;
     }
 

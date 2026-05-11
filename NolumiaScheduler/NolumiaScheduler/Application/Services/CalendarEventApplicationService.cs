@@ -9,14 +9,9 @@ using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
 namespace NolumiaScheduler.Application.Services;
 
-public class CalendarEventApplicationService
+public class CalendarEventApplicationService(ICalendarEventRepository repository)
 {
-    private readonly ICalendarEventRepository _repository;
-
-    public CalendarEventApplicationService(ICalendarEventRepository repository)
-    {
-        _repository = repository;
-    }
+    private readonly ICalendarEventRepository _repository = repository;
 
     public CalendarEvent CreateSingleEvent(CreateSingleEventCommand command)
     {

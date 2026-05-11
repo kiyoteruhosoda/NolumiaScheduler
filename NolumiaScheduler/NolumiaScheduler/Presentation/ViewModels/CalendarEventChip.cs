@@ -3,18 +3,12 @@ using MauiApplication = Microsoft.Maui.Controls.Application;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class CalendarEventChip
+public sealed class CalendarEventChip(EventOccurrence occ)
 {
-    public string Title { get; }
-    public Color ChipColor { get; }
-
-    public CalendarEventChip(EventOccurrence occ)
-    {
-        Title = occ.Title.Value;
-        ChipColor = occ.IsMoved      ? ResourceColor("GCalEventMoved") :
+    public string Title { get; } = occ.Title.Value;
+    public Color ChipColor { get; } = occ.IsMoved ? ResourceColor("GCalEventMoved") :
                     occ.IsOverridden ? ResourceColor("GCalGreen") :
                                        ResourceColor("GCalBlue");
-    }
 
     private static Color ResourceColor(string key)
     {

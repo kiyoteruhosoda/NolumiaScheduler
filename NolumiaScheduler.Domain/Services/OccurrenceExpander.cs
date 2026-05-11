@@ -4,14 +4,9 @@ using NolumiaScheduler.Domain.ValueObjects;
 
 namespace NolumiaScheduler.Domain.Services;
 
-public class OccurrenceExpander : IOccurrenceExpander
+public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurrenceExpander
 {
-    private readonly IBusinessDayShiftService _shiftService;
-
-    public OccurrenceExpander(IBusinessDayShiftService shiftService)
-    {
-        _shiftService = shiftService;
-    }
+    private readonly IBusinessDayShiftService _shiftService = shiftService;
 
     public IReadOnlyList<EventOccurrence> Expand(
         CalendarEvent calendarEvent,
@@ -25,7 +20,7 @@ public class OccurrenceExpander : IOccurrenceExpander
         return ExpandRecurring(calendarEvent, fromDate, toDate, businessCalendar);
     }
 
-    private IReadOnlyList<EventOccurrence> ExpandSingle(
+    private static IReadOnlyList<EventOccurrence> ExpandSingle(
         CalendarEvent ev, LocalDateValue fromDate, LocalDateValue toDate)
     {
         var schedule = ev.SingleSchedule!;
@@ -47,7 +42,7 @@ public class OccurrenceExpander : IOccurrenceExpander
         ];
     }
 
-    private IReadOnlyList<EventOccurrence> ExpandRecurring(
+    private List<EventOccurrence> ExpandRecurring(
         CalendarEvent ev, LocalDateValue fromDate, LocalDateValue toDate,
         BusinessCalendar? businessCalendar)
     {
@@ -125,17 +120,13 @@ public class OccurrenceExpander : IOccurrenceExpander
     {
         var endDate = rule.EndDate < endBound ? rule.EndDate : endBound;
 
-        switch (rule.RuleType)
+        return rule.RuleType switch
         {
-            case RecurrenceType.Weekly:
-                return GenerateWeekly(startDate, rule.Interval, rule.Weekly!, endDate);
-            case RecurrenceType.Monthly:
-                return GenerateMonthly(startDate, rule.Interval, rule.Monthly!, endDate);
-            case RecurrenceType.Yearly:
-                return GenerateYearly(startDate, rule.Interval, rule.Yearly!, endDate);
-            default:
-                return [];
-        }
+            RecurrenceType.Weekly => GenerateWeekly(startDate, rule.Interval, rule.Weekly!, endDate),
+            RecurrenceType.Monthly => GenerateMonthly(startDate, rule.Interval, rule.Monthly!, endDate),
+            RecurrenceType.Yearly => GenerateYearly(startDate, rule.Interval, rule.Yearly!, endDate),
+            _ => [],
+        };
     }
 
     private static IEnumerable<LocalDateValue> GenerateWeekly(

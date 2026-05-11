@@ -8,8 +8,14 @@ public sealed class LocalDateValue : IEquatable<LocalDateValue>, IComparable<Loc
 
     public LocalDateValue(int year, int month, int day)
     {
-        if (year < 1 || month < 1 || month > 12 || day < 1 || day > DateTime.DaysInMonth(year, month))
-            throw new ArgumentOutOfRangeException("Invalid date components.");
+        if (year < 1)
+            throw new ArgumentOutOfRangeException(nameof(year), year, "Year must be greater than 0.");
+
+        if (month < 1 || month > 12)
+            throw new ArgumentOutOfRangeException(nameof(month), month, "Month must be between 1 and 12.");
+
+        if (day < 1 || day > DateTime.DaysInMonth(year, month))
+            throw new ArgumentOutOfRangeException(nameof(day), day, "Day is out of range for the specified year and month.");
 
         Year = year;
         Month = month;

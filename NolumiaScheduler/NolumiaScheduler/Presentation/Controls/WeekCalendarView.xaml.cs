@@ -212,7 +212,7 @@ public partial class WeekCalendarView : ContentView
             WeekBodyGrid.ColumnDefinitions.Add(new ColumnDefinition(GridLength.Star));
 
             var day = days[i];
-            var header = new Border { StrokeThickness = 0, BackgroundColor = day.HeaderBackgroundColor, Content = new Label { Text = day.Header, FontSize = 11, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center, TextColor = day.HeaderTextColor } };
+            var header = new Border { StrokeThickness = 0, BackgroundColor = WeekDayColumn.HeaderBackgroundColor, Content = new Label { Text = day.Header, FontSize = 11, HorizontalTextAlignment = TextAlignment.Center, VerticalTextAlignment = TextAlignment.Center, TextColor = day.HeaderTextColor } };
             Grid.SetColumn(header, i);
             WeekHeaderGrid.Children.Add(header);
 
@@ -321,7 +321,7 @@ public partial class WeekCalendarView : ContentView
             blockPan.PanUpdated += OnEventBlockPanUpdated;
             border.GestureRecognizers.Add(blockPan);
 
-            var grid = new Grid { RowDefinitions = new RowDefinitionCollection { new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto) } };
+            var grid = new Grid { RowDefinitions = [new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto)] };
             var title = new Label
             {
                 FontSize = 10,
@@ -346,7 +346,7 @@ public partial class WeekCalendarView : ContentView
         });
 
 
-    private void ApplyEventBlockVisualStyle(Border border, Label label)
+    private static void ApplyEventBlockVisualStyle(Border border, Label label)
     {
         if (border.BindingContext is not WeekEventBlock block) return;
 

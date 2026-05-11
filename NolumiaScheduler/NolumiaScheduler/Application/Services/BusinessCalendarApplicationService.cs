@@ -5,14 +5,9 @@ using NolumiaScheduler.Domain.ValueObjects;
 
 namespace NolumiaScheduler.Application.Services;
 
-public sealed class BusinessCalendarApplicationService
+public sealed class BusinessCalendarApplicationService(IBusinessCalendarRepository repo)
 {
-    private readonly IBusinessCalendarRepository _repo;
-
-    public BusinessCalendarApplicationService(IBusinessCalendarRepository repo)
-    {
-        _repo = repo;
-    }
+    private readonly IBusinessCalendarRepository _repo = repo;
 
     public BusinessCalendar Create(CreateBusinessCalendarCommand cmd)
     {

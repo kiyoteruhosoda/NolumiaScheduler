@@ -36,7 +36,7 @@ public sealed class WeekDayColumn
         }
     }
     public FontAttributes HeaderFontAttributes => IsToday ? FontAttributes.Bold : FontAttributes.None;
-    public Color HeaderBackgroundColor => Colors.Transparent;
+    public static Color HeaderBackgroundColor => Colors.Transparent;
     public Color HeaderTextColor => IsToday ? Color.FromArgb("#1a73e8") : Color.FromArgb("#5f6368");
     public ObservableCollection<WeekEventBlock> EventBlocks { get; }
     public ObservableCollection<WeekEventBlock> VisibleEventBlocks { get; } = [];

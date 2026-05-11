@@ -17,27 +17,19 @@ public enum AdjustmentShiftUnit
     CalendarDay
 }
 
-public sealed class AdjustmentRule
+public sealed class AdjustmentRule(
+    AdjustmentCondition condition,
+    AdjustmentShiftUnit shiftUnit,
+    int shiftAmount,
+    BusinessCalendarId? calendarId = null)
 {
-    public AdjustmentCondition Condition { get; }
-    public AdjustmentShiftUnit ShiftUnit { get; }
-    public int ShiftAmount { get; }
-    public BusinessCalendarId? CalendarId { get; }
+    public AdjustmentCondition Condition { get; } = condition;
+    public AdjustmentShiftUnit ShiftUnit { get; } = shiftUnit;
+    public int ShiftAmount { get; } = shiftAmount;
+    public BusinessCalendarId? CalendarId { get; } = calendarId;
 
     public AdjustmentDirection Direction
         => ShiftAmount < 0 ? AdjustmentDirection.Backward : AdjustmentDirection.Forward;
-
-    public AdjustmentRule(
-        AdjustmentCondition condition,
-        AdjustmentShiftUnit shiftUnit,
-        int shiftAmount,
-        BusinessCalendarId? calendarId = null)
-    {
-        Condition = condition;
-        ShiftUnit = shiftUnit;
-        ShiftAmount = shiftAmount;
-        CalendarId = calendarId;
-    }
 
     // Back-compat: HOLIDAY + BUSINESS_DAY + ±1.
     public AdjustmentRule(AdjustmentDirection direction)

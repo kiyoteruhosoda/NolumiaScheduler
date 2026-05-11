@@ -4,16 +4,10 @@ using System.Text;
 
 namespace NolumiaScheduler.Domain.ValueObjects
 {
-    public sealed class OccurrenceLocalKey : IEquatable<OccurrenceLocalKey>
+    public sealed class OccurrenceLocalKey(LocalDateValue date, LocalTimeValue? time = null) : IEquatable<OccurrenceLocalKey>
     {
-        public LocalDateValue Date { get; }
-        public LocalTimeValue? Time { get; }
-
-        public OccurrenceLocalKey(LocalDateValue date, LocalTimeValue? time = null)
-        {
-            Date = date ?? throw new ArgumentNullException(nameof(date));
-            Time = time;
-        }
+        public LocalDateValue Date { get; } = date ?? throw new ArgumentNullException(nameof(date));
+        public LocalTimeValue? Time { get; } = time;
 
         public bool Equals(OccurrenceLocalKey? other)
         {

@@ -147,8 +147,8 @@ internal class CalendarEventDto
             RecurringSchedule = ev.RecurringSchedule != null
                 ? RecurringScheduleDto.FromDomain(ev.RecurringSchedule)
                 : null,
-            Exceptions = ev.Exceptions.Select(EventExceptionDto.FromDomain).ToList(),
-            Moves = ev.Moves.Select(EventMoveDto.FromDomain).ToList(),
+            Exceptions = [.. ev.Exceptions.Select(EventExceptionDto.FromDomain)],
+            Moves = [.. ev.Moves.Select(EventMoveDto.FromDomain)],
             Alarm = ev.Alarm != null ? new AlarmDto
             {
                 IsEnabled = ev.Alarm.IsEnabled,
@@ -235,7 +235,7 @@ internal class RecurrenceRuleDto
         var endDateValue = new LocalDateValue(endDate.Year, endDate.Month, endDate.Day);
 
         WeeklyRule? weekly = Weekdays != null
-            ? new WeeklyRule(Weekdays.Select(w => Enum.Parse<Weekday>(w)).ToList())
+            ? new WeeklyRule([.. Weekdays.Select(w => Enum.Parse<Weekday>(w))])
             : null;
 
         MonthlyRule? monthly = Monthly?.ToDomain();
@@ -258,7 +258,7 @@ internal class RecurrenceRuleDto
         };
 
         if (rule.Weekly != null)
-            dto.Weekdays = rule.Weekly.Weekdays.Select(w => w.ToString()).ToList();
+            dto.Weekdays = [.. rule.Weekly.Weekdays.Select(w => w.ToString())];
 
         if (rule.Monthly != null)
             dto.Monthly = MonthlyRuleDto.FromDomain(rule.Monthly);

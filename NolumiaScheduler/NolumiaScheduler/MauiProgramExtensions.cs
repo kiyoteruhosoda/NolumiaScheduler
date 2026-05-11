@@ -78,7 +78,8 @@ public static class MauiProgramExtensions
 
         return builder;
     }
-    private static void SeedSampleEvents(ICalendarEventRepository repo)
+
+    private static void SeedSampleEvents(JsonCalendarEventRepository repo)
     {
         if (repo.FindAll().Count > 0)
             return;

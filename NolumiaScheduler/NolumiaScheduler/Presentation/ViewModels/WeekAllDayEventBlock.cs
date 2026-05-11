@@ -16,6 +16,6 @@ public sealed class WeekAllDayEventBlock
     public required double LeftRatio { get; init; }
     public required double WidthRatio { get; init; }
     public double Top => Row * 24;
-    public double Height => 22;
-    public Rect LayoutBounds => new Rect(LeftRatio, Top, WidthRatio, Height);
+    public static double Height => 22;
+    public Rect LayoutBounds => new(LeftRatio, Top, WidthRatio, Height);
 }
