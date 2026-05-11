@@ -1,10 +1,9 @@
-using Microsoft.Maui.Controls;
 using Microsoft.Maui.Dispatching;
-using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Resources.Strings;
+using MauiApp = Microsoft.Maui.Controls.Application;
 
 namespace NolumiaScheduler.Presentation.Services;
 
@@ -25,7 +24,7 @@ public class AlarmService : IAlarmService
 
     public void Start()
     {
-        _timer = Application.Current!.Dispatcher.CreateTimer();
+        _timer = MauiApp.Current!.Dispatcher.CreateTimer();
         _timer.Interval = TimeSpan.FromSeconds(30);
         _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
         _timer.Start();
@@ -103,7 +102,7 @@ public class AlarmService : IAlarmService
         _isShowingNotification = true;
         try
         {
-            var action = await Application.Current!.MainPage!.DisplayActionSheet(
+            var action = await MauiApp.Current!.MainPage!.DisplayActionSheet(
                 $"⏰ {title}\n{message}",
                 AppResources.AlarmDismiss,
                 null,
