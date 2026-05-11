@@ -1,4 +1,4 @@
-﻿using NolumiaScheduler.Application.Commands;
+using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Exceptions;
@@ -33,7 +33,8 @@ public class CalendarEventApplicationService
             new TimeZoneId(command.TimeZone),
             command.AllDay,
             schedule,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            alarm: command.Alarm);
 
         _repository.Save(ev);
         return ev;
@@ -59,7 +60,8 @@ public class CalendarEventApplicationService
             new TimeZoneId(command.TimeZone),
             command.AllDay,
             schedule,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            alarm: command.Alarm);
 
         _repository.Save(ev);
         return ev;
@@ -126,12 +128,12 @@ public class CalendarEventApplicationService
         if (!ev.IsRecurring() || ev.RecurringSchedule == null)
             throw new DomainException("ChangeFollowingOccurrences is only valid for recurring events.");
 
-        // 1. 既存イベントの endDate を変更前最終回の前日に切る
+        // 既存イベントの endDate を変更前最終回の前日に切る
         var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
         ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
         _repository.Save(ev);
 
-        // 2. 新しい繰り返しイベントを作成（future側）
+        // 新しい繰り返しイベントを作成（future側）
         var newId = new EventId(Guid.NewGuid().ToString());
         var newSchedule = new RecurringEventSchedule(
             command.FromOccurrenceKey.Date,
@@ -150,7 +152,8 @@ public class CalendarEventApplicationService
             ev.TimeZoneId,
             command.NewAllDay,
             newSchedule,
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            alarm: command.Alarm);
 
         _repository.Save(newEv);
         return newEv;

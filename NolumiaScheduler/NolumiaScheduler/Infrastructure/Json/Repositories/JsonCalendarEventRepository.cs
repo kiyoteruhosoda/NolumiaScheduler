@@ -81,6 +81,7 @@ internal class CalendarEventDto
     public RecurringScheduleDto? RecurringSchedule { get; set; }
     public List<EventExceptionDto> Exceptions { get; set; } = [];
     public List<EventMoveDto> Moves { get; set; } = [];
+    public AlarmDto? Alarm { get; set; }
     public int Version { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
@@ -101,6 +102,10 @@ internal class CalendarEventDto
         var exceptions = Exceptions.Select(e => e.ToDomain()).ToList();
         var moves = Moves.Select(m => m.ToDomain()).ToList();
 
+        EventAlarm? alarm = Alarm != null
+            ? new EventAlarm(Alarm.IsEnabled, Alarm.Notify15Min, Alarm.Notify5Min, Alarm.Notify1Min)
+            : null;
+
         return CalendarEvent.Reconstitute(
             new EventId(Id),
             kind,
@@ -117,7 +122,8 @@ internal class CalendarEventDto
             DateTimeOffset.Parse(UpdatedAt),
             exceptions,
             moves,
-            new VersionNo(Version));
+            new VersionNo(Version),
+            alarm: alarm);
     }
 
     public static CalendarEventDto FromDomain(CalendarEvent ev)
@@ -143,11 +149,26 @@ internal class CalendarEventDto
                 : null,
             Exceptions = ev.Exceptions.Select(EventExceptionDto.FromDomain).ToList(),
             Moves = ev.Moves.Select(EventMoveDto.FromDomain).ToList(),
+            Alarm = ev.Alarm != null ? new AlarmDto
+            {
+                IsEnabled = ev.Alarm.IsEnabled,
+                Notify15Min = ev.Alarm.Notify15Min,
+                Notify5Min = ev.Alarm.Notify5Min,
+                Notify1Min = ev.Alarm.Notify1Min
+            } : null,
             Version = ev.Version.Value,
             CreatedAt = ev.CreatedAt.ToString("O"),
             UpdatedAt = ev.UpdatedAt.ToString("O")
         };
     }
+}
+
+internal class AlarmDto
+{
+    public bool IsEnabled { get; set; } = true;
+    public bool Notify15Min { get; set; } = true;
+    public bool Notify5Min { get; set; } = true;
+    public bool Notify1Min { get; set; } = true;
 }
 
 internal class SingleScheduleDto

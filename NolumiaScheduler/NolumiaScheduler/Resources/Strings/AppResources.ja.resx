@@ -66,7 +66,7 @@
   <data name="EndDateLabel" xml:space="preserve"><value>終了日</value></data>
   <data name="AdjustmentLabel" xml:space="preserve"><value>祝日ずらし</value></data>
   <data name="AdjustmentNone" xml:space="preserve"><value>なし</value></data>
-  <data name="AdjustmentForward" xml:space="preserve"><value>翌営業日へ</value></data>
+  <data name="AdjustmentForward" xml:space="preserve"><value>翔営業日へ</value></data>
   <data name="AdjustmentBackward" xml:space="preserve"><value>前営業日へ</value></data>
   <data name="BusinessCalendarLabel" xml:space="preserve"><value>営業日カレンダー</value></data>
   <data name="ErrorTitleRequired" xml:space="preserve"><value>タイトルを入力してください。</value></data>
@@ -96,4 +96,18 @@
   <data name="EditThisAndFollowingNotImplemented" xml:space="preserve">
     <value>これ以降の編集は未実装です。</value>
   </data>
+
+  <!-- アラーム -->
+  <data name="AlarmLabel" xml:space="preserve"><value>アラーム</value></data>
+  <data name="AlarmEnable" xml:space="preserve"><value>アラームを有効にする</value></data>
+  <data name="AlarmNotify15Min" xml:space="preserve"><value>15分前</value></data>
+  <data name="AlarmNotify5Min" xml:space="preserve"><value>5分前</value></data>
+  <data name="AlarmNotify1Min" xml:space="preserve"><value>1分前</value></data>
+  <data name="AlarmDismiss" xml:space="preserve"><value>閉じる</value></data>
+  <data name="AlarmSnooze5Min" xml:space="preserve"><value>5分後にスヌーズ</value></data>
+  <data name="AlarmSnooze1Min" xml:space="preserve"><value>1分後にスヌーズ</value></data>
+  <data name="AlarmSnoozeReminder" xml:space="preserve"><value>スヌーズ通知: {0}</value></data>
+  <data name="AlarmNotify15MinMsg" xml:space="preserve"><value>15分後に開始します</value></data>
+  <data name="AlarmNotify5MinMsg" xml:space="preserve"><value>5分後に開始します</value></data>
+  <data name="AlarmNotify1MinMsg" xml:space="preserve"><value>1分後に開始します</value></data>
 </root>
