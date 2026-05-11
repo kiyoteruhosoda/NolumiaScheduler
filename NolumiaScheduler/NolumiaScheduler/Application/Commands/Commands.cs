@@ -12,7 +12,8 @@ public sealed record CreateSingleEventCommand(
     string TimeZone,
     bool AllDay,
     DateTimeOffset Start,
-    DateTimeOffset End);
+    DateTimeOffset End,
+    EventAlarm? Alarm = null);
 
 public sealed record CreateRecurringEventCommand(
     string Title,
@@ -25,7 +26,8 @@ public sealed record CreateRecurringEventCommand(
     LocalDateValue StartDate,
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime,
-    RecurrenceRule RecurrenceRule);
+    RecurrenceRule RecurrenceRule,
+    EventAlarm? Alarm = null);
 
 public sealed record SkipOccurrenceCommand(
     string EventId,
@@ -61,4 +63,5 @@ public sealed record ChangeFollowingOccurrencesCommand(
     bool NewAllDay,
     LocalTimeValue? NewStartTime,
     LocalTimeValue? NewEndTime,
-    RecurrenceRule NewRecurrenceRule);
+    RecurrenceRule NewRecurrenceRule,
+    EventAlarm? Alarm = null);
