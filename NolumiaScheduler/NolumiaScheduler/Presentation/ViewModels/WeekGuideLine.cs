@@ -7,18 +7,16 @@ public interface IWeekGuideLine
     Microsoft.Maui.Graphics.Rect LayoutBounds { get; }
 }
 
-public sealed class HourGuideLine : IWeekGuideLine
+public sealed class HourGuideLine(int hour) : IWeekGuideLine
 {
-    public HourGuideLine(int hour) => Top = hour * 60d;
-    public double Top { get; }
+    public double Top { get; } = hour * 60d;
     public bool IsPrimary => true;
-    public Microsoft.Maui.Graphics.Rect LayoutBounds => new Microsoft.Maui.Graphics.Rect(0, Top, 1, 1);
+    public Microsoft.Maui.Graphics.Rect LayoutBounds => new(0, Top, 1, 1);
 }
 
-public sealed class HalfHourGuideLine : IWeekGuideLine
+public sealed class HalfHourGuideLine(int hour) : IWeekGuideLine
 {
-    public HalfHourGuideLine(int hour) => Top = (hour * 60d) + 30d;
-    public double Top { get; }
+    public double Top { get; } = (hour * 60d) + 30d;
     public bool IsPrimary => false;
-    public Microsoft.Maui.Graphics.Rect LayoutBounds => new Microsoft.Maui.Graphics.Rect(0, Top, 1, 1);
+    public Microsoft.Maui.Graphics.Rect LayoutBounds => new(0, Top, 1, 1);
 }

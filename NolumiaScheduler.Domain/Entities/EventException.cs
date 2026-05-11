@@ -11,27 +11,18 @@ namespace NolumiaScheduler.Domain.Entities
         Override
     }
 
-    public sealed class ExceptionOverride
+    public sealed class ExceptionOverride(
+        EventTitle? title = null,
+        Location? location = null,
+        Visibility? visibility = null,
+        LocalTimeValue? startTime = null,
+        LocalTimeValue? endTime = null)
     {
-        public EventTitle? Title { get; }
-        public Location? Location { get; }
-        public Visibility? Visibility { get; }
-        public LocalTimeValue? StartTime { get; }
-        public LocalTimeValue? EndTime { get; }
-
-        public ExceptionOverride(
-            EventTitle? title = null,
-            Location? location = null,
-            Visibility? visibility = null,
-            LocalTimeValue? startTime = null,
-            LocalTimeValue? endTime = null)
-        {
-            Title = title;
-            Location = location;
-            Visibility = visibility;
-            StartTime = startTime;
-            EndTime = endTime;
-        }
+        public EventTitle? Title { get; } = title;
+        public Location? Location { get; } = location;
+        public Visibility? Visibility { get; } = visibility;
+        public LocalTimeValue? StartTime { get; } = startTime;
+        public LocalTimeValue? EndTime { get; } = endTime;
 
         public bool IsEmpty()
         {

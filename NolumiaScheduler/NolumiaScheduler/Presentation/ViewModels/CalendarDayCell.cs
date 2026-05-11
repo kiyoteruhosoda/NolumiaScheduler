@@ -91,7 +91,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     }
 
     public IReadOnlyList<CalendarEventChip> VisibleEvents =>
-        Events.Take(_availableChipCount).Select(e => new CalendarEventChip(e)).ToList();
+        [.. Events.Take(_availableChipCount).Select(e => new CalendarEventChip(e))];
 
     public int VisibleExtraCount =>
         Events.Count > _availableChipCount ? Events.Count - _availableChipCount : 0;

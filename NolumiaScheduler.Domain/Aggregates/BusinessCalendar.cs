@@ -5,30 +5,21 @@ using System.Linq;
 
 namespace NolumiaScheduler.Domain.Aggregates;
 
-public class BusinessCalendar
+public class BusinessCalendar(
+    BusinessCalendarId id,
+    string name,
+    TimeZoneId timeZoneId,
+    IEnumerable<Weekday> workdays,
+    IEnumerable<Holiday>? holidays = null)
 {
-    public BusinessCalendarId Id { get; }
-    public string Name { get; private set; }
-    public TimeZoneId TimeZoneId { get; }
-    private readonly HashSet<Weekday> _workdays;
-    private readonly List<Holiday> _holidays;
+    public BusinessCalendarId Id { get; } = id ?? throw new ArgumentNullException(nameof(id));
+    public string Name { get; private set; } = name ?? throw new ArgumentNullException(nameof(name));
+    public TimeZoneId TimeZoneId { get; } = timeZoneId ?? throw new ArgumentNullException(nameof(timeZoneId));
+    private readonly HashSet<Weekday> _workdays = [.. workdays];
+    private readonly List<Holiday> _holidays = holidays?.ToList() ?? [];
 
     public IReadOnlyCollection<Weekday> Workdays => _workdays;
     public IReadOnlyList<Holiday> Holidays => _holidays;
-
-    public BusinessCalendar(
-        BusinessCalendarId id,
-        string name,
-        TimeZoneId timeZoneId,
-        IEnumerable<Weekday> workdays,
-        IEnumerable<Holiday>? holidays = null)
-    {
-        Id = id ?? throw new ArgumentNullException(nameof(id));
-        Name = name ?? throw new ArgumentNullException(nameof(name));
-        TimeZoneId = timeZoneId ?? throw new ArgumentNullException(nameof(timeZoneId));
-        _workdays = new HashSet<Weekday>(workdays);
-        _holidays = holidays?.ToList() ?? [];
-    }
 
     public void AddHoliday(Holiday holiday)
     {

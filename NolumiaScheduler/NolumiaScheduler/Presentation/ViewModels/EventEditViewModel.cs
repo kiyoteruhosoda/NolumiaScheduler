@@ -227,7 +227,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     // ── Picker item lists ─────────────────────────────────────────────
 
-    public List<string> RepeatTypeItems =>
+    public static List<string> RepeatTypeItems =>
     [
         AppResources.RepeatNone,
         AppResources.RepeatWeekly,
@@ -235,26 +235,26 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         AppResources.RepeatYearly
     ];
 
-    public List<string> MonthlyRuleItems =>
+    public static List<string> MonthlyRuleItems =>
     [
         AppResources.MonthlyDayOfMonth,
         AppResources.MonthlyNthWeekday
     ];
 
-    public List<string> YearlyRuleItems => MonthlyRuleItems;
+    public static List<string> YearlyRuleItems => MonthlyRuleItems;
 
-    public List<string> WeekIndexItems =>
+    public static List<string> WeekIndexItems =>
     [
         "1st", "2nd", "3rd", "4th", "5th", AppResources.NthWeekLast
     ];
 
-    public List<string> WeekdayItems =>
+    public static List<string> WeekdayItems =>
     [
         AppResources.DaySun, AppResources.DayMon, AppResources.DayTue,
         AppResources.DayWed, AppResources.DayThu, AppResources.DayFri, AppResources.DaySat
     ];
 
-    public List<string> AdjustmentItems =>
+    public static List<string> AdjustmentItems =>
     [
         AppResources.AdjustmentNone,
         AppResources.AdjustmentForward,
@@ -262,7 +262,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     ];
 
     public ObservableCollection<string> AvailableCalendarNames { get; } = [];
-    private List<string> _availableCalendarIds = [];
+    private static readonly List<string> _availableCalendarIds = [];
 
     // ── Properties ────────────────────────────────────────────────
 

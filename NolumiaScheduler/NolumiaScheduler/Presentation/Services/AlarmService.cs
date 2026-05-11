@@ -7,20 +7,14 @@ using MauiApp = Microsoft.Maui.Controls.Application;
 
 namespace NolumiaScheduler.Presentation.Services;
 
-public class AlarmService : IAlarmService
+public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpander expander) : IAlarmService
 {
-    private readonly ICalendarEventRepository _eventRepo;
-    private readonly IOccurrenceExpander _expander;
+    private readonly ICalendarEventRepository _eventRepo = eventRepo;
+    private readonly IOccurrenceExpander _expander = expander;
     private IDispatcherTimer? _timer;
     private readonly HashSet<string> _firedKeys = [];
     private readonly List<SnoozeEntry> _snoozed = [];
     private bool _isShowingNotification;
-
-    public AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpander expander)
-    {
-        _eventRepo = eventRepo;
-        _expander = expander;
-    }
 
     public void Start()
     {
@@ -102,8 +96,12 @@ public class AlarmService : IAlarmService
         _isShowingNotification = true;
         try
         {
-            var action = await MauiApp.Current!.MainPage!.DisplayActionSheet(
-                $"⏰ {title}\n{message}",
+            var app = MauiApp.Current;
+            var mainPage = app is { Windows.Count: > 0 } ? app.Windows[0].Page : null;
+            if (mainPage == null) return;
+
+            var action = await mainPage.DisplayActionSheetAsync(
+                $"{title}\n{message}",
                 AppResources.AlarmDismiss,
                 null,
                 AppResources.AlarmSnooze5Min,

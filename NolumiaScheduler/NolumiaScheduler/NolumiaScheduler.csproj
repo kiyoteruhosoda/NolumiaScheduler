@@ -43,6 +43,7 @@
 	  <Folder Include="Infrastructure\Json\Mappers\" />
 	  <Folder Include="Infrastructure\Json\SchemaValidation\" />
 	  <Folder Include="Infrastructure\Calendars\" />
+	  <Folder Include="NolumiaScheduler\" />
 	</ItemGroup>
 
 	<ItemGroup>

@@ -22,7 +22,7 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             AssignColumns(group);
         }
 
-        return segments.Select(ToBlock).ToList();
+        return [.. segments.Select(ToBlock)];
     }
 
     private static List<List<Segment>> GroupOverlaps(IReadOnlyList<Segment> ordered)

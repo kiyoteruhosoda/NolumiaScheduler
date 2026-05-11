@@ -23,7 +23,7 @@ namespace NolumiaScheduler.Domain.ValueObjects
             YearlyRule? yearly = null,
             AdjustmentRule? adjustment = null)
         {
-            if (interval < 1) throw new ArgumentOutOfRangeException(nameof(interval));
+            ArgumentOutOfRangeException.ThrowIfLessThan(interval, 1);
 
             switch (ruleType)
             {
