@@ -173,7 +173,8 @@ public sealed partial class CalendarPage : Page
             NavigationService.Instance.Navigate(typeof(EventEditPage),
                 new EventEditParams(
                     EventId: eventId,
-                    OccurrenceDate: occ?.Date.ToString("yyyy-MM-dd")));
+                    OccurrenceDate: occ?.Date.ToString("yyyy-MM-dd"),
+                    OccurrenceStartMinute: occ?.StartMinuteOfDay));
         }
     }
 

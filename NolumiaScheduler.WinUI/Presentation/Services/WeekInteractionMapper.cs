@@ -8,7 +8,7 @@ public sealed class WeekInteractionMapper : IWeekInteractionMapper
         return weekStartDate.Date.AddDays(dayOffset);
     }
 
-    public int MapToMinute(double y) => SnapToQuarterHour((int)Math.Clamp(Math.Round(y), 0, 1439));
+    public int MapToMinute(double y) => Math.Clamp(SnapToQuarterHour((int)Math.Round(y)), 0, 1439);
 
     public double MapToY(int minuteOfDay) => Math.Clamp(minuteOfDay, 0, 1439);
 
