@@ -52,8 +52,8 @@ public static class WinColors
     public static Color GCalSundayBgDark  => FromHex("#2d1a1a");
     public static Color GCalSaturdayBg    => FromHex("#f0f4ff");
     public static Color GCalSaturdayBgDark => FromHex("#1a1a2d");
-    public static Color White              => Windows.UI.Colors.White;
-    public static Color Transparent        => Windows.UI.Colors.Transparent;
+    public static Color White              => Microsoft.UI.Colors.White;
+    public static Color Transparent        => Microsoft.UI.Colors.Transparent;
 
     public static Color Named(string key) => key switch
     {
@@ -85,6 +85,6 @@ public static class WinColors
         "GCalSundayBgDark"       => GCalSundayBgDark,
         "GCalSaturdayBg"         => GCalSaturdayBg,
         "GCalSaturdayBgDark"     => GCalSaturdayBgDark,
-        _ => Windows.UI.Colors.Gray
+        _ => Microsoft.UI.Colors.Gray
     };
 }

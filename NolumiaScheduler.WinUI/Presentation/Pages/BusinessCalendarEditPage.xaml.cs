@@ -37,7 +37,7 @@ public sealed partial class BusinessCalendarEditPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        _vm = App.Services.GetRequiredService<BusinessCalendarEditViewModel>();
+        _vm = NolumiaScheduler.WinUI.App.Services.GetRequiredService<BusinessCalendarEditViewModel>();
 
         if (e.Parameter is BusinessCalendarEditParams p && p.CalendarId != null)
             _vm.CalendarId = p.CalendarId;
@@ -65,14 +65,14 @@ public sealed partial class BusinessCalendarEditPage : Page
         ChkSat.IsChecked = _vm.WorkSaturday;  ChkSat.Checked += (_, _) => _vm.WorkSaturday  = true; ChkSat.Unchecked    += (_, _) => _vm.WorkSaturday  = false;
 
         HolidayList.ItemsSource = _vm.Holidays;
-        DeleteBtn.Visibility = _vm.IsEditing ? Visibility.Visible : Visibility.Collapsed;
+        DeleteBtn.Visibility = _vm.IsEditing ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
 
         _vm.PropertyChanged += (_, args) =>
         {
             if (args.PropertyName == nameof(BusinessCalendarEditViewModel.Holidays))
                 HolidayList.ItemsSource = _vm.Holidays;
             if (args.PropertyName == nameof(BusinessCalendarEditViewModel.IsEditing))
-                DeleteBtn.Visibility = _vm.IsEditing ? Visibility.Visible : Visibility.Collapsed;
+                DeleteBtn.Visibility = _vm.IsEditing ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         };
     }
 

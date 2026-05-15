@@ -22,7 +22,7 @@ public sealed partial class BusinessCalendarListPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        _vm = App.Services.GetRequiredService<BusinessCalendarListViewModel>();
+        _vm = NolumiaScheduler.WinUI.App.Services.GetRequiredService<BusinessCalendarListViewModel>();
         _vm.Reload();
         RefreshList();
         _vm.PropertyChanged += (_, args) =>

@@ -68,7 +68,7 @@ public sealed partial class EventEditPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        _vm = App.Services.GetRequiredService<EventEditViewModel>();
+        _vm = NolumiaScheduler.WinUI.App.Services.GetRequiredService<EventEditViewModel>();
 
         if (e.Parameter is EventEditParams p)
         {

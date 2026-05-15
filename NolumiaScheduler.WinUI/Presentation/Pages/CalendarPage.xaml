@@ -189,7 +189,7 @@
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:CalendarEventItem">
                             <Grid ColumnDefinitions="12,*,Auto,Auto" MinHeight="48" Padding="12,4">
-                                <Rectangle Grid.Column="0" Width="4" Height="32" CornerRadius="2"
+                                <Rectangle Grid.Column="0" Width="4" Height="32" RadiusX="2" RadiusY="2"
                                            Fill="{x:Bind DotColor, Converter={StaticResource ColorToBrush}}"/>
                                 <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
                                     <TextBlock Text="{x:Bind Title}" FontSize="14"

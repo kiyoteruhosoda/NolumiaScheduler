@@ -63,7 +63,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     public static readonly DependencyProperty IsCurrentWeekProperty =
         DependencyProperty.Register(nameof(IsCurrentWeek), typeof(bool), typeof(WeekCalendarView),
-            new PropertyMetadata(false, (d, _) =>
+            new PropertyMetadata(false, (d, e) =>
             {
                 var view = (WeekCalendarView)d;
                 view._initialScrollDone = false;
@@ -94,7 +94,7 @@ public sealed partial class WeekCalendarView : UserControl
     {
         InitializeComponent();
 
-        var services = App.Services;
+        var services = NolumiaScheduler.WinUI.App.Services;
         _mapper = services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();
         _gestureArbitrationService = services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
         _autoScrollService = services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
@@ -162,7 +162,12 @@ public sealed partial class WeekCalendarView : UserControl
                 Margin = new Thickness(2, 0, 0, 0)
             });
         }
-        TimeSlotList.Content = panel;
+        TimeSlotList.Items.Clear();
+        foreach (var child in panel.Children.ToList())
+        {
+            panel.Children.Remove(child);
+            TimeSlotList.Items.Add(child);
+        }
     }
 
     private void BuildWeekColumns()
@@ -193,7 +198,7 @@ public sealed partial class WeekCalendarView : UserControl
             // Header
             var headerBorder = new Border
             {
-                Background = new SolidColorBrush(day.HeaderBackgroundColor),
+                Background = new SolidColorBrush(WeekDayColumn.HeaderBackgroundColor),
                 Padding = new Thickness(0, 2, 0, 6)
             };
             var headerText = new TextBlock
@@ -284,7 +289,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     private Canvas BuildAllDayLane(DateTime day)
     {
-        var canvas = new Canvas { Background = new SolidColorBrush(Windows.UI.Colors.Transparent) };
+        var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
             .Where(b => b.StartDate.Date <= day.Date && b.EndDate.Date >= day.Date)
@@ -305,7 +310,7 @@ public sealed partial class WeekCalendarView : UserControl
             {
                 Text = block.Title,
                 FontSize = 10,
-                Foreground = new SolidColorBrush(Windows.UI.Colors.White)
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
             };
             chip.Child = label;
             chip.Tapped += OnAllDayBlockTapped;
@@ -336,7 +341,7 @@ public sealed partial class WeekCalendarView : UserControl
         {
             Text = block.Title,
             FontSize = 10,
-            Foreground = new SolidColorBrush(Windows.UI.Colors.White),
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
             VerticalAlignment = VerticalAlignment.Top,
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis
@@ -481,7 +486,7 @@ public sealed partial class WeekCalendarView : UserControl
             block.Top + e.Cumulative.Translation.Y);
 
         var decision = _gestureArbitrationService.Decide(
-            true, false, _pressStartPoint, finalPoint, e.Cumulative.Translation.ToTimeSpan());
+            true, false, _pressStartPoint, finalPoint, TimeSpan.FromMilliseconds(350));
 
         if (decision == WeekGestureDecision.Drag || decision == WeekGestureDecision.LongPress)
         {
@@ -512,6 +517,6 @@ public sealed partial class WeekCalendarView : UserControl
 // Extension to convert Vector2 to TimeSpan (approximate gesture duration)
 internal static class Vector2Extensions
 {
-    public static TimeSpan ToTimeSpan(this Windows.Foundation.Numerics.Vector2 _)
+    public static TimeSpan ToTimeSpan(this System.Numerics.Vector2 _)
         => TimeSpan.FromMilliseconds(350);
 }

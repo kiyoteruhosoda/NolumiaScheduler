@@ -67,7 +67,7 @@ public sealed class WeekInteractionOverlayView : UserControl
         {
             Text = $"{Preview.StartMinute / 60:D2}:{Preview.StartMinute % 60:D2} - {Preview.EndMinute / 60:D2}:{Preview.EndMinute % 60:D2}",
             FontSize = 10,
-            Foreground = new SolidColorBrush(Windows.UI.Colors.White)
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
         };
         Canvas.SetLeft(label, left + 6);
         Canvas.SetTop(label, top + 4);

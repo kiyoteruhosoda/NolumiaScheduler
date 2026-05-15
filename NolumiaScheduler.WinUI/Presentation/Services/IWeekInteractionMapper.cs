@@ -1,3 +1,5 @@
+using Windows.Foundation;
+
 namespace NolumiaScheduler.Presentation.Services;
 
 public interface IWeekInteractionMapper

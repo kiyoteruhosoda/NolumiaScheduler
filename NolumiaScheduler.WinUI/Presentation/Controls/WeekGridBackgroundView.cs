@@ -99,7 +99,7 @@ public sealed class WeekGridBackgroundView : UserControl
                 Height = Math.Max(0, height - 3),
                 Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 115, 232)),
                 StrokeThickness = 2,
-                Fill = new SolidColorBrush(Windows.UI.Colors.Transparent),
+                Fill = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
                 RadiusX = 6,
                 RadiusY = 6
             };

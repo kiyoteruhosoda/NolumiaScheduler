@@ -12,7 +12,7 @@ using NolumiaScheduler.Presentation.ViewModels;
 
 namespace NolumiaScheduler.WinUI;
 
-public partial class App : Application
+public partial class App : Microsoft.UI.Xaml.Application
 {
     private static IServiceProvider? _services;
     public static IServiceProvider Services => _services
@@ -97,12 +97,12 @@ public partial class App : Application
 
         var now = DateTimeOffset.UtcNow;
 
-        // Weekly Monday standup 10:00–10:30 (UTC timezone for seeding)
+        // Weekly Monday standup 10:00 E0:30 (UTC timezone for seeding)
         var standup = CalendarEvent.CreateRecurring(
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle("Weekly Standup"),
             location: null,
-            Visibility.Public,
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             eventType: null,
             description: null,
             new TimeZoneId("UTC"),
@@ -129,7 +129,7 @@ public partial class App : Application
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle("Today's Tasks"),
             location: null,
-            Visibility.Public,
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             eventType: null,
             description: null,
             new TimeZoneId("UTC"),
@@ -143,7 +143,7 @@ public partial class App : Application
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle("Company Anniversary"),
             location: null,
-            Visibility.Public,
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             eventType: null,
             description: null,
             new TimeZoneId("UTC"),

@@ -9,5 +9,5 @@ public static class ThemeHelper
     public static void UpdateTheme(ElementTheme theme) => _theme = theme;
 
     public static bool IsDark => _theme == ElementTheme.Dark ||
-        (_theme == ElementTheme.Default && Application.Current.RequestedTheme == ApplicationTheme.Dark);
+        (_theme == ElementTheme.Default && Microsoft.UI.Xaml.Application.Current.RequestedTheme == ApplicationTheme.Dark);
 }

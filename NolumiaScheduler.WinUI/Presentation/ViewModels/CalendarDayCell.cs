@@ -36,19 +36,19 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     public Color CircleColor =>
         IsToday ? WinColors.GCalBlue :
         IsSelected ? WinColors.GCalSelectedCircle :
-        Windows.UI.Colors.Transparent;
+        Microsoft.UI.Colors.Transparent;
 
     public Color DayTextColor
     {
         get
         {
-            if (IsToday || IsSelected) return Windows.UI.Colors.White;
+            if (IsToday || IsSelected) return Microsoft.UI.Colors.White;
             var isDark = ThemeHelper.IsDark;
             if (IsHoliday && IsCurrentMonth)
                 return isDark ? WinColors.GCalRedDark : WinColors.GCalRed;
             if (IsCurrentMonth)
-                return isDark ? Windows.UI.Colors.White : WinColors.GCalTextPrimary;
-            return WinColors.Named(isDark ? "GCalOutOfMonthTextDark" : "GCalOutOfMonthText");
+                return isDark ? Microsoft.UI.Colors.White : WinColors.GCalTextPrimary;
+            return isDark ? WinColors.GCalOutOfMonthTextDark : WinColors.GCalOutOfMonthText;
         }
     }
 
@@ -56,7 +56,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     {
         get
         {
-            if (!IsCurrentMonth) return Windows.UI.Colors.Transparent;
+            if (!IsCurrentMonth) return Microsoft.UI.Colors.Transparent;
             var isDark = ThemeHelper.IsDark;
             var dow = Date.DayOfWeek;
             if (IsHoliday)
@@ -65,7 +65,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
                 return isDark ? WinColors.GCalSundayBgDark : WinColors.GCalSundayBg;
             if (dow == DayOfWeek.Saturday)
                 return isDark ? WinColors.GCalSaturdayBgDark : WinColors.GCalSaturdayBg;
-            return Windows.UI.Colors.Transparent;
+            return Microsoft.UI.Colors.Transparent;
         }
     }
 
@@ -108,7 +108,7 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
 
     private static Color EventChipColor(EventOccurrence? occ)
     {
-        if (occ == null) return Windows.UI.Colors.Transparent;
+        if (occ == null) return Microsoft.UI.Colors.Transparent;
         if (occ.IsMoved) return WinColors.GCalEventMoved;
         if (occ.IsOverridden) return WinColors.GCalGreen;
         return WinColors.GCalBlue;

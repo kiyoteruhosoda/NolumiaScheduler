@@ -1,4 +1,4 @@
-using Microsoft.UI.Dispatching;
+﻿using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
@@ -108,7 +108,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
             {
                 try
                 {
-                    var window = App.MainWindow;
+                    var window = NolumiaScheduler.WinUI.App.MainWindow;
                     if (window?.Content is Microsoft.UI.Xaml.FrameworkElement root)
                     {
                         var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog

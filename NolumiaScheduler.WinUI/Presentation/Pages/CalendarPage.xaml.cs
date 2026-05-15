@@ -21,8 +21,8 @@ public sealed partial class CalendarPage : Page
     public CalendarPage()
     {
         InitializeComponent();
-        _eventRepo = App.Services.GetRequiredService<ICalendarEventRepository>();
-        _interactionCompletionService = App.Services.GetRequiredService<IWeekInteractionCompletionService>();
+        _eventRepo = NolumiaScheduler.WinUI.App.Services.GetRequiredService<ICalendarEventRepository>();
+        _interactionCompletionService = NolumiaScheduler.WinUI.App.Services.GetRequiredService<IWeekInteractionCompletionService>();
 
         // Static strings
         BtnToday.Content     = AppResources.TodayButton;
@@ -41,7 +41,7 @@ public sealed partial class CalendarPage : Page
     protected override void OnNavigatedTo(NavigationEventArgs e)
     {
         base.OnNavigatedTo(e);
-        _vm = App.Services.GetRequiredService<CalendarViewModel>();
+        _vm = NolumiaScheduler.WinUI.App.Services.GetRequiredService<CalendarViewModel>();
         _vm.ReloadCurrentMonth();
         BindViewModel();
     }
@@ -59,8 +59,8 @@ public sealed partial class CalendarPage : Page
         WeekView.WeekAllDayEventBlocks = _vm.WeekAllDayEventBlocks;
         WeekView.WeekStartDate     = _vm.WeekStartDate;
         WeekView.IsCurrentWeek     = _vm.IsCurrentWeek;
-        WeekView.WeekCanvasHeight  = _vm.WeekCanvasHeight;
-        WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
+        WeekView.WeekCanvasHeight  = CalendarViewModel.WeekCanvasHeight;
+        WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
         UpdateViewMode();
         UpdateSelectedDayPanel();
 
@@ -88,10 +88,10 @@ public sealed partial class CalendarPage : Page
                     break;
                 case nameof(CalendarViewModel.SelectedDayEvents):
                     EventsList.ItemsSource = _vm.SelectedDayEvents;
-                    NoEventsLabel.Visibility = _vm.SelectedDayHasNoEvents ? Visibility.Visible : Visibility.Collapsed;
+                    NoEventsLabel.Visibility = _vm.SelectedDayHasNoEvents ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
                     break;
                 case nameof(CalendarViewModel.SelectedDayHasNoEvents):
-                    NoEventsLabel.Visibility = _vm.SelectedDayHasNoEvents ? Visibility.Visible : Visibility.Collapsed;
+                    NoEventsLabel.Visibility = _vm.SelectedDayHasNoEvents ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
                     break;
                 case nameof(CalendarViewModel.WeekDayColumns):
                     WeekView.WeekDayColumns = _vm.WeekDayColumns;
@@ -109,10 +109,10 @@ public sealed partial class CalendarPage : Page
                     WeekView.IsCurrentWeek = _vm.IsCurrentWeek;
                     break;
                 case nameof(CalendarViewModel.WeekCanvasHeight):
-                    WeekView.WeekCanvasHeight = _vm.WeekCanvasHeight;
+                    WeekView.WeekCanvasHeight = CalendarViewModel.WeekCanvasHeight;
                     break;
                 case nameof(CalendarViewModel.CurrentTimeLineTop):
-                    WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
+                    WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
                     break;
             }
         };
@@ -122,22 +122,22 @@ public sealed partial class CalendarPage : Page
     {
         if (_vm == null) return;
         var isMonth = _vm.IsMonthMode;
-        MonthGrid.Visibility           = isMonth ? Visibility.Visible : Visibility.Collapsed;
-        WeekView.Visibility            = isMonth ? Visibility.Collapsed : Visibility.Visible;
-        DayOfWeekHeader.Visibility     = isMonth ? Visibility.Visible : Visibility.Collapsed;
-        GridSeparator.Visibility       = isMonth ? Visibility.Visible : Visibility.Collapsed;
-        SelectedDayPanel.Visibility    = (isMonth && _vm.HasSelectedDay) ? Visibility.Visible : Visibility.Collapsed;
+        MonthGrid.Visibility           = isMonth ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        WeekView.Visibility            = isMonth ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        DayOfWeekHeader.Visibility     = isMonth ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        GridSeparator.Visibility       = isMonth ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        SelectedDayPanel.Visibility    = (isMonth && _vm.HasSelectedDay) ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
     }
 
     private void UpdateSelectedDayPanel()
     {
         if (_vm == null) return;
-        SelectedDayPanel.Visibility = (_vm.IsMonthMode && _vm.HasSelectedDay) ? Visibility.Visible : Visibility.Collapsed;
+        SelectedDayPanel.Visibility = (_vm.IsMonthMode && _vm.HasSelectedDay) ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         if (_vm.HasSelectedDay)
         {
             SelectedDayLabel.Text      = _vm.SelectedDayLabel;
             EventsList.ItemsSource     = _vm.SelectedDayEvents;
-            NoEventsLabel.Visibility   = _vm.SelectedDayHasNoEvents ? Visibility.Visible : Visibility.Collapsed;
+            NoEventsLabel.Visibility   = _vm.SelectedDayHasNoEvents ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         }
     }
 
