@@ -1,4 +1,4 @@
-﻿namespace NolumiaScheduler.WinUI
+﻿namespace NolumiaScheduler.WinMAUI
 {
     public static class MauiProgram
     {

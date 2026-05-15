@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "NolumiaScheduler.WinUI (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "NolumiaScheduler.WinUI (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}

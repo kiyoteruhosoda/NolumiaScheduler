@@ -1,15 +1,10 @@
 <Solution>
   <Project Path="NolumiaScheduler.Domain/NolumiaScheduler.Domain.csproj" Id="5c9f6847-9808-4653-8666-912980f2e922" />
-  <Project Path="NolumiaScheduler/NolumiaScheduler.Droid/NolumiaScheduler.Droid.csproj">
+  <Project Path="NolumiaScheduler.WinUI/NolumiaScheduler.WinUI.csproj" Id="76f63ad5-cbe8-4549-a9de-177c12e8c174">
+    <Platform Project="x64" />
     <Deploy />
   </Project>
-  <Project Path="NolumiaScheduler/NolumiaScheduler.iOS/NolumiaScheduler.iOS.csproj">
-    <Deploy />
-  </Project>
-  <Project Path="NolumiaScheduler/NolumiaScheduler.Mac/NolumiaScheduler.Mac.csproj">
-    <Deploy />
-  </Project>
-  <Project Path="NolumiaScheduler/NolumiaScheduler.WinUI/NolumiaScheduler.WinUI.csproj">
+  <Project Path="NolumiaScheduler/NolumiaScheduler.WinUI/NolumiaScheduler.WinMAUI.csproj">
     <Platform Project="x64" />
   </Project>
   <Project Path="NolumiaScheduler/NolumiaScheduler/NolumiaScheduler.csproj" />

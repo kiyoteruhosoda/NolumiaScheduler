@@ -7,11 +7,15 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="ApplicationServices\" />
-    <Folder Include="Domain\Aggregates\" />
-    <Folder Include="Domain\Infrastructure\" />
-    <Folder Include="Domain\ValueObjects\" />
-    <Folder Include="Infrastructure\" />
+    <Compile Remove="ApplicationServices\**" />
+    <Compile Remove="Domain\**" />
+    <Compile Remove="Infrastructure\**" />
+    <EmbeddedResource Remove="ApplicationServices\**" />
+    <EmbeddedResource Remove="Domain\**" />
+    <EmbeddedResource Remove="Infrastructure\**" />
+    <None Remove="ApplicationServices\**" />
+    <None Remove="Domain\**" />
+    <None Remove="Infrastructure\**" />
   </ItemGroup>
 
 </Project>

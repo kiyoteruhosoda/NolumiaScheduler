@@ -206,7 +206,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
                 s.EventId, s.Title, default, 0, s.NotifyAt, false, true));
         }
 
-        return results.OrderBy(e => e.NotifyAt).ToList();
+        return [.. results.OrderBy(e => e.NotifyAt)];
     }
 
     public IReadOnlyList<string> GetFiredKeys() => [.. _firedKeys];
