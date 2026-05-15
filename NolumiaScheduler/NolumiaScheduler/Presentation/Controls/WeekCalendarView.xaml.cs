@@ -303,7 +303,7 @@ public partial class WeekCalendarView : ContentView
         {
             var border = new Border
             {
-                Padding = new Thickness(6, 4),
+                Padding = new Thickness(2, 0),
                 StrokeThickness = 1,
                 Stroke = Colors.Transparent,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
@@ -321,7 +321,7 @@ public partial class WeekCalendarView : ContentView
             blockPan.PanUpdated += OnEventBlockPanUpdated;
             border.GestureRecognizers.Add(blockPan);
 
-            var grid = new Grid { RowDefinitions = [new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto)] };
+            var grid = new Grid { IsClippedToBounds = true, RowDefinitions = [new RowDefinition(GridLength.Star), new RowDefinition(GridLength.Auto)] };
             var title = new Label
             {
                 FontSize = 10,
@@ -379,9 +379,9 @@ public partial class WeekCalendarView : ContentView
         int MaxLines,
         LineBreakMode LineBreakMode)
     {
-        public static WeekEventVisualStyle Compact() => new(new Thickness(4, 1, 4, 1), 9, 1, LineBreakMode.TailTruncation);
-        public static WeekEventVisualStyle SemiCompact() => new(new Thickness(5, 2, 5, 2), 9.5, 1, LineBreakMode.TailTruncation);
-        public static WeekEventVisualStyle Regular() => new(new Thickness(6, 3, 6, 2), 10, 2, LineBreakMode.WordWrap);
+        public static WeekEventVisualStyle Compact() => new(new Thickness(2, 0), 9, 1, LineBreakMode.TailTruncation);
+        public static WeekEventVisualStyle SemiCompact() => new(new Thickness(2, 0), 9.5, 1, LineBreakMode.TailTruncation);
+        public static WeekEventVisualStyle Regular() => new(new Thickness(3, 1, 3, 0), 10, 2, LineBreakMode.WordWrap);
     }
 
     private void OnEventBlockTapped(object? sender, TappedEventArgs e)

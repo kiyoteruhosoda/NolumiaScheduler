@@ -89,6 +89,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
 
     public bool IsEditing => _editingEventId != null;
+    public string? EditingEventId => _editingEventId;
     public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
     public bool RequiresRecurringEditScopeSelection => IsEditing && IsRecurring && IsOccurrenceEditing;

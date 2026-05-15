@@ -75,6 +75,9 @@ public static class MauiProgramExtensions
         builder.Services.AddTransient<BusinessCalendarListPage>();
         builder.Services.AddTransient<BusinessCalendarEditPage>();
         builder.Services.AddTransient<EventEditPage>();
+#if DEBUG
+        builder.Services.AddTransient<AlarmDebugPage>();
+#endif
 
         return builder;
     }
