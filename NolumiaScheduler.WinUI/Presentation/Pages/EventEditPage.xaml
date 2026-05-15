@@ -1,0 +1,244 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="NolumiaScheduler.Presentation.Pages.EventEditPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Background="{ThemeResource GCalSurfaceVariant}">
+        <StackPanel Padding="16" Spacing="0">
+
+            <!-- Validation error -->
+            <Border x:Name="ValidationBorder" Visibility="Collapsed" CornerRadius="8"
+                    Padding="12,10" Margin="0,0,0,12"
+                    Background="{ThemeResource SystemFillColorCriticalBackgroundBrush}">
+                <TextBlock x:Name="ValidationText" FontSize="13" TextWrapping="Wrap"
+                           Foreground="{StaticResource GCalRed}"/>
+            </Border>
+
+            <!-- Title -->
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2">
+                <TextBox x:Name="TitleBox" BorderThickness="0" FontSize="16" FontWeight="SemiBold"
+                         MinHeight="52" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"/>
+            </Border>
+
+            <!-- Location -->
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,16">
+                <TextBox x:Name="LocationBox" BorderThickness="0" FontSize="14"
+                         MinHeight="48" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"/>
+            </Border>
+
+            <!-- Date / Time section -->
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4" Margin="0,0,0,16">
+                <StackPanel>
+                    <!-- All Day toggle -->
+                    <Grid ColumnDefinitions="*,Auto" MinHeight="48">
+                        <TextBlock x:Name="AllDayLabel" Grid.Column="0" FontSize="14"
+                                   Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                        <ToggleSwitch x:Name="AllDaySwitch" Grid.Column="1"
+                                      OnContent="" OffContent="" Margin="0" MinWidth="0"
+                                      Toggled="OnAllDayToggled"/>
+                    </Grid>
+                    <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                    <!-- Start Date -->
+                    <Grid ColumnDefinitions="Auto,*" MinHeight="48">
+                        <TextBlock x:Name="StartLabel" Grid.Column="0" FontSize="14" Width="56"
+                                   Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                        <CalendarDatePicker x:Name="StartDatePicker" Grid.Column="1" FontSize="14"
+                                            DateChanged="OnStartDateChanged"/>
+                    </Grid>
+                    <!-- Time row (hidden when AllDay) -->
+                    <StackPanel x:Name="TimeSection">
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="Auto,*,Auto,*" MinHeight="48">
+                            <TextBlock x:Name="StartTimeLabel" Grid.Column="0" FontSize="13" Width="48"
+                                       Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                            <TextBox x:Name="StartTimeBox" Grid.Column="1" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnStartTimeChanged"/>
+                            <TextBlock x:Name="EndLabel" Grid.Column="2" FontSize="13" Width="48"
+                                       Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                            <TextBox x:Name="EndTimeBox" Grid.Column="3" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnEndTimeChanged"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Recurrence section -->
+            <TextBlock x:Name="RepeatLabel" FontSize="12" Margin="4,0,0,4"
+                       Foreground="{ThemeResource GCalTextSecondary}"/>
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4" Margin="0,0,0,4">
+                <StackPanel>
+                    <ComboBox x:Name="RepeatTypePicker" FontSize="14" MinHeight="48"
+                              HorizontalAlignment="Stretch" SelectionChanged="OnRepeatTypeChanged"/>
+
+                    <!-- Weekly days -->
+                    <StackPanel x:Name="WeeklySection" Visibility="Collapsed">
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <TextBlock x:Name="WeekdaysLabel" FontSize="12" Margin="0,8,0,4"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <Grid ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="4" Margin="0,0,0,8">
+                            <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblSun" FontSize="11" HorizontalAlignment="Center" Foreground="{StaticResource GCalRed}"/>
+                                <CheckBox x:Name="WChkSun" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblMon" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
+                                <CheckBox x:Name="WChkMon" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="2" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblTue" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
+                                <CheckBox x:Name="WChkTue" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="3" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblWed" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
+                                <CheckBox x:Name="WChkWed" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="4" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblThu" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
+                                <CheckBox x:Name="WChkThu" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="5" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblFri" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
+                                <CheckBox x:Name="WChkFri" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                            <StackPanel Grid.Column="6" HorizontalAlignment="Center" Spacing="2">
+                                <TextBlock x:Name="WLblSat" FontSize="11" HorizontalAlignment="Center" Foreground="{StaticResource GCalBlue}"/>
+                                <CheckBox x:Name="WChkSat" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                            </StackPanel>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Monthly section -->
+                    <StackPanel x:Name="MonthlySection" Visibility="Collapsed">
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <ComboBox x:Name="MonthlyRulePicker" FontSize="13" MinHeight="44"
+                                  HorizontalAlignment="Stretch" SelectionChanged="OnMonthlyRuleChanged"/>
+                        <Grid x:Name="DomSection" ColumnDefinitions="Auto,*" MinHeight="44">
+                            <TextBlock x:Name="DayLbl" Grid.Column="0" FontSize="13" Width="56"
+                                       Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                            <TextBox x:Name="DomBox" Grid.Column="1" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnDomChanged"/>
+                        </Grid>
+                        <Grid x:Name="NthWeekdaySection" ColumnDefinitions="*,*" ColumnSpacing="8" Visibility="Collapsed">
+                            <ComboBox x:Name="WeekIndexPicker" Grid.Column="0" FontSize="13" MinHeight="44"
+                                      HorizontalAlignment="Stretch" SelectionChanged="OnWeekIndexChanged"/>
+                            <ComboBox x:Name="MonthlyWeekdayPicker" Grid.Column="1" FontSize="13" MinHeight="44"
+                                      HorizontalAlignment="Stretch" SelectionChanged="OnMonthlyWeekdayChanged"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Yearly section -->
+                    <StackPanel x:Name="YearlySection" Visibility="Collapsed">
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <ComboBox x:Name="YearlyRulePicker" FontSize="13" MinHeight="44"
+                                  HorizontalAlignment="Stretch" SelectionChanged="OnYearlyRuleChanged"/>
+                        <Grid x:Name="YearlyDomSection" ColumnDefinitions="*,*" ColumnSpacing="8">
+                            <TextBox x:Name="YearlyMonthBox" Grid.Column="0" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyMonthChanged"/>
+                            <TextBox x:Name="YearlyDayBox" Grid.Column="1" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyDayChanged"/>
+                        </Grid>
+                        <Grid x:Name="YearlyNthSection" ColumnDefinitions="*,*,*" ColumnSpacing="8" Visibility="Collapsed">
+                            <TextBox x:Name="YearlyMonthBox2" Grid.Column="0" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyMonth2Changed"/>
+                            <ComboBox x:Name="YearlyWeekIndexPicker" Grid.Column="1" FontSize="13" MinHeight="44"
+                                      HorizontalAlignment="Stretch" SelectionChanged="OnYearlyWeekIndexChanged"/>
+                            <ComboBox x:Name="YearlyWeekdayPicker" Grid.Column="2" FontSize="13" MinHeight="44"
+                                      HorizontalAlignment="Stretch" SelectionChanged="OnYearlyWeekdayChanged"/>
+                        </Grid>
+                    </StackPanel>
+
+                    <!-- Interval + End Date -->
+                    <StackPanel x:Name="RecurringSection" Visibility="Collapsed">
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="Auto,*,Auto" MinHeight="44">
+                            <TextBlock x:Name="IntervalLabel" Grid.Column="0" FontSize="13" Width="64"
+                                       Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                            <TextBox x:Name="IntervalBox" Grid.Column="1" FontSize="14"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnIntervalChanged"/>
+                            <TextBlock x:Name="IntervalUnitLabel" Grid.Column="2" FontSize="13" Margin="8,0,0,0"
+                                       Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                        </Grid>
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="Auto,*" MinHeight="44">
+                            <TextBlock x:Name="EndDateLabel" Grid.Column="0" FontSize="13" Width="64"
+                                       Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                            <CalendarDatePicker x:Name="EndDatePicker" Grid.Column="1" FontSize="14"
+                                                DateChanged="OnEndDateChanged"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Adjustment (recurring only) -->
+            <StackPanel x:Name="AdjustmentSection" Visibility="Collapsed">
+                <TextBlock x:Name="AdjustmentLabel" FontSize="12" Margin="4,12,0,4"
+                           Foreground="{ThemeResource GCalTextSecondary}"/>
+                <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4" Margin="0,0,0,4">
+                    <StackPanel>
+                        <ComboBox x:Name="AdjustmentPicker" FontSize="14" MinHeight="48"
+                                  HorizontalAlignment="Stretch" SelectionChanged="OnAdjustmentChanged"/>
+                        <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
+                            <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                            <Grid ColumnDefinitions="Auto,*" MinHeight="48">
+                                <TextBlock x:Name="BusinessCalendarLabel" Grid.Column="0" FontSize="13" Width="80"
+                                           Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                                <ComboBox x:Name="CalendarPicker" Grid.Column="1" FontSize="14" MinHeight="48"
+                                          HorizontalAlignment="Stretch" SelectionChanged="OnCalendarPickerChanged"/>
+                            </Grid>
+                        </StackPanel>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+
+            <!-- Alarm section -->
+            <TextBlock x:Name="AlarmLabel" FontSize="12" Margin="4,12,0,4"
+                       Foreground="{ThemeResource GCalTextSecondary}"/>
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4" Margin="0,0,0,16">
+                <StackPanel>
+                    <Grid ColumnDefinitions="*,Auto" MinHeight="48">
+                        <TextBlock x:Name="AlarmEnableLabel" Grid.Column="0" FontSize="14"
+                                   Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                        <ToggleSwitch x:Name="AlarmSwitch" Grid.Column="1"
+                                      OnContent="" OffContent="" Margin="0" MinWidth="0"
+                                      Toggled="OnAlarmToggled"/>
+                    </Grid>
+                    <StackPanel x:Name="AlarmNotifySection" Visibility="Collapsed">
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                            <TextBlock x:Name="Notify15Label" Grid.Column="0" FontSize="14"
+                                       Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkNotify15" Grid.Column="1" Checked="OnAlarmChecked" Unchecked="OnAlarmChecked"/>
+                        </Grid>
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                            <TextBlock x:Name="Notify5Label" Grid.Column="0" FontSize="14"
+                                       Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkNotify5" Grid.Column="1" Checked="OnAlarmChecked" Unchecked="OnAlarmChecked"/>
+                        </Grid>
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                            <TextBlock x:Name="Notify1Label" Grid.Column="0" FontSize="14"
+                                       Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkNotify1" Grid.Column="1" Checked="OnAlarmChecked" Unchecked="OnAlarmChecked"/>
+                        </Grid>
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <!-- Save / Cancel -->
+            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,20,0,32">
+                <Button x:Name="SaveBtn" Grid.Column="0" FontSize="15" CornerRadius="8" Height="48"
+                        HorizontalAlignment="Stretch"
+                        Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
+                        Click="OnSaveClicked"/>
+                <Button x:Name="CancelBtn" Grid.Column="1" Content="&#x2715;" FontSize="18"
+                        Height="48" Background="Transparent" BorderThickness="1"
+                        BorderBrush="{ThemeResource GCalBorder}"
+                        Foreground="{ThemeResource GCalTextSecondary}"
+                        CornerRadius="8" Click="OnCancelClicked"/>
+            </Grid>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

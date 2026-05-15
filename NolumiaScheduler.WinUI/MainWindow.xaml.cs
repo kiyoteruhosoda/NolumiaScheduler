@@ -1,31 +1,79 @@
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Controls.Primitives;
-using Microsoft.UI.Xaml.Data;
-using Microsoft.UI.Xaml.Input;
-using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
-using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Linq;
-using System.Runtime.InteropServices.WindowsRuntime;
-using Windows.Foundation;
-using Windows.Foundation.Collections;
+using NolumiaScheduler.Presentation.Pages;
+using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.WinUI.Helpers;
+using System.ComponentModel;
 
-// To learn more about WinUI, the WinUI project structure,
-// and more about our project templates, see: http://aka.ms/winui-project-info.
+namespace NolumiaScheduler.WinUI;
 
-namespace NolumiaScheduler.WinUI
+public sealed partial class MainWindow : Window, INotifyPropertyChanged
 {
-    /// <summary>
-    /// An empty window that can be used on its own or navigated to within a Frame.
-    /// </summary>
-    public sealed partial class MainWindow : Window
+    private bool _canGoBack;
+    public bool CanGoBack
     {
-        public MainWindow()
+        get => _canGoBack;
+        private set
         {
-            InitializeComponent();
+            _canGoBack = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(nameof(CanGoBack)));
         }
     }
+
+    public event PropertyChangedEventHandler? PropertyChanged;
+
+    public MainWindow()
+    {
+        InitializeComponent();
+
+        // Localized nav item labels
+        CalendarNavItem.Content         = AppResources.CalendarTab;
+        BusinessCalendarNavItem.Content = AppResources.BusinessCalendarsTab;
+
+        NavigationService.Instance.Initialize(ContentFrame);
+
+        ContentFrame.Navigated += OnFrameNavigated;
+
+        // Default to calendar
+        NavView.SelectedItem = CalendarNavItem;
+        ContentFrame.Navigate(typeof(CalendarPage));
+    }
+
+    private void OnFrameNavigated(object sender, NavigationEventArgs e)
+    {
+        CanGoBack = ContentFrame.CanGoBack;
+
+        // Sync nav selection with current page type
+        if (e.SourcePageType == typeof(CalendarPage))
+            NavView.SelectedItem = CalendarNavItem;
+        else if (e.SourcePageType == typeof(BusinessCalendarListPage))
+            NavView.SelectedItem = BusinessCalendarNavItem;
+    }
+
+    private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    {
+        if (args.IsSettingsSelected) return;
+
+        if (args.SelectedItem is NavigationViewItem item)
+        {
+            switch (item.Tag as string)
+            {
+                case "Calendar":
+                    if (ContentFrame.CurrentSourcePageType != typeof(CalendarPage))
+                        ContentFrame.Navigate(typeof(CalendarPage));
+                    break;
+                case "BusinessCalendars":
+                    if (ContentFrame.CurrentSourcePageType != typeof(BusinessCalendarListPage))
+                        ContentFrame.Navigate(typeof(BusinessCalendarListPage));
+                    break;
+            }
+        }
+    }
+
+    private void OnBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)
+        => NavigationService.Instance.GoBack();
+
+    private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
+        => throw e.Exception;
 }
