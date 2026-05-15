@@ -4,16 +4,32 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:local="using:NolumiaScheduler.WinUI"
-    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    mc:Ignorable="d"
-    Title="NolumiaScheduler.WinUI">
+    Title="NolumiaScheduler">
 
     <Window.SystemBackdrop>
-        <MicaBackdrop />
+        <MicaBackdrop/>
     </Window.SystemBackdrop>
 
-    <Grid>
+    <NavigationView x:Name="NavView"
+                    PaneDisplayMode="Left"
+                    IsBackButtonVisible="Visible"
+                    IsBackEnabled="{x:Bind CanGoBack, Mode=OneWay}"
+                    BackRequested="OnBackRequested"
+                    SelectionChanged="OnNavSelectionChanged"
+                    IsPaneToggleButtonVisible="True">
+        <NavigationView.MenuItems>
+            <NavigationViewItem x:Name="CalendarNavItem" Tag="Calendar">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE787;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="BusinessCalendarNavItem" Tag="BusinessCalendars">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE736;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.MenuItems>
 
-    </Grid>
+        <Frame x:Name="ContentFrame" NavigationFailed="OnNavigationFailed"/>
+    </NavigationView>
 </Window>
