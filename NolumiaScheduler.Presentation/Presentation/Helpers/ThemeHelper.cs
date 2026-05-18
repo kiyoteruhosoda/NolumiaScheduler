@@ -1,6 +1,6 @@
 using Microsoft.UI.Xaml;
 
-namespace NolumiaScheduler.WinUI.Helpers;
+namespace NolumiaScheduler.Presentation.Helpers;
 
 public static class ThemeHelper
 {

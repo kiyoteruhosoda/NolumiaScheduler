@@ -6,4 +6,3 @@ public interface IWeekEventLayoutStrategy
 {
     IReadOnlyList<WeekEventBlock> Layout(IReadOnlyList<CalendarEventItem> events);
 }
-

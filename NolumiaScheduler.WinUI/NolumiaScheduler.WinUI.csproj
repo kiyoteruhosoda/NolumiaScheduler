@@ -44,16 +44,7 @@
     <ProjectReference Include="..\NolumiaScheduler.Domain\NolumiaScheduler.Domain.csproj" />
     <ProjectReference Include="..\NolumiaScheduler.Application\NolumiaScheduler.Application.csproj" />
     <ProjectReference Include="..\NolumiaScheduler.Infrastructure\NolumiaScheduler.Infrastructure.csproj" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <EmbeddedResource Update="Resources\Strings\AppResources.resx">
-      <LogicalName>NolumiaScheduler.Resources.Strings.AppResources.resources</LogicalName>
-    </EmbeddedResource>
-    <EmbeddedResource Update="Resources\Strings\AppResources.ja.resx">
-      <LogicalName>NolumiaScheduler.Resources.Strings.AppResources.ja.resources</LogicalName>
-      <Culture>ja</Culture>
-    </EmbeddedResource>
+    <ProjectReference Include="..\NolumiaScheduler.Presentation\NolumiaScheduler.Presentation.csproj" />
   </ItemGroup>
 
 

@@ -1,6 +1,6 @@
 using System.Windows.Input;
 
-namespace NolumiaScheduler.WinUI.Helpers;
+namespace NolumiaScheduler.Presentation.Helpers;
 
 public sealed class RelayCommand(Action execute, Func<bool>? canExecute = null) : ICommand
 {

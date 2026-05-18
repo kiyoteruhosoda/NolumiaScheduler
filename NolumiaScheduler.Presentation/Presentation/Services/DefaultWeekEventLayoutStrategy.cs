@@ -1,4 +1,5 @@
 using NolumiaScheduler.Presentation.ViewModels;
+using Windows.Foundation;
 
 namespace NolumiaScheduler.Presentation.Services;
 
@@ -130,8 +131,8 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             Height = duration,
             LeftRatio = leftRatio,
             WidthRatio = widthRatio,
-            Bounds = new Rect(leftRatio, segment.Start, widthRatio, duration),
-            ResizeHandleBounds = new Rect(
+            Bounds = new Windows.Foundation.Rect(leftRatio, segment.Start, widthRatio, duration),
+            ResizeHandleBounds = new Windows.Foundation.Rect(
                 leftRatio,
                 Math.Max(segment.Start, segment.Start + duration - 16),
                 widthRatio,

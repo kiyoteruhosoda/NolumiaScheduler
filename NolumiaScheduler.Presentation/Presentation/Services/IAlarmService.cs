@@ -13,6 +13,11 @@ public interface IAlarmService
     /// Raised when the alarm schedule has changed (event added/deleted/modified).
     /// </summary>
     event Action? ScheduleChanged;
+
+    /// <summary>
+    /// Returns detailed diagnostic lines explaining why alarms are/aren't scheduled.
+    /// </summary>
+    IReadOnlyList<string> GetDiagnosticLines();
 }
 
 public record AlarmScheduleEntry(

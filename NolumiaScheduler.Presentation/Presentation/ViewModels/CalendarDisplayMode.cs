@@ -1,7 +1,3 @@
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public enum CalendarDisplayMode
-{
-    Month,
-    Week
-}
+public enum CalendarDisplayMode { Month, Week }

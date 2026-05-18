@@ -1,5 +1,7 @@
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Helpers;
+using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -44,9 +46,9 @@ public sealed class CalendarEventItem
         if (IsOverridden) badges.Add(AppResources.BadgeModified);
         BadgeText = badges.Count > 0 ? string.Join("  ", badges) : null;
 
-        DotColor = IsMoved ? Color.FromArgb("#9c27b0") :
-                   IsOverridden ? Color.FromArgb("#1e8e3e") :
-                   Color.FromArgb("#1a73e8");
+        DotColor = IsMoved ? WinColors.GCalEventMoved :
+                   IsOverridden ? WinColors.GCalGreen :
+                   WinColors.GCalBlue;
     }
 
     public string EventId { get; }

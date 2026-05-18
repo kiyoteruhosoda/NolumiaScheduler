@@ -1,8 +1,8 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
-using Microsoft.Maui.Controls;
 using NolumiaScheduler.Domain.ValueObjects;
-using MauiApplication = Microsoft.Maui.Controls.Application;
+using NolumiaScheduler.Presentation.Helpers;
+using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -34,21 +34,21 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     public string DayLabel => Date.Day.ToString();
 
     public Color CircleColor =>
-        IsToday ? ResourceColor("GCalBlue") :
-        IsSelected ? ResourceColor("GCalSelectedCircle") :
-        Colors.Transparent;
+        IsToday ? WinColors.GCalBlue :
+        IsSelected ? WinColors.GCalSelectedCircle :
+        Microsoft.UI.Colors.Transparent;
 
     public Color DayTextColor
     {
         get
         {
-            if (IsToday || IsSelected) return Colors.White;
-            var isDark = MauiApplication.Current?.RequestedTheme == AppTheme.Dark;
+            if (IsToday || IsSelected) return Microsoft.UI.Colors.White;
+            var isDark = ThemeHelper.IsDark;
             if (IsHoliday && IsCurrentMonth)
-                return isDark ? ResourceColor("GCalRedDark") : ResourceColor("GCalRed");
+                return isDark ? WinColors.GCalRedDark : WinColors.GCalRed;
             if (IsCurrentMonth)
-                return isDark ? Colors.White : ResourceColor("GCalTextPrimary");
-            return ResourceColor(isDark ? "GCalOutOfMonthTextDark" : "GCalOutOfMonthText");
+                return isDark ? Microsoft.UI.Colors.White : WinColors.GCalTextPrimary;
+            return isDark ? WinColors.GCalOutOfMonthTextDark : WinColors.GCalOutOfMonthText;
         }
     }
 
@@ -56,16 +56,16 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
     {
         get
         {
-            if (!IsCurrentMonth) return Colors.Transparent;
-            var isDark = MauiApplication.Current?.RequestedTheme == AppTheme.Dark;
+            if (!IsCurrentMonth) return Microsoft.UI.Colors.Transparent;
+            var isDark = ThemeHelper.IsDark;
             var dow = Date.DayOfWeek;
             if (IsHoliday)
-                return isDark ? ResourceColor("GCalHolidayBgDark") : ResourceColor("GCalHolidayBg");
+                return isDark ? WinColors.GCalHolidayBgDark : WinColors.GCalHolidayBg;
             if (dow == DayOfWeek.Sunday)
-                return isDark ? ResourceColor("GCalSundayBgDark") : ResourceColor("GCalSundayBg");
+                return isDark ? WinColors.GCalSundayBgDark : WinColors.GCalSundayBg;
             if (dow == DayOfWeek.Saturday)
-                return isDark ? ResourceColor("GCalSaturdayBgDark") : ResourceColor("GCalSaturdayBg");
-            return Colors.Transparent;
+                return isDark ? WinColors.GCalSaturdayBgDark : WinColors.GCalSaturdayBg;
+            return Microsoft.UI.Colors.Transparent;
         }
     }
 
@@ -108,35 +108,10 @@ public sealed class CalendarDayCell : INotifyPropertyChanged
 
     private static Color EventChipColor(EventOccurrence? occ)
     {
-        if (occ == null) return Colors.Transparent;
-        if (occ.IsMoved) return ResourceColor("GCalEventMoved");
-        if (occ.IsOverridden) return ResourceColor("GCalGreen");
-        return ResourceColor("GCalBlue");
-    }
-
-    private static Color ResourceColor(string key)
-    {
-        if (MauiApplication.Current?.Resources.TryGetValue(key, out var val) == true && val is Color c)
-            return c;
-        return key switch
-        {
-            "GCalBlue"               => Color.FromArgb("#1a73e8"),
-            "GCalSelectedCircle"     => Color.FromArgb("#70757a"),
-            "GCalTextPrimary"        => Color.FromArgb("#202124"),
-            "GCalGreen"              => Color.FromArgb("#1e8e3e"),
-            "GCalEventMoved"         => Color.FromArgb("#9c27b0"),
-            "GCalRed"                => Color.FromArgb("#d93025"),
-            "GCalRedDark"            => Color.FromArgb("#f28b82"),
-            "GCalHolidayBg"          => Color.FromArgb("#fff0f0"),
-            "GCalHolidayBgDark"      => Color.FromArgb("#3a1a1a"),
-            "GCalSundayBg"           => Color.FromArgb("#fff8f8"),
-            "GCalSundayBgDark"       => Color.FromArgb("#2d1a1a"),
-            "GCalSaturdayBg"         => Color.FromArgb("#f0f4ff"),
-            "GCalSaturdayBgDark"     => Color.FromArgb("#1a1a2d"),
-            "GCalOutOfMonthText"     => Color.FromArgb("#bdbdbd"),
-            "GCalOutOfMonthTextDark" => Color.FromArgb("#555555"),
-            _ => Colors.Gray
-        };
+        if (occ == null) return Microsoft.UI.Colors.Transparent;
+        if (occ.IsMoved) return WinColors.GCalEventMoved;
+        if (occ.IsOverridden) return WinColors.GCalGreen;
+        return WinColors.GCalBlue;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

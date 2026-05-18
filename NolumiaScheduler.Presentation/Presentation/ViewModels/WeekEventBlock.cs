@@ -1,4 +1,6 @@
 using NolumiaScheduler.Domain.ValueObjects;
+using Windows.Foundation;
+using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -47,7 +49,6 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
 
     public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
 
-
     public void UpdateLayoutBounds(double weekDayColumnWidth)
     {
         var safeWidth = Math.Max(0, weekDayColumnWidth);
@@ -55,5 +56,4 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
         var widthPx = Math.Max(0, WidthRatio * safeWidth);
         LayoutBounds = new Rect(leftPx, Top, widthPx, Height);
     }
-
 }

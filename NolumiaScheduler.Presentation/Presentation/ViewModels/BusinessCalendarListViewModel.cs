@@ -2,14 +2,15 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
-using NolumiaScheduler.Domain.Repositories;
+using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Helpers;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
 public sealed class BusinessCalendarListViewModel : INotifyPropertyChanged
 {
-    private readonly IBusinessCalendarRepository _repo;
+    private readonly BusinessCalendarApplicationService _service;
 
     public ObservableCollection<BusinessCalendarSummary> Calendars { get; } = [];
 
@@ -17,17 +18,17 @@ public sealed class BusinessCalendarListViewModel : INotifyPropertyChanged
 
     public ICommand RefreshCommand { get; }
 
-    public BusinessCalendarListViewModel(IBusinessCalendarRepository repo)
+    public BusinessCalendarListViewModel(BusinessCalendarApplicationService service)
     {
-        _repo = repo;
-        RefreshCommand = new Command(Reload);
+        _service = service;
+        RefreshCommand = new RelayCommand(Reload);
         Reload();
     }
 
     public void Reload()
     {
         Calendars.Clear();
-        foreach (var cal in _repo.FindAll().OrderBy(c => c.Name))
+        foreach (var cal in _service.FindAll().OrderBy(c => c.Name))
         {
             Calendars.Add(new BusinessCalendarSummary(
                 cal.Id.Value,

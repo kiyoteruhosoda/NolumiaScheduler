@@ -1,4 +1,6 @@
 using NolumiaScheduler.Domain.ValueObjects;
+using Windows.Foundation;
+using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 

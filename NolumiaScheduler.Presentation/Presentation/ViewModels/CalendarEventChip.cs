@@ -1,25 +1,13 @@
 using NolumiaScheduler.Domain.ValueObjects;
-using MauiApplication = Microsoft.Maui.Controls.Application;
+using NolumiaScheduler.Presentation.Helpers;
+using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
 public sealed class CalendarEventChip(EventOccurrence occ)
 {
     public string Title { get; } = occ.Title.Value;
-    public Color ChipColor { get; } = occ.IsMoved ? ResourceColor("GCalEventMoved") :
-                    occ.IsOverridden ? ResourceColor("GCalGreen") :
-                                       ResourceColor("GCalBlue");
-
-    private static Color ResourceColor(string key)
-    {
-        if (MauiApplication.Current?.Resources.TryGetValue(key, out var val) == true && val is Color c)
-            return c;
-        return key switch
-        {
-            "GCalBlue"       => Color.FromArgb("#1a73e8"),
-            "GCalGreen"      => Color.FromArgb("#1e8e3e"),
-            "GCalEventMoved" => Color.FromArgb("#9c27b0"),
-            _                => Colors.Gray
-        };
-    }
+    public Color ChipColor { get; } = occ.IsMoved ? WinColors.GCalEventMoved :
+                    occ.IsOverridden ? WinColors.GCalGreen :
+                                       WinColors.GCalBlue;
 }
