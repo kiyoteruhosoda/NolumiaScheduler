@@ -29,7 +29,11 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
     public void CreateSingleEvent(CreateSingleEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
-        var schedule = new SingleEventSchedule(command.Start, command.End);
+        var (start, end) = ResolveSchedule(
+            command.StartDate, command.StartTime,
+            command.StartDate, command.EndTime,
+            command.AllDay, command.TimeZone);
+        var schedule = new SingleEventSchedule(start, end);
 
         var ev = CalendarEvent.CreateSingle(
             id,
@@ -85,8 +89,16 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             ev.Description,
             DateTimeOffset.UtcNow);
 
-        if (command.NewStart.HasValue && command.NewEnd.HasValue && ev.IsSingle())
-            ev.RescheduleSingle(new SingleEventSchedule(command.NewStart.Value, command.NewEnd.Value), DateTimeOffset.UtcNow);
+        var canReschedule = command.NewDate.HasValue && ev.IsSingle() &&
+            (command.AllDay || (command.NewStartTime.HasValue && command.NewEndTime.HasValue));
+        if (canReschedule)
+        {
+            var (start, end) = ResolveSchedule(
+                command.NewDate.Value, command.NewStartTime ?? TimeSpan.Zero,
+                command.NewDate.Value, command.NewEndTime ?? TimeSpan.Zero,
+                command.AllDay, ev.TimeZoneId.Value);
+            ev.RescheduleSingle(new SingleEventSchedule(start, end), DateTimeOffset.UtcNow);
+        }
 
         ev.SetAlarm(command.Alarm, DateTimeOffset.UtcNow);
         _repository.Save(ev);
@@ -196,5 +208,24 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         var id = new EventId(eventId);
         return _repository.FindById(id)
             ?? throw new DomainException($"Event not found: {eventId}");
+    }
+
+    private static (DateTimeOffset start, DateTimeOffset end) ResolveSchedule(
+        DateOnly startDate, TimeSpan startTime,
+        DateOnly endDate, TimeSpan endTime,
+        bool allDay, string timeZoneId)
+    {
+        var tz = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
+        if (allDay)
+        {
+            var dt = startDate.ToDateTime(TimeOnly.MinValue);
+            var offset = tz.GetUtcOffset(dt);
+            var start = new DateTimeOffset(dt, offset);
+            return (start, start.AddDays(1));
+        }
+        var startDt = startDate.ToDateTime(TimeOnly.FromTimeSpan(startTime));
+        var endDt   = endDate.ToDateTime(TimeOnly.FromTimeSpan(endTime));
+        var off     = tz.GetUtcOffset(startDt);
+        return (new DateTimeOffset(startDt, off), new DateTimeOffset(endDt, off));
     }
 }

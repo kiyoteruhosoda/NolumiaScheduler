@@ -11,8 +11,9 @@ public sealed record CreateSingleEventCommand(
     string? Description,
     string TimeZone,
     bool AllDay,
-    DateTimeOffset Start,
-    DateTimeOffset End,
+    DateOnly StartDate,
+    TimeSpan StartTime,
+    TimeSpan EndTime,
     EventAlarm? Alarm = null);
 
 public sealed record CreateRecurringEventCommand(
@@ -35,8 +36,9 @@ public sealed record UpdateEventCommand(
     string? Location,
     Visibility Visibility,
     bool AllDay,
-    DateTimeOffset? NewStart,
-    DateTimeOffset? NewEnd,
+    DateOnly? NewDate,
+    TimeSpan? NewStartTime,
+    TimeSpan? NewEndTime,
     EventAlarm? Alarm);
 
 public sealed record SkipOccurrenceCommand(

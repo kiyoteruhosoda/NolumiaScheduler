@@ -1,6 +1,6 @@
 using Windows.UI;
 
-namespace NolumiaScheduler.WinUI.Helpers;
+namespace NolumiaScheduler.Presentation.Helpers;
 
 public static class WinColors
 {

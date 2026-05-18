@@ -2,11 +2,12 @@ using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
+using NolumiaScheduler.Application;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Helpers;
 using NolumiaScheduler.Resources.Strings;
-using NolumiaScheduler.WinUI.Helpers;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -60,6 +61,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     private string _validationError = "";
     private string? _editingEventId;
+    private string _timeZoneId = EventEditDefaults.DefaultTimeZone;
 
     // ── Alarm ────────────────────────────────────────────────
     private bool _alarmEnabled = true;
@@ -118,6 +120,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsOccurrenceEditing));
         OnPropertyChanged(nameof(RequiresRecurringEditScopeSelection));
 
+        _timeZoneId = ev.TimeZoneId.Value;
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
         AllDay = ev.AllDay;
@@ -142,7 +145,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             StartTime = effectiveStart != null ? new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0) : new TimeSpan(9, 0, 0);
 
             var durationMinutes = sched.StartTime != null && sched.EndTime != null
-                ? Math.Max(15, (sched.EndTime.Hour * 60 + sched.EndTime.Minute) - (sched.StartTime.Hour * 60 + sched.StartTime.Minute))
+                ? Math.Max(EventEditDefaults.MinEventDurationMinutes, (sched.EndTime.Hour * 60 + sched.EndTime.Minute) - (sched.StartTime.Hour * 60 + sched.StartTime.Minute))
                 : 60;
             EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(durationMinutes));
 
@@ -613,26 +616,14 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     private void UpdateExisting(string eventId)
     {
         var ev = _eventService.FindById(eventId);
-        var tz = ev?.TimeZoneId.Value ?? "Asia/Tokyo";
-        var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
-        DateTimeOffset? start = null, end = null;
+        DateOnly? newDate = null;
+        TimeSpan? newStartTime = null, newEndTime = null;
 
         if (ev?.IsSingle() == true)
         {
-            if (AllDay)
-            {
-                var offset = tzInfo.GetUtcOffset(StartDate);
-                start = new DateTimeOffset(StartDate.Year, StartDate.Month, StartDate.Day, 0, 0, 0, offset);
-                end = start.Value.AddDays(1);
-            }
-            else
-            {
-                var startDt = StartDate.Date + StartTime;
-                var endDt   = StartDate.Date + EndTime;
-                var offset  = tzInfo.GetUtcOffset(startDt);
-                start = new DateTimeOffset(startDt, offset);
-                end   = new DateTimeOffset(endDt, offset);
-            }
+            newDate      = DateOnly.FromDateTime(StartDate);
+            newStartTime = AllDay ? null : StartTime;
+            newEndTime   = AllDay ? null : EndTime;
         }
 
         _eventService.UpdateEvent(new UpdateEventCommand(
@@ -641,40 +632,24 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
             NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             AllDay,
-            start,
-            end,
+            newDate,
+            newStartTime,
+            newEndTime,
             _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 
     private void SaveSingle()
     {
-        var tz = "Asia/Tokyo";
-        var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
-        DateTimeOffset start, end;
-
-        if (AllDay)
-        {
-            var offset = tzInfo.GetUtcOffset(StartDate);
-            start = new DateTimeOffset(StartDate.Year, StartDate.Month, StartDate.Day, 0, 0, 0, offset);
-            end = start.AddDays(1);
-        }
-        else
-        {
-            var startDt = StartDate.Date + StartTime;
-            var endDt   = StartDate.Date + EndTime;
-            var offset  = tzInfo.GetUtcOffset(startDt);
-            start = new DateTimeOffset(startDt, offset);
-            end   = new DateTimeOffset(endDt, offset);
-        }
-
         _eventService.CreateSingleEvent(new CreateSingleEventCommand(
             Title.Trim(),
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
             NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
             null, null,
-            tz,
+            _timeZoneId,
             AllDay,
-            start, end,
+            DateOnly.FromDateTime(StartDate),
+            AllDay ? TimeSpan.Zero : StartTime,
+            AllDay ? TimeSpan.Zero : EndTime,
             Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 

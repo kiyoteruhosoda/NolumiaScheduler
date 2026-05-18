@@ -6,7 +6,7 @@ using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Resources.Strings;
-using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.Presentation.Helpers;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 

@@ -1,0 +1,34 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
+    <Platforms>x86;x64;ARM64</Platforms>
+    <RootNamespace>NolumiaScheduler</RootNamespace>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UseWinUI>true</UseWinUI>
+    <WinUISDKReferences>false</WinUISDKReferences>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\NolumiaScheduler.Application\NolumiaScheduler.Application.csproj" />
+    <ProjectReference Include="..\NolumiaScheduler.Domain\NolumiaScheduler.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <EmbeddedResource Update="Resources\Strings\AppResources.resx">
+      <LogicalName>NolumiaScheduler.Resources.Strings.AppResources.resources</LogicalName>
+    </EmbeddedResource>
+    <EmbeddedResource Update="Resources\Strings\AppResources.ja.resx">
+      <LogicalName>NolumiaScheduler.Resources.Strings.AppResources.ja.resources</LogicalName>
+      <Culture>ja</Culture>
+    </EmbeddedResource>
+  </ItemGroup>
+
+</Project>

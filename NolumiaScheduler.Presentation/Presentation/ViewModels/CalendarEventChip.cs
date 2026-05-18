@@ -1,5 +1,5 @@
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.Presentation.Helpers;
 using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;

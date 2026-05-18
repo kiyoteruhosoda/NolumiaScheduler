@@ -1,7 +1,7 @@
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.Presentation.Helpers;
 using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;

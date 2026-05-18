@@ -191,15 +191,6 @@ public class CalendarEvent
         Touch(updatedAt);
     }
 
-    public void ChangeRecurringSchedule(
-        RecurringEventSchedule newSchedule,
-        DateTimeOffset updatedAt)
-    {
-        EnsureRecurringEvent();
-        RecurringSchedule = newSchedule;
-        Touch(updatedAt);
-    }
-
     public void ChangeRecurrenceEndDate(
         LocalDateValue newEndDate,
         DateTimeOffset updatedAt)
