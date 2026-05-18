@@ -139,6 +139,33 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(14, saved.SingleSchedule.Start.ToOffset(TimeSpan.FromHours(9)).Hour);
     }
 
+    [TestMethod]
+    public void UpdateEvent_終日単発予定は時間なしで日付変更できる()
+    {
+        _svc.CreateSingleEvent(new CreateSingleEventCommand(
+            Title: "All Day", Location: null, Visibility: Visibility.Public,
+            EventType: null, Description: null, TimeZone: "Asia/Tokyo",
+            AllDay: true,
+            StartDate: new DateOnly(2026, 5, 20),
+            StartTime: TimeSpan.Zero, EndTime: TimeSpan.Zero));
+
+        var ev = _repo.FindAll()[0];
+        var originalStart = ev.SingleSchedule!.Start;
+
+        _svc.UpdateEvent(new UpdateEventCommand(
+            EventId: ev.Id.Value,
+            Title: "All Day", Location: null, Visibility: Visibility.Public,
+            AllDay: true,
+            NewDate: new DateOnly(2026, 5, 25),
+            NewStartTime: null,
+            NewEndTime: null,
+            Alarm: null));
+
+        var saved = _repo.FindById(ev.Id)!;
+        Assert.AreNotEqual(originalStart, saved.SingleSchedule!.Start);
+        Assert.AreEqual(25, saved.SingleSchedule.Start.ToOffset(TimeSpan.FromHours(9)).Day);
+    }
+
     // ── SkipOccurrence / DeleteOccurrence ──────────────────────────────────
 
     [TestMethod]

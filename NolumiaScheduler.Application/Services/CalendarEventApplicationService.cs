@@ -89,11 +89,13 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             ev.Description,
             DateTimeOffset.UtcNow);
 
-        if (command.NewDate.HasValue && command.NewStartTime.HasValue && command.NewEndTime.HasValue && ev.IsSingle())
+        var canReschedule = command.NewDate.HasValue && ev.IsSingle() &&
+            (command.AllDay || (command.NewStartTime.HasValue && command.NewEndTime.HasValue));
+        if (canReschedule)
         {
             var (start, end) = ResolveSchedule(
-                command.NewDate.Value, command.NewStartTime.Value,
-                command.NewDate.Value, command.NewEndTime.Value,
+                command.NewDate.Value, command.NewStartTime ?? TimeSpan.Zero,
+                command.NewDate.Value, command.NewEndTime ?? TimeSpan.Zero,
                 command.AllDay, ev.TimeZoneId.Value);
             ev.RescheduleSingle(new SingleEventSchedule(start, end), DateTimeOffset.UtcNow);
         }
