@@ -50,7 +50,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
 
         // Repositories
-        services.AddSingleton<ICalendarEventRepository>(_ =>
+        services.AddSingleton<JsonCalendarEventRepository>(_ =>
         {
             var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
@@ -59,6 +59,8 @@ public partial class App : Microsoft.UI.Xaml.Application
             JsonEventSeeder.SeedIfEmpty(repo);
             return repo;
         });
+        services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
+        services.AddSingleton<ICalendarEventChanges>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
 
         services.AddSingleton<IBusinessCalendarRepository>(_ =>
         {

@@ -15,13 +15,13 @@ public sealed class BusinessCalendarApplicationService(IBusinessCalendarReposito
     public IReadOnlyList<BusinessCalendar> FindAll() =>
         _repo.FindAll();
 
-    public BusinessCalendar Create(CreateBusinessCalendarCommand cmd)
+    public string Create(CreateBusinessCalendarCommand cmd)
     {
         var id = new BusinessCalendarId(Guid.NewGuid().ToString());
         var tz = new TimeZoneId(cmd.TimeZone);
         var calendar = new BusinessCalendar(id, cmd.Name, tz, cmd.Workdays);
         _repo.Save(calendar);
-        return calendar;
+        return id.Value;
     }
 
     public void Update(UpdateBusinessCalendarCommand cmd)
@@ -29,14 +29,8 @@ public sealed class BusinessCalendarApplicationService(IBusinessCalendarReposito
         var existing = _repo.FindById(new BusinessCalendarId(cmd.CalendarId))
             ?? throw new InvalidOperationException($"Business calendar '{cmd.CalendarId}' not found.");
 
-        var updated = new BusinessCalendar(
-            existing.Id,
-            cmd.Name,
-            existing.TimeZoneId,
-            cmd.Workdays,
-            existing.Holidays);
-
-        _repo.Save(updated);
+        existing.Update(cmd.Name, cmd.Workdays);
+        _repo.Save(existing);
     }
 
     public void AddHoliday(AddHolidayCommand cmd)

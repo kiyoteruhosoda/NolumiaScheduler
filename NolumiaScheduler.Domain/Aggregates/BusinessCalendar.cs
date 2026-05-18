@@ -21,6 +21,14 @@ public class BusinessCalendar(
     public IReadOnlyCollection<Weekday> Workdays => _workdays;
     public IReadOnlyList<Holiday> Holidays => _holidays;
 
+    public void Update(string name, IEnumerable<Weekday> workdays)
+    {
+        Name = name ?? throw new ArgumentNullException(nameof(name));
+        _workdays.Clear();
+        foreach (var w in workdays)
+            _workdays.Add(w);
+    }
+
     public void AddHoliday(Holiday holiday)
     {
         if (_holidays.Any(h => h.Date.Equals(holiday.Date)))
