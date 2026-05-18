@@ -612,11 +612,12 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     private void UpdateExisting(string eventId)
     {
-        var tz = _eventService.FindById(eventId)?.TimeZoneId.Value ?? "Asia/Tokyo";
+        var ev = _eventService.FindById(eventId);
+        var tz = ev?.TimeZoneId.Value ?? "Asia/Tokyo";
         var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
         DateTimeOffset? start = null, end = null;
 
-        if (!IsRecurring)
+        if (ev?.IsSingle() == true)
         {
             if (AllDay)
             {
