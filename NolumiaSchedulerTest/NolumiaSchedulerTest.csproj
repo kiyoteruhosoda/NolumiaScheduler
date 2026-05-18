@@ -13,7 +13,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\NolumiaScheduler\NolumiaScheduler\NolumiaScheduler.csproj" />
+    <ProjectReference Include="..\NolumiaScheduler.Application\NolumiaScheduler.Application.csproj" />
+    <ProjectReference Include="..\NolumiaScheduler.Presentation\NolumiaScheduler.Presentation.csproj" />
     <ProjectReference Include="..\NolumiaScheduler.Domain\NolumiaScheduler.Domain.csproj" />
   </ItemGroup>
 

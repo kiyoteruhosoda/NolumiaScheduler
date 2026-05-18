@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:NolumiaScheduler.Presentation.ViewModels"
+             xmlns:res="clr-namespace:NolumiaScheduler.Resources.Strings"
+             x:Class="NolumiaScheduler.Presentation.Pages.BusinessCalendarListPage"
+             x:DataType="vm:BusinessCalendarListViewModel"
+             Title="{x:Static res:AppResources.BusinessCalendarsTab}">
+
+    <AbsoluteLayout>
+
+        <!-- List or empty state -->
+        <Grid AbsoluteLayout.LayoutBounds="0,0,1,1"
+              AbsoluteLayout.LayoutFlags="All"
+              RowDefinitions="*">
+
+            <CollectionView ItemsSource="{Binding Calendars}"
+                            SelectionMode="Single"
+                            SelectionChanged="OnCalendarSelected"
+                            BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+
+                <CollectionView.EmptyView>
+                    <Label Text="{x:Static res:AppResources.NoCalendarsLabel}"
+                           FontSize="14"
+                           TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Margin="32" />
+                </CollectionView.EmptyView>
+
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BusinessCalendarSummary">
+                        <Grid Padding="16,14"
+                              MinimumHeightRequest="64"
+                              ColumnDefinitions="*,24"
+                              BackgroundColor="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}">
+
+                            <VisualStateManager.VisualStateGroups>
+                                <VisualStateGroupList>
+                                    <VisualStateGroup x:Name="CommonStates">
+                                        <VisualState x:Name="Normal">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource GCalSurface}, Dark={StaticResource GCalSurfaceDark}}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                        <VisualState x:Name="PointerOver">
+                                            <VisualState.Setters>
+                                                <Setter Property="BackgroundColor" Value="{AppThemeBinding Light={StaticResource GCalSurfaceVariant}, Dark={StaticResource GCalSurfaceVariantDark}}" />
+                                            </VisualState.Setters>
+                                        </VisualState>
+                                    </VisualStateGroup>
+                                </VisualStateGroupList>
+                            </VisualStateManager.VisualStateGroups>
+
+                            <VerticalStackLayout Grid.Column="0" Spacing="3" VerticalOptions="Center">
+                                <Label Text="{Binding Name}"
+                                       FontSize="15"
+                                       FontAttributes="Bold"
+                                       TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
+                                <Label Text="{Binding WorkdaysSummary}"
+                                       FontSize="12"
+                                       TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}" />
+                            </VerticalStackLayout>
+
+                            <Label Grid.Column="1"
+                                   Text="›"
+                                   FontSize="20"
+                                   TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
+                                   VerticalOptions="Center"
+                                   HorizontalOptions="End" />
+
+                            <!-- Row separator -->
+                            <BoxView Grid.ColumnSpan="2"
+                                     VerticalOptions="End"
+                                     HeightRequest="0.5"
+                                     BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
+                        </Grid>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+            </CollectionView>
+        </Grid>
+
+        <!-- FAB: Add Calendar -->
+        <Button AbsoluteLayout.LayoutBounds="1,1,56,56"
+                AbsoluteLayout.LayoutFlags="PositionProportional"
+                Margin="0,0,20,20"
+                Text="+"
+                FontSize="28"
+                WidthRequest="56"
+                HeightRequest="56"
+                CornerRadius="28"
+                BackgroundColor="{StaticResource GCalBlue}"
+                TextColor="{StaticResource White}"
+                Padding="0"
+                Clicked="OnAddCalendarClicked" />
+
+    </AbsoluteLayout>
+</ContentPage>
