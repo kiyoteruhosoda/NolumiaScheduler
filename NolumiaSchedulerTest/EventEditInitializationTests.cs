@@ -163,16 +163,18 @@ public class EventEditInitializationTests
     {
         var eventRepo = new InMemoryEventRepo();
         var calendarRepo = new InMemoryCalendarRepo();
-        var service = new CalendarEventApplicationService(eventRepo);
-        return new EventEditViewModel(service, eventRepo, calendarRepo);
+        var eventService = new CalendarEventApplicationService(eventRepo, eventRepo);
+        var calendarService = new BusinessCalendarApplicationService(calendarRepo);
+        return new EventEditViewModel(eventService, calendarService);
     }
 
     private static EventEditViewModel CreateViewModel(out InMemoryEventRepo eventRepo)
     {
         eventRepo = new InMemoryEventRepo();
         var calendarRepo = new InMemoryCalendarRepo();
-        var service = new CalendarEventApplicationService(eventRepo);
-        return new EventEditViewModel(service, eventRepo, calendarRepo);
+        var eventService = new CalendarEventApplicationService(eventRepo, eventRepo);
+        var calendarService = new BusinessCalendarApplicationService(calendarRepo);
+        return new EventEditViewModel(eventService, calendarService);
     }
 
     private static CalendarEvent CreateSingleEvent(string id)
@@ -195,7 +197,7 @@ public class EventEditInitializationTests
             now);
     }
 
-    private sealed class InMemoryEventRepo : ICalendarEventRepository
+    private sealed class InMemoryEventRepo : ICalendarEventRepository, ICalendarEventChanges
     {
         public event Action? Changed;
         private readonly Dictionary<string, CalendarEvent> _map = [];
