@@ -58,9 +58,9 @@ public sealed partial class CalendarPage : Page
         WeekView.WeekDayColumns    = _vm.WeekDayColumns;
         WeekView.WeekAllDayEventBlocks = _vm.WeekAllDayEventBlocks;
         WeekView.WeekStartDate     = _vm.WeekStartDate;
-        WeekView.IsCurrentWeek     = _vm.IsCurrentWeek;
         WeekView.WeekCanvasHeight  = CalendarViewModel.WeekCanvasHeight;
         WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
+        WeekView.IsCurrentWeek     = _vm.IsCurrentWeek;
         UpdateViewMode();
         UpdateSelectedDayPanel();
 
@@ -110,6 +110,7 @@ public sealed partial class CalendarPage : Page
                     WeekView.WeekStartDate = _vm.WeekStartDate;
                     break;
                 case nameof(CalendarViewModel.IsCurrentWeek):
+                    WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
                     WeekView.IsCurrentWeek = _vm.IsCurrentWeek;
                     break;
                 case nameof(CalendarViewModel.WeekCanvasHeight):
@@ -131,6 +132,13 @@ public sealed partial class CalendarPage : Page
         DayOfWeekHeader.Visibility     = isMonth ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         GridSeparator.Visibility       = isMonth ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         SelectedDayPanel.Visibility    = (isMonth && _vm.HasSelectedDay) ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+        if (!isMonth)
+        {
+            WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
+            WeekView.IsCurrentWeek = _vm.IsCurrentWeek;
+            WeekView.RequestScroll();
+        }
     }
 
     private void UpdateSelectedDayPanel()
@@ -168,9 +176,21 @@ public sealed partial class CalendarPage : Page
 
     private void OnDayCellTapped(object sender, TappedRoutedEventArgs e)
     {
-        if (((FrameworkElement)sender).DataContext is CalendarDayCell cell)
+        if (sender is not FrameworkElement fe) return;
+
+        // In WinUI 3 ItemsRepeater with x:Bind, DataContext may not be set.
+        // Try DataContext first, then fall back to finding the index in the repeater.
+        if (fe.DataContext is CalendarDayCell cell)
         {
             _vm?.SelectDay(cell);
+        }
+        else
+        {
+            var index = MonthGrid.GetElementIndex(fe);
+            if (index >= 0 && _vm != null && index < _vm.DayCells.Count)
+            {
+                _vm.SelectDay(_vm.DayCells[index]);
+            }
         }
     }
 

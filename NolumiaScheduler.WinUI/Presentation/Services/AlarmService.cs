@@ -45,6 +45,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
         dq.TryEnqueue(() =>
         {
+            _firedKeys.Clear();
             ScheduleChanged?.Invoke();
             _ = CheckAlarmsAsync();
         });
@@ -88,8 +89,9 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                var minutesBefore = new[] { 15, 5, 1 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min };
+                var minutesBefore = new[] { 15, 5, 1, 0 };
+                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
+                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
 
                 for (int i = 0; i < minutesBefore.Length; i++)
                 {
@@ -105,7 +107,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
                     {
                         _firedKeys.Add(key);
                         var msg = GetMinuteMessage(min);
-                        await ShowAlarmAsync(ev.Id.Value, occ.Title.Value, msg, ev.Location?.Value);
+                        await ShowAlarmAsync(ev.Id.Value, occ.Title.Value, msg, ev.Location?.Value, occStart);
                         if (_isShowingNotification) return;
                     }
                 }
@@ -117,10 +119,11 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
     {
         15 => AppResources.AlarmNotify15MinMsg,
         5  => AppResources.AlarmNotify5MinMsg,
-        _  => AppResources.AlarmNotify1MinMsg
+        1  => AppResources.AlarmNotify1MinMsg,
+        _  => AppResources.AlarmNotify0MinMsg
     };
 
-    private async Task ShowAlarmAsync(string eventId, string title, string message, string? location = null)
+    private async Task ShowAlarmAsync(string eventId, string title, string message, string? location = null, DateTime? eventStartTime = null)
     {
         _isShowingNotification = true;
         try
@@ -132,7 +135,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
             {
                 try
                 {
-                    var alarmWindow = new AlarmNotificationWindow(title, message, location);
+                    var alarmWindow = new AlarmNotificationWindow(title, message, location, eventStartTime);
                     alarmWindow.Activate();
 
                     var result = await alarmWindow.WaitForResultAsync();
@@ -146,15 +149,61 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
 
             var notificationResult = await tcs.Task;
 
-            if (notificationResult == AlarmNotificationResult.Snooze5Min)
+            switch (notificationResult)
+            {
+                case AlarmNotificationResult.Snooze5Min:
                     _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(5), location));
-                else if (notificationResult == AlarmNotificationResult.Snooze1Min)
+                    break;
+                case AlarmNotificationResult.Snooze1Min:
                     _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(1), location));
+                    break;
+                case AlarmNotificationResult.CancelAll:
+                    CancelRemainingAlarms(eventId);
+                    break;
+                case AlarmNotificationResult.SnoozeTo5MinBefore:
+                    if (eventStartTime.HasValue)
+                        _snoozed.Add(new SnoozeEntry(eventId, title, eventStartTime.Value.AddMinutes(-5), location));
+                    break;
+                case AlarmNotificationResult.SnoozeTo1MinBefore:
+                    if (eventStartTime.HasValue)
+                        _snoozed.Add(new SnoozeEntry(eventId, title, eventStartTime.Value.AddMinutes(-1), location));
+                    break;
+            }
         }
         finally
         {
             _isShowingNotification = false;
         }
+    }
+
+    private void CancelRemainingAlarms(string eventId)
+    {
+        // Mark all unfired alarm keys for this event's occurrences today as fired
+        var now = DateTime.Now;
+        var today = new LocalDateValue(now.Year, now.Month, now.Day);
+        var tomorrow = today.AddDays(1);
+
+        var events = _eventRepo.FindAll();
+        foreach (var ev in events)
+        {
+            if (ev.Id.Value != eventId) continue;
+            if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
+
+            var occurrences = _expander.Expand(ev, today, tomorrow, null);
+            foreach (var occ in occurrences)
+            {
+                if (occ.AllDay || occ.StartTime == null) continue;
+
+                foreach (var min in new[] { 15, 5, 1, 0 })
+                {
+                    var key = $"{ev.Id.Value}:{occ.Date}:{min}";
+                    _firedKeys.Add(key);
+                }
+            }
+        }
+
+        // Also remove any pending snoozed entries for this event
+        _snoozed.RemoveAll(s => s.EventId == eventId);
     }
 
     private record SnoozeEntry(string EventId, string Title, DateTime NotifyAt, string? Location);
@@ -180,8 +229,9 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                var minutesBefore = new[] { 15, 5, 1 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min };
+                var minutesBefore = new[] { 15, 5, 1, 0 };
+                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
+                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
 
                 for (int i = 0; i < minutesBefore.Length; i++)
                 {
@@ -254,8 +304,9 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
 
                 lines.Add($"    occ {occ.Date} start={occStart:HH:mm} | 15m={ev.Alarm.Notify15Min} 5m={ev.Alarm.Notify5Min} 1m={ev.Alarm.Notify1Min}");
 
-                var minutesBefore = new[] { 15, 5, 1 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min };
+                var minutesBefore = new[] { 15, 5, 1, 0 };
+                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
+                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
                 for (int i = 0; i < minutesBefore.Length; i++)
                 {
                     if (!notifyFlags[i]) continue;
@@ -274,6 +325,6 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
 
     public async Task ShowTestAlarmAsync()
     {
-        await ShowAlarmAsync("test-debug", "テストアラーム", "これはアラームウィンドウのテスト表示です");
+        await ShowAlarmAsync("test-debug", "テストアラーム", "これはアラームウィンドウのテスト表示です", "https://example.com", DateTime.Now.AddMinutes(30));
     }
 }

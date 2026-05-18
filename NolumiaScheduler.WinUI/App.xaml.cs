@@ -29,6 +29,7 @@ public partial class App : Microsoft.UI.Xaml.Application
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
         MainWindow = new MainWindow();
+        MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
         MainWindow.Activate();
         Services.GetRequiredService<IAlarmService>().Start();
 

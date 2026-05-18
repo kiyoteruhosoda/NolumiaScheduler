@@ -67,12 +67,13 @@ public sealed partial class WeekCalendarView : UserControl
             {
                 var view = (WeekCalendarView)d;
                 view._initialScrollDone = false;
+                view.UpdateBackgroundViews();
                 _ = view.ScrollToCurrentTimeAsync();
             }));
 
     public static readonly DependencyProperty CurrentTimeLineTopProperty =
         DependencyProperty.Register(nameof(CurrentTimeLineTop), typeof(double), typeof(WeekCalendarView),
-            new PropertyMetadata(0d));
+            new PropertyMetadata(0d, (d, _) => ((WeekCalendarView)d).UpdateBackgroundViews()));
 
     public static readonly DependencyProperty WeekStartDateProperty =
         DependencyProperty.Register(nameof(WeekStartDate), typeof(DateTime), typeof(WeekCalendarView),
@@ -113,9 +114,34 @@ public sealed partial class WeekCalendarView : UserControl
         const double nineAmPx = 9 * 60;
         var anchor = CurrentTimeLineTop > 0 && IsCurrentWeek ? CurrentTimeLineTop - 240 : nineAmPx;
         var y = Math.Max(0, anchor);
-        await Task.Delay(100);
-        WeekScroll.ChangeView(null, y, null);
+
+        // Wait until the ScrollViewer has been laid out and has a valid extent
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            await Task.Delay(50);
+            if (WeekScroll.ExtentHeight > 0) break;
+        }
+
+        WeekScroll.ChangeView(null, y, null, disableAnimation: true);
         _initialScrollDone = true;
+    }
+
+    public void RequestScroll()
+    {
+        _initialScrollDone = false;
+        _ = ScrollToCurrentTimeAsync();
+    }
+
+    private void UpdateBackgroundViews()
+    {
+        foreach (var canvas in WeekBodyGrid.Children.OfType<Canvas>())
+        {
+            foreach (var bg in canvas.Children.OfType<WeekGridBackgroundView>())
+            {
+                bg.IsCurrentWeek = IsCurrentWeek;
+                bg.CurrentTimeLineTop = CurrentTimeLineTop;
+            }
+        }
     }
 
     private void OnWeekBodyGridSizeChanged(object sender, SizeChangedEventArgs e)

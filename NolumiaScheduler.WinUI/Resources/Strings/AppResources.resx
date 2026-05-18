@@ -121,4 +121,12 @@
   <data name="AlarmNotify15MinMsg" xml:space="preserve"><value>Starts in 15 minutes</value></data>
   <data name="AlarmNotify5MinMsg" xml:space="preserve"><value>Starts in 5 minutes</value></data>
   <data name="AlarmNotify1MinMsg" xml:space="preserve"><value>Starts in 1 minute</value></data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve"><value>Starting now</value></data>
+  <data name="AlarmWindowTitle" xml:space="preserve"><value>Alarm Notification</value></data>
+  <data name="AlarmOpenLocation" xml:space="preserve"><value>📍 Open Location</value></data>
+  <data name="AlarmSnooze5MinBtn" xml:space="preserve"><value>Remind in 5 min</value></data>
+  <data name="AlarmSnooze1MinBtn" xml:space="preserve"><value>Remind in 1 min</value></data>
+  <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve"><value>Remind 5 min before event</value></data>
+  <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve"><value>Remind 1 min before event</value></data>
+  <data name="AlarmCancelAll" xml:space="preserve"><value>Cancel all remaining alarms</value></data>
 </root>

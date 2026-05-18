@@ -39,6 +39,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
     {
         MauiApp.Current?.Dispatcher.Dispatch(() =>
         {
+            _firedKeys.Clear();
             ScheduleChanged?.Invoke();
             _ = CheckAlarmsAsync();
         });
@@ -57,6 +58,8 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
 
+        System.Diagnostics.Debug.WriteLine($"[AlarmService] CheckAlarmsAsync: now={now:yyyy-MM-dd HH:mm:ss}, today={today}, tomorrow={tomorrow}");
+
         // Fire due snoozed alarms first
         var dueSnoozes = _snoozed.Where(s => s.NotifyAt <= now).ToList();
         foreach (var snooze in dueSnoozes)
@@ -69,21 +72,33 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
 
         // Check regular event alarms
         var events = _eventRepo.FindAll();
+        System.Diagnostics.Debug.WriteLine($"[AlarmService] Total events: {events.Count}");
         foreach (var ev in events)
         {
-            if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
+            if (ev.Alarm == null || !ev.Alarm.IsEnabled)
+            {
+                System.Diagnostics.Debug.WriteLine($"[AlarmService] Event '{ev.Title.Value}' (id={ev.Id.Value}): alarm disabled or null, skipping");
+                continue;
+            }
 
             var occurrences = _expander.Expand(ev, today, tomorrow, null);
+            System.Diagnostics.Debug.WriteLine($"[AlarmService] Event '{ev.Title.Value}' (id={ev.Id.Value}): alarm={ev.Alarm.IsEnabled}, 15m={ev.Alarm.Notify15Min}, 5m={ev.Alarm.Notify5Min}, 1m={ev.Alarm.Notify1Min}, occurrences={occurrences.Count}");
+
             foreach (var occ in occurrences)
             {
-                if (occ.AllDay || occ.StartTime == null) continue;
+                if (occ.AllDay || occ.StartTime == null)
+                {
+                    System.Diagnostics.Debug.WriteLine($"[AlarmService]   Occurrence skipped: AllDay={occ.AllDay}, StartTime={occ.StartTime}");
+                    continue;
+                }
 
                 var occStart = new DateTime(
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                var minutesBefore = new[] { 15, 5, 1 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min };
+                var minutesBefore = new[] { 15, 5, 1, 0 };
+                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
+                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
 
                 for (int i = 0; i < minutesBefore.Length; i++)
                 {
@@ -91,11 +106,19 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
 
                     var min = minutesBefore[i];
                     var key = $"{ev.Id.Value}:{occ.Date}:{min}";
-                    if (_firedKeys.Contains(key)) continue;
+                    if (_firedKeys.Contains(key))
+                    {
+                        System.Diagnostics.Debug.WriteLine($"[AlarmService]   min={min}: already fired (key={key})");
+                        continue;
+                    }
 
                     var notifyAt = occStart.AddMinutes(-min);
-                    // Fire window: [notifyAt - 1min, notifyAt + 30sec]
-                    if (now >= notifyAt.AddMinutes(-1) && now <= notifyAt.AddSeconds(30))
+                    var windowStart = notifyAt.AddMinutes(-1);
+                    var windowEnd = notifyAt.AddSeconds(30);
+                    var inWindow = now >= windowStart && now <= windowEnd;
+                    System.Diagnostics.Debug.WriteLine($"[AlarmService]   min={min}: occStart={occStart:HH:mm:ss}, notifyAt={notifyAt:HH:mm:ss}, window=[{windowStart:HH:mm:ss},{windowEnd:HH:mm:ss}], now={now:HH:mm:ss}, inWindow={inWindow}");
+
+                    if (inWindow)
                     {
                         _firedKeys.Add(key);
                         var msg = GetMinuteMessage(min);
@@ -111,7 +134,8 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
     {
         15 => AppResources.AlarmNotify15MinMsg,
         5  => AppResources.AlarmNotify5MinMsg,
-        _  => AppResources.AlarmNotify1MinMsg
+        1  => AppResources.AlarmNotify1MinMsg,
+        _  => AppResources.AlarmNotify0MinMsg
     };
 
     private async Task ShowAlarmAsync(string eventId, string title, string message)
@@ -201,8 +225,9 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                var minutesBefore = new[] { 15, 5, 1 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min };
+                var minutesBefore = new[] { 15, 5, 1, 0 };
+                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
+                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
 
                 for (int i = 0; i < minutesBefore.Length; i++)
                 {

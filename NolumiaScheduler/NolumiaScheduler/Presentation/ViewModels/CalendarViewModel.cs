@@ -395,9 +395,11 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         MonthYearTitle = _month.ToString(AppResources.MonthYearFormat, AppResources.FormatCulture);
 
         var today = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(DateTime.Today));
-        var monthFrom = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_month));
+        // Expand events for the full 42-day grid (not just the current month)
+        var gridStart = _month.AddDays(-(int)_month.DayOfWeek);
+        var monthFrom = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(gridStart));
         var monthTo = LocalDateValue.FromDateOnly(
-            DateOnly.FromDateTime(_month.AddMonths(1).AddDays(-1)));
+            DateOnly.FromDateTime(gridStart.AddDays(41)));
 
         var byDate = new Dictionary<string, List<EventOccurrence>>();
 
@@ -450,9 +452,6 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         }
 
         DayCells.Clear();
-
-        // Grid starts from the Sunday of the week containing the 1st of the month
-        var gridStart = _month.AddDays(-(int)_month.DayOfWeek);
 
         for (var i = 0; i < 42; i++)
         {
