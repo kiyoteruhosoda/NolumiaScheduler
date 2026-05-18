@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="NolumiaScheduler.Presentation.Pages.AlarmNotificationOverlay">
+
+    <!-- Semi-transparent grey backdrop covering entire screen -->
+    <Grid BackgroundColor="#AA000000"
+          InputTransparent="False">
+
+        <!-- Centered dialog card -->
+        <Border StrokeShape="RoundRectangle 16"
+                StrokeThickness="0"
+                BackgroundColor="{AppThemeBinding Light=#FFFFFF, Dark=#2A2A3E}"
+                MaximumWidthRequest="400"
+                Padding="32,40"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                Shadow="{OnPlatform Default={Shadow Brush=#40000000, Offset='0,4', Radius=24}}">
+
+            <VerticalStackLayout Spacing="20">
+
+                <Label Text="🔔"
+                       FontSize="56"
+                       HorizontalOptions="Center" />
+
+                <Label x:Name="TitleLabel"
+                       FontSize="24"
+                       FontAttributes="Bold"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{AppThemeBinding Light=#212121, Dark=#EEEEEE}" />
+
+                <Label x:Name="MessageLabel"
+                       FontSize="16"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{AppThemeBinding Light=#616161, Dark=#BDBDBD}" />
+
+                <Label x:Name="TimeLabel"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center"
+                       TextColor="{AppThemeBinding Light=#9E9E9E, Dark=#757575}" />
+
+                <BoxView HeightRequest="1"
+                         Color="{AppThemeBinding Light=#E0E0E0, Dark=#444444}"
+                         Margin="0,8" />
+
+                <Button Text="閉じる"
+                        FontSize="18"
+                        HeightRequest="52"
+                        BackgroundColor="{AppThemeBinding Light=#1976D2, Dark=#64B5F6}"
+                        TextColor="White"
+                        CornerRadius="12"
+                        Clicked="OnDismissClicked" />
+
+                <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                    <Button Grid.Column="0"
+                            Text="5分後に再通知"
+                            FontSize="13"
+                            HeightRequest="44"
+                            BackgroundColor="{AppThemeBinding Light=#E0E0E0, Dark=#424242}"
+                            TextColor="{AppThemeBinding Light=#212121, Dark=#EEEEEE}"
+                            CornerRadius="10"
+                            Clicked="OnSnooze5Clicked" />
+                    <Button Grid.Column="1"
+                            Text="1分後に再通知"
+                            FontSize="13"
+                            HeightRequest="44"
+                            BackgroundColor="{AppThemeBinding Light=#E0E0E0, Dark=#424242}"
+                            TextColor="{AppThemeBinding Light=#212121, Dark=#EEEEEE}"
+                            CornerRadius="10"
+                            Clicked="OnSnooze1Clicked" />
+                </Grid>
+
+            </VerticalStackLayout>
+
+        </Border>
+
+    </Grid>
+
+</ContentView>

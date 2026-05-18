@@ -133,6 +133,7 @@ public static class AppResources
     public static string AlarmNotify15MinMsg => Get(nameof(AlarmNotify15MinMsg));
     public static string AlarmNotify5MinMsg  => Get(nameof(AlarmNotify5MinMsg));
     public static string AlarmNotify1MinMsg  => Get(nameof(AlarmNotify1MinMsg));
+    public static string AlarmNotify0MinMsg  => Get(nameof(AlarmNotify0MinMsg));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;

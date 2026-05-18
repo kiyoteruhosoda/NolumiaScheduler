@@ -18,4 +18,4 @@ For images that are meant to be accessed from cross-platform code, like XAML
 files, images should be placed into the `Assets\Images` folder as those are
 packaged differently to ensure the path matches that for the other platforms.
 
-For more information, see the Assets\ImagesAboutWinUIImages.txt file.
+For more information, see the Assets\ImagesAboutWinMAUIImages.txt file.

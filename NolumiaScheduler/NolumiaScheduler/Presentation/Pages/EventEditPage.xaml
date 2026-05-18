@@ -91,13 +91,13 @@
                                    FontSize="13" WidthRequest="48"
                                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                                    VerticalOptions="Center" />
-                            <TimePicker Grid.Column="1" Time="{Binding StartTime}" FontSize="14"
+                            <TimePicker Grid.Column="1" Time="{Binding StartTime}" FontSize="14" Format="HH:mm"
                                         TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
                             <Label Grid.Column="2" Text="{x:Static res:AppResources.EndLabel}"
                                    FontSize="13" WidthRequest="48"
                                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                                    VerticalOptions="Center" />
-                            <TimePicker Grid.Column="3" Time="{Binding EndTime}" FontSize="14"
+                            <TimePicker Grid.Column="3" Time="{Binding EndTime}" FontSize="14" Format="HH:mm"
                                         TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
                         </Grid>
                     </VerticalStackLayout>

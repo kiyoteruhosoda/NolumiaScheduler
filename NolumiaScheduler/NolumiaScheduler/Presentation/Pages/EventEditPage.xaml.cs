@@ -1,3 +1,4 @@
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.Resources.Strings;
 
@@ -11,6 +12,7 @@ namespace NolumiaScheduler.Presentation.Pages;
 public partial class EventEditPage : ContentPage
 {
     private readonly EventEditViewModel _vm;
+    private readonly IAlarmService _alarmService;
 
     private string? _eventId;
     private string? _startDateRaw;
@@ -24,13 +26,19 @@ public partial class EventEditPage : ContentPage
     public string? OccurrenceDate { set { _occurrenceDateRaw = value; ApplyNavigationContext(); } }
     public string? OccurrenceStartMinute { set { _occurrenceStartMinuteRaw = value; ApplyNavigationContext(); } }
 
-    public EventEditPage(EventEditViewModel vm)
+    public EventEditPage(EventEditViewModel vm, IAlarmService alarmService)
     {
         InitializeComponent();
         _vm = vm;
+        _alarmService = alarmService;
         BindingContext = vm;
 
-        vm.SaveCompleted += async () => await Shell.Current.GoToAsync("..");
+        vm.SaveCompleted += async () =>
+        {
+            if (_vm.EditingEventId is { } id)
+                _alarmService.ResetFiredKeys(id);
+            await Shell.Current.GoToAsync("..");
+        };
     }
 
     private void ApplyNavigationContext()

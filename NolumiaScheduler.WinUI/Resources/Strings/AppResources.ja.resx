@@ -1,0 +1,400 @@
+<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CalendarTitle" xml:space="preserve">
+    <value>カレンダー</value>
+  </data>
+  <data name="TodayButton" xml:space="preserve">
+    <value>今日</value>
+  </data>
+  <data name="DaySun" xml:space="preserve">
+    <value>日</value>
+  </data>
+  <data name="DayMon" xml:space="preserve">
+    <value>月</value>
+  </data>
+  <data name="DayTue" xml:space="preserve">
+    <value>火</value>
+  </data>
+  <data name="DayWed" xml:space="preserve">
+    <value>水</value>
+  </data>
+  <data name="DayThu" xml:space="preserve">
+    <value>木</value>
+  </data>
+  <data name="DayFri" xml:space="preserve">
+    <value>金</value>
+  </data>
+  <data name="DaySat" xml:space="preserve">
+    <value>土</value>
+  </data>
+  <data name="MonthViewLabel" xml:space="preserve">
+    <value>月表示</value>
+  </data>
+  <data name="WeekViewLabel" xml:space="preserve">
+    <value>週表示</value>
+  </data>
+  <data name="WeekViewHint" xml:space="preserve">
+    <value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value>
+  </data>
+  <data name="AllDay" xml:space="preserve">
+    <value>終日</value>
+  </data>
+  <data name="BadgeMoved" xml:space="preserve">
+    <value>振替</value>
+  </data>
+  <data name="BadgeModified" xml:space="preserve">
+    <value>変更済み</value>
+  </data>
+  <data name="NoEventsLabel" xml:space="preserve">
+    <value>予定なし</value>
+  </data>
+  <data name="CalendarTab" xml:space="preserve">
+    <value>カレンダー</value>
+  </data>
+  <data name="BusinessCalendarsTab" xml:space="preserve">
+    <value>営業日カレンダー</value>
+  </data>
+  <data name="NoCalendarsLabel" xml:space="preserve">
+    <value>営業日カレンダーなし</value>
+  </data>
+  <data name="AddCalendarButton" xml:space="preserve">
+    <value>＋ 新規カレンダー</value>
+  </data>
+  <data name="NewCalendarTitle" xml:space="preserve">
+    <value>新規カレンダー</value>
+  </data>
+  <data name="EditCalendarTitle" xml:space="preserve">
+    <value>カレンダー編集</value>
+  </data>
+  <data name="CalendarNamePlaceholder" xml:space="preserve">
+    <value>カレンダー名</value>
+  </data>
+  <data name="WorkdaysLabel" xml:space="preserve">
+    <value>営業日</value>
+  </data>
+  <data name="HolidaysLabel" xml:space="preserve">
+    <value>祝日・休日</value>
+  </data>
+  <data name="AddHolidayButton" xml:space="preserve">
+    <value>追加</value>
+  </data>
+  <data name="HolidayNamePlaceholder" xml:space="preserve">
+    <value>祝日名（任意）</value>
+  </data>
+  <data name="SaveButton" xml:space="preserve">
+    <value>保存</value>
+  </data>
+  <data name="DeleteCalendarButton" xml:space="preserve">
+    <value>カレンダーを削除</value>
+  </data>
+  <data name="NewEventTitle" xml:space="preserve">
+    <value>新規予定</value>
+  </data>
+  <data name="EventTitlePlaceholder" xml:space="preserve">
+    <value>タイトル</value>
+  </data>
+  <data name="EventLocationPlaceholder" xml:space="preserve">
+    <value>場所（任意）</value>
+  </data>
+  <data name="StartLabel" xml:space="preserve">
+    <value>開始</value>
+  </data>
+  <data name="EndLabel" xml:space="preserve">
+    <value>終了</value>
+  </data>
+  <data name="RepeatLabel" xml:space="preserve">
+    <value>繰り返し</value>
+  </data>
+  <data name="RepeatNone" xml:space="preserve">
+    <value>なし</value>
+  </data>
+  <data name="RepeatWeekly" xml:space="preserve">
+    <value>毎週</value>
+  </data>
+  <data name="RepeatMonthly" xml:space="preserve">
+    <value>毎月</value>
+  </data>
+  <data name="RepeatYearly" xml:space="preserve">
+    <value>毎年</value>
+  </data>
+  <data name="WeekdaysLabel" xml:space="preserve">
+    <value>曜日</value>
+  </data>
+  <data name="MonthlyDayOfMonth" xml:space="preserve">
+    <value>毎月○日</value>
+  </data>
+  <data name="MonthlyNthWeekday" xml:space="preserve">
+    <value>第○曜日</value>
+  </data>
+  <data name="DayLabel" xml:space="preserve">
+    <value>日</value>
+  </data>
+  <data name="MonthLabel" xml:space="preserve">
+    <value>月</value>
+  </data>
+  <data name="WeekIndexLabel" xml:space="preserve">
+    <value>第○週</value>
+  </data>
+  <data name="NthWeekLast" xml:space="preserve">
+    <value>最終</value>
+  </data>
+  <data name="IntervalLabel" xml:space="preserve">
+    <value>間隔</value>
+  </data>
+  <data name="EndDateLabel" xml:space="preserve">
+    <value>終了日</value>
+  </data>
+  <data name="AdjustmentLabel" xml:space="preserve">
+    <value>祝日ずらし</value>
+  </data>
+  <data name="AdjustmentNone" xml:space="preserve">
+    <value>なし</value>
+  </data>
+  <data name="AdjustmentForward" xml:space="preserve">
+    <value>翔営業日へ</value>
+  </data>
+  <data name="AdjustmentBackward" xml:space="preserve">
+    <value>前営業日へ</value>
+  </data>
+  <data name="BusinessCalendarLabel" xml:space="preserve">
+    <value>営業日カレンダー</value>
+  </data>
+  <data name="ErrorTitleRequired" xml:space="preserve">
+    <value>タイトルを入力してください。</value>
+  </data>
+  <data name="ErrorWeekdayRequired" xml:space="preserve">
+    <value>曜日を1つ以上選択してください。</value>
+  </data>
+  <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
+  <data name="DeleteEventTitle" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="DeleteOccurrence" type="System.Resources.ResXNullRef, System.Windows.Forms">
+    <value />
+  </data>
+  <data name="MonthYearFormat" xml:space="preserve">
+    <value>yyyy年M月</value>
+  </data>
+  <data name="SelectedDayFormat" xml:space="preserve">
+    <value>M月d日 (ddd)</value>
+  </data>
+  <data name="FormatCultureName" xml:space="preserve">
+    <value>ja-JP</value>
+  </data>
+  <data name="EditRecurringEventTitle" xml:space="preserve">
+    <value>繰り返し予定の編集</value>
+  </data>
+  <data name="EditThisOccurrence" xml:space="preserve">
+    <value>この予定のみ</value>
+  </data>
+  <data name="EditThisAndFollowing" xml:space="preserve">
+    <value>これ以降の予定</value>
+  </data>
+  <data name="EditEntireSeries" xml:space="preserve">
+    <value>すべての予定</value>
+  </data>
+  <data name="EditRecurringScopeRequired" xml:space="preserve">
+    <value>編集範囲を選択してください。</value>
+  </data>
+  <data name="EditThisOccurrenceNotImplemented" xml:space="preserve">
+    <value>この予定のみの編集は未実装です。</value>
+  </data>
+  <data name="EditThisAndFollowingNotImplemented" xml:space="preserve">
+    <value>これ以降の編集は未実装です。</value>
+  </data>
+  <data name="AlarmLabel" xml:space="preserve">
+    <value>アラーム</value>
+  </data>
+  <data name="AlarmEnable" xml:space="preserve">
+    <value>アラームを有効にする</value>
+  </data>
+  <data name="AlarmNotify15Min" xml:space="preserve">
+    <value>15分前</value>
+  </data>
+  <data name="AlarmNotify5Min" xml:space="preserve">
+    <value>5分前</value>
+  </data>
+  <data name="AlarmNotify1Min" xml:space="preserve">
+    <value>1分前</value>
+  </data>
+  <data name="AlarmDismiss" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="AlarmSnooze5Min" xml:space="preserve">
+    <value>5分後にスヌーズ</value>
+  </data>
+  <data name="AlarmSnooze1Min" xml:space="preserve">
+    <value>1分後にスヌーズ</value>
+  </data>
+  <data name="AlarmSnoozeReminder" xml:space="preserve">
+    <value>スヌーズ通知: {0}</value>
+  </data>
+  <data name="AlarmNotify15MinMsg" xml:space="preserve">
+    <value>15分後に開始します</value>
+  </data>
+  <data name="AlarmNotify5MinMsg" xml:space="preserve">
+    <value>5分後に開始します</value>
+  </data>
+  <data name="AlarmNotify1MinMsg" xml:space="preserve">
+    <value>1分後に開始します</value>
+  </data>
+  <data name="AlarmWindowTitle" xml:space="preserve">
+    <value>アラーム通知</value>
+  </data>
+  <data name="AlarmOpenLocation" xml:space="preserve">
+    <value>📍 ロケーションを開く</value>
+  </data>
+  <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve">
+    <value>イベント5分前に再通知</value>
+  </data>
+  <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve">
+    <value>イベント1分前に再通知</value>
+  </data>
+  <data name="AlarmCancelAll" xml:space="preserve">
+    <value>以降のアラームをすべてキャンセル</value>
+  </data>
+  <data name="AlarmSnooze5MinBtn" xml:space="preserve">
+    <value>5分後に再通知</value>
+  </data>
+  <data name="AlarmSnooze1MinBtn" xml:space="preserve">
+    <value>1分後に再通知</value>
+  </data>
+  <data name="EditButton" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="ReplaceButton" xml:space="preserve">
+    <value>置換</value>
+  </data>
+  <data name="ReplaceHolidayMessage" xml:space="preserve">
+    <value>既存の祝日「{0}」を置換しますか？</value>
+  </data>
+  <data name="DeleteAllOccurrences" xml:space="preserve">
+    <value>すべての予定を削除</value>
+  </data>
+  <data name="EditEventTitle" xml:space="preserve">
+    <value>イベント編集</value>
+  </data>
+</root>

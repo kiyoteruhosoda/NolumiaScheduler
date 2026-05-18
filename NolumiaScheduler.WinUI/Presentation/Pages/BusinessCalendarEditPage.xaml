@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page x:Class="NolumiaScheduler.Presentation.Pages.BusinessCalendarEditPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:res="using:NolumiaScheduler.Resources.Strings"
+      Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
+
+    <ScrollViewer Background="{ThemeResource GCalSurfaceVariant}">
+        <StackPanel Padding="16" Spacing="0">
+
+            <!-- Calendar Name -->
+            <TextBlock x:Name="NameLabel" FontSize="12" Margin="4,16,0,4"
+                       Foreground="{ThemeResource GCalTextSecondary}"/>
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2">
+                <TextBox x:Name="NameBox" BorderThickness="0" FontSize="15" MinHeight="48"
+                         Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"/>
+            </Border>
+
+            <!-- Working Days -->
+            <TextBlock x:Name="WorkdaysLabel" FontSize="12" Margin="4,20,0,8"
+                       Foreground="{ThemeResource GCalTextSecondary}"/>
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,8">
+                <Grid ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="4">
+                    <!-- Sun -->
+                    <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblSun" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource GCalRed}"/>
+                        <CheckBox x:Name="ChkSun" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Mon -->
+                    <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblMon" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <CheckBox x:Name="ChkMon" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Tue -->
+                    <StackPanel Grid.Column="2" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblTue" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <CheckBox x:Name="ChkTue" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Wed -->
+                    <StackPanel Grid.Column="3" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblWed" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <CheckBox x:Name="ChkWed" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Thu -->
+                    <StackPanel Grid.Column="4" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblThu" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <CheckBox x:Name="ChkThu" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Fri -->
+                    <StackPanel Grid.Column="5" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblFri" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <CheckBox x:Name="ChkFri" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                    <!-- Sat -->
+                    <StackPanel Grid.Column="6" HorizontalAlignment="Center" Spacing="4">
+                        <TextBlock x:Name="LblSat" FontSize="11" HorizontalAlignment="Center"
+                                   Foreground="{StaticResource GCalBlue}"/>
+                        <CheckBox x:Name="ChkSat" HorizontalAlignment="Center"/>
+                    </StackPanel>
+                </Grid>
+            </Border>
+
+            <!-- Holidays -->
+            <TextBlock x:Name="HolidaysLabel" FontSize="12" Margin="4,20,0,4"
+                       Foreground="{ThemeResource GCalTextSecondary}"/>
+
+            <!-- Holiday list -->
+            <Border x:Name="HolidayListBorder" Background="{ThemeResource GCalSurface}" CornerRadius="8" Margin="0,0,0,2">
+                <ItemsControl x:Name="HolidayList">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid Padding="12,0" MinHeight="48" ColumnDefinitions="*,40">
+                                <TextBlock Grid.Column="0" Text="{Binding DisplayText}" FontSize="14"
+                                           Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                                <Button Grid.Column="1" Content="&#xD7;" Width="40" Height="40"
+                                        Background="Transparent" BorderThickness="0" FontSize="16"
+                                        Foreground="{ThemeResource GCalTextSecondary}"
+                                        Padding="0" Command="{Binding RemoveCommand}"/>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Border>
+
+            <!-- Add holiday row -->
+            <Border Background="{ThemeResource GCalSurfaceVariant}" CornerRadius="8" Padding="12,8">
+                <Grid ColumnDefinitions="*,*,56" ColumnSpacing="8">
+                    <CalendarDatePicker x:Name="NewHolidayDatePicker" Grid.Column="0" FontSize="13" MinWidth="0"/>
+                    <TextBox x:Name="NewHolidayNameBox" Grid.Column="1" FontSize="13"
+                             Foreground="{ThemeResource GCalTextPrimary}"/>
+                    <Button x:Name="AddHolidayBtn" Grid.Column="2" FontSize="13" Height="40"
+                            Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
+                            CornerRadius="6" Padding="4,0"
+                            Click="OnAddHolidayClicked"/>
+                </Grid>
+            </Border>
+
+            <!-- Save Button -->
+            <Button x:Name="SaveBtn" FontSize="15" CornerRadius="8" Height="48" Margin="0,24,0,0"
+                    HorizontalAlignment="Stretch"
+                    Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
+                    Click="OnSaveClicked"/>
+
+            <!-- Delete Button (editing only) -->
+            <Button x:Name="DeleteBtn" FontSize="15" CornerRadius="8" Height="48"
+                    Margin="0,12,0,24" HorizontalAlignment="Stretch"
+                    Visibility="Collapsed"
+                    Background="{ThemeResource GCalSurface}"
+                    Foreground="{StaticResource GCalRed}"
+                    BorderBrush="{StaticResource GCalRed}" BorderThickness="1"
+                    Click="OnDeleteClicked"/>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

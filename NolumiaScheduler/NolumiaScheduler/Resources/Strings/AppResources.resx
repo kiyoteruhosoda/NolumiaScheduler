@@ -121,4 +121,5 @@
   <data name="AlarmNotify15MinMsg" xml:space="preserve"><value>Starts in 15 minutes</value></data>
   <data name="AlarmNotify5MinMsg" xml:space="preserve"><value>Starts in 5 minutes</value></data>
   <data name="AlarmNotify1MinMsg" xml:space="preserve"><value>Starts in 1 minute</value></data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve"><value>Starting now</value></data>
 </root>

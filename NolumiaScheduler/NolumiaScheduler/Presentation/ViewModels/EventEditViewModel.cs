@@ -65,7 +65,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     private string? _editingEventId;
 
     // ── Alarm ────────────────────────────────────────────────
-    private bool _alarmEnabled;
+    private bool _alarmEnabled = true;
     private bool _alarmNotify15Min = true;
     private bool _alarmNotify5Min = true;
     private bool _alarmNotify1Min = true;
@@ -89,6 +89,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     }
 
     public bool IsEditing => _editingEventId != null;
+    public string? EditingEventId => _editingEventId;
     public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
     public bool RequiresRecurringEditScopeSelection => IsEditing && IsRecurring && IsOccurrenceEditing;
