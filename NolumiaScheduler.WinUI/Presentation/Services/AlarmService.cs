@@ -1,6 +1,6 @@
-﻿using Microsoft.UI.Dispatching;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
-using NolumiaScheduler.Domain.Repositories;
+using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Pages;
@@ -9,9 +9,9 @@ using System.Diagnostics;
 
 namespace NolumiaScheduler.Presentation.Services;
 
-public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpander expander) : IAlarmService
+public class AlarmService(CalendarEventApplicationService eventService, IOccurrenceExpander expander) : IAlarmService
 {
-    private readonly ICalendarEventRepository _eventRepo = eventRepo;
+    private readonly CalendarEventApplicationService _eventService = eventService;
     private readonly IOccurrenceExpander _expander = expander;
     private DispatcherQueueTimer? _timer;
     private readonly HashSet<string> _firedKeys = [];
@@ -29,19 +29,17 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
         _timer.Start();
 
-        // Subscribe to repository changes for real-time sync
-        _eventRepo.Changed += OnRepositoryChanged;
+        _eventService.Changed += OnRepositoryChanged;
     }
 
     public void Stop()
     {
         _timer?.Stop();
-        _eventRepo.Changed -= OnRepositoryChanged;
+        _eventService.Changed -= OnRepositoryChanged;
     }
 
     private void OnRepositoryChanged()
     {
-        // Dispatch to UI thread, then re-check alarms and notify listeners
         var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
         dq.TryEnqueue(() =>
         {
@@ -75,7 +73,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
             if (_isShowingNotification) return;
         }
 
-        var events = _eventRepo.FindAll();
+        var events = _eventService.FindAll();
         foreach (var ev in events)
         {
             if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
@@ -178,12 +176,11 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
 
     private void CancelRemainingAlarms(string eventId)
     {
-        // Mark all unfired alarm keys for this event's occurrences today as fired
         var now = DateTime.Now;
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
 
-        var events = _eventRepo.FindAll();
+        var events = _eventService.FindAll();
         foreach (var ev in events)
         {
             if (ev.Id.Value != eventId) continue;
@@ -202,7 +199,6 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
             }
         }
 
-        // Also remove any pending snoozed entries for this event
         _snoozed.RemoveAll(s => s.EventId == eventId);
     }
 
@@ -215,7 +211,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         var tomorrow = today.AddDays(1);
         var results = new List<AlarmScheduleEntry>();
 
-        var events = _eventRepo.FindAll();
+        var events = _eventService.FindAll();
         foreach (var ev in events)
         {
             if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
@@ -264,7 +260,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
 
-        var events = _eventRepo.FindAll();
+        var events = _eventService.FindAll();
         lines.Add($"[Diag] Total events: {events.Count}, Range: {today} ~ {tomorrow}");
 
         foreach (var ev in events)

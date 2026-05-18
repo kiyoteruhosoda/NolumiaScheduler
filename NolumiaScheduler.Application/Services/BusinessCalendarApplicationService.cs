@@ -9,6 +9,12 @@ public sealed class BusinessCalendarApplicationService(IBusinessCalendarReposito
 {
     private readonly IBusinessCalendarRepository _repo = repo;
 
+    public BusinessCalendar? FindById(string id) =>
+        _repo.FindById(new BusinessCalendarId(id));
+
+    public IReadOnlyList<BusinessCalendar> FindAll() =>
+        _repo.FindAll();
+
     public BusinessCalendar Create(CreateBusinessCalendarCommand cmd)
     {
         var id = new BusinessCalendarId(Guid.NewGuid().ToString());

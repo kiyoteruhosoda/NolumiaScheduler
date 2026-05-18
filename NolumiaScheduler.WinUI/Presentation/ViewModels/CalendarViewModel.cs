@@ -6,7 +6,6 @@ using System.Windows.Input;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
-using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Services;
@@ -17,10 +16,9 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 
 public sealed class CalendarViewModel : INotifyPropertyChanged
 {
-    private readonly ICalendarEventRepository _events;
-    private readonly IBusinessCalendarRepository _businessCalendars;
-    private readonly IOccurrenceExpander _expander;
     private readonly CalendarEventApplicationService _eventService;
+    private readonly BusinessCalendarApplicationService _calendarService;
+    private readonly IOccurrenceExpander _expander;
     private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
     private readonly IWeekAllDayLayoutStrategy _weekAllDayLayoutStrategy;
     private readonly DateTime _today = DateTime.Today.Date;
@@ -37,17 +35,15 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     private DateTime _weekStartDate;
 
     public CalendarViewModel(
-        ICalendarEventRepository events,
-        IBusinessCalendarRepository businessCalendars,
-        IOccurrenceExpander expander,
         CalendarEventApplicationService eventService,
+        BusinessCalendarApplicationService calendarService,
+        IOccurrenceExpander expander,
         IWeekEventLayoutStrategy weekEventLayoutStrategy,
         IWeekAllDayLayoutStrategy weekAllDayLayoutStrategy)
     {
-        _events = events;
-        _businessCalendars = businessCalendars;
-        _expander = expander;
         _eventService = eventService;
+        _calendarService = calendarService;
+        _expander = expander;
         _weekEventLayoutStrategy = weekEventLayoutStrategy;
         _weekAllDayLayoutStrategy = weekAllDayLayoutStrategy;
         _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
@@ -188,7 +184,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         if (cell.IsHoliday)
         {
             var parts = new List<string>();
-            foreach (var cal in _businessCalendars.FindAll())
+            foreach (var cal in _calendarService.FindAll())
             {
                 var h = cal.Holidays.FirstOrDefault(h => h.Date.Equals(cell.Date));
                 if (h != null)
@@ -208,6 +204,9 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
     }
 
     public void ReloadCurrentMonth() => RefreshAfterChange();
+
+    public bool IsEventRecurring(string eventId) =>
+        _eventService.FindById(eventId)?.IsRecurring() ?? false;
 
     public void DeleteEntireEvent(string eventId)
     {
@@ -309,11 +308,14 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
         {
             if (id == null) return null;
             if (!calendarCache.TryGetValue(id, out var cal))
-                calendarCache[id] = cal = _businessCalendars.FindById(new BusinessCalendarId(id))!;
+            {
+                var found = _calendarService.FindById(id);
+                if (found != null) calendarCache[id] = cal = found;
+            }
             return cal;
         }
 
-        foreach (var ev in _events.FindAll())
+        foreach (var ev in _eventService.FindAll())
         {
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
@@ -366,7 +368,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
             var date = _weekStartDate.AddDays(i);
             var header = date.ToString("ddd M/d", AppResources.FormatCulture);
             WeekHeaderDays.Add(header);
-            var isHoliday = _businessCalendars.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
+            var isHoliday = _calendarService.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
 
             var isToday = date.Date == _today;
             var col = new WeekDayColumn(header, date, isHoliday, isToday);
@@ -402,17 +404,19 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
         var byDate = new Dictionary<string, List<EventOccurrence>>();
 
-        // Build a lookup of business calendars for occurrence expansion (holiday shifting)
         var calendarCache = new Dictionary<string, BusinessCalendar>();
         BusinessCalendar? GetCalendar(string? id)
         {
             if (id == null) return null;
             if (!calendarCache.TryGetValue(id, out var cal))
-                calendarCache[id] = cal = _businessCalendars.FindById(new BusinessCalendarId(id))!;
+            {
+                var found = _calendarService.FindById(id);
+                if (found != null) calendarCache[id] = cal = found;
+            }
             return cal;
         }
 
-        foreach (var ev in _events.FindAll())
+        foreach (var ev in _eventService.FindAll())
         {
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
@@ -440,7 +444,7 @@ public sealed class CalendarViewModel : INotifyPropertyChanged
 
         // Collect holidays from all business calendars for display
         var holidayByDate = new Dictionary<string, string?>();
-        foreach (var cal in _businessCalendars.FindAll())
+        foreach (var cal in _calendarService.FindAll())
         {
             foreach (var h in cal.Holidays)
             {
