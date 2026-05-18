@@ -9,7 +9,7 @@ using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
 namespace NolumiaScheduler.Infrastructure.Json.Repositories;
 
-public class JsonCalendarEventRepository : ICalendarEventRepository
+public class JsonCalendarEventRepository : ICalendarEventRepository, ICalendarEventChanges
 {
     public event Action? Changed;
     private readonly string _directoryPath;

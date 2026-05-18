@@ -8,9 +8,10 @@ using MauiApp = Microsoft.Maui.Controls.Application;
 
 namespace NolumiaScheduler.Presentation.Services;
 
-public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpander expander) : IAlarmService
+public class AlarmService(ICalendarEventRepository eventRepo, ICalendarEventChanges eventChanges, IOccurrenceExpander expander) : IAlarmService
 {
     private readonly ICalendarEventRepository _eventRepo = eventRepo;
+    private readonly ICalendarEventChanges _eventChanges = eventChanges;
     private readonly IOccurrenceExpander _expander = expander;
     private IDispatcherTimer? _timer;
     private readonly HashSet<string> _firedKeys = [];
@@ -26,13 +27,13 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
         _timer.Start();
 
-        _eventRepo.Changed += OnRepositoryChanged;
+        _eventChanges.Changed += OnRepositoryChanged;
     }
 
     public void Stop()
     {
         _timer?.Stop();
-        _eventRepo.Changed -= OnRepositoryChanged;
+        _eventChanges.Changed -= OnRepositoryChanged;
     }
 
     private void OnRepositoryChanged()

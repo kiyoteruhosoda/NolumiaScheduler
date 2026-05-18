@@ -34,13 +34,15 @@ public static class MauiProgramExtensions
         builder.Services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
 
         // Repositories
-        builder.Services.AddSingleton<ICalendarEventRepository>(_ =>
+        builder.Services.AddSingleton<JsonCalendarEventRepository>(_ =>
         {
             var dir = Path.Combine(FileSystem.AppDataDirectory, "events");
             var repo = new JsonCalendarEventRepository(dir);
             SeedSampleEvents(repo);
             return repo;
         });
+        builder.Services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
+        builder.Services.AddSingleton<ICalendarEventChanges>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
 
         builder.Services.AddSingleton<IBusinessCalendarRepository>(_ =>
         {
