@@ -13,7 +13,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
 {
     private readonly ICalendarEventRepository _repository = repository;
 
-    public CalendarEvent CreateSingleEvent(CreateSingleEventCommand command)
+    public void CreateSingleEvent(CreateSingleEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
         var schedule = new SingleEventSchedule(command.Start, command.End);
@@ -32,10 +32,9 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             alarm: command.Alarm);
 
         _repository.Save(ev);
-        return ev;
     }
 
-    public CalendarEvent CreateRecurringEvent(CreateRecurringEventCommand command)
+    public void CreateRecurringEvent(CreateRecurringEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
         var schedule = new RecurringEventSchedule(
@@ -59,7 +58,6 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             alarm: command.Alarm);
 
         _repository.Save(ev);
-        return ev;
     }
 
     public void SkipOccurrence(SkipOccurrenceCommand command)
@@ -117,18 +115,16 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         _repository.Save(ev);
     }
 
-    public CalendarEvent ChangeFollowingOccurrences(ChangeFollowingOccurrencesCommand command)
+    public void ChangeFollowingOccurrences(ChangeFollowingOccurrencesCommand command)
     {
         var ev = GetOrThrow(command.EventId);
         if (!ev.IsRecurring() || ev.RecurringSchedule == null)
             throw new DomainException("ChangeFollowingOccurrences is only valid for recurring events.");
 
-        // 既存イベントの endDate を変更前最終回の前日に切る
         var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
         ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
         _repository.Save(ev);
 
-        // 新しい繰り返しイベントを作成（future側）
         var newId = new EventId(Guid.NewGuid().ToString());
         var newSchedule = new RecurringEventSchedule(
             command.FromOccurrenceKey.Date,
@@ -151,7 +147,6 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             alarm: command.Alarm);
 
         _repository.Save(newEv);
-        return newEv;
     }
 
     private CalendarEvent GetOrThrow(string eventId)

@@ -3,7 +3,6 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
-using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Presentation.Controls;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
@@ -15,13 +14,11 @@ namespace NolumiaScheduler.Presentation.Pages;
 public sealed partial class CalendarPage : Page
 {
     private CalendarViewModel? _vm;
-    private readonly ICalendarEventRepository _eventRepo;
     private readonly IWeekInteractionCompletionService _interactionCompletionService;
 
     public CalendarPage()
     {
         InitializeComponent();
-        _eventRepo = NolumiaScheduler.WinUI.App.Services.GetRequiredService<ICalendarEventRepository>();
         _interactionCompletionService = NolumiaScheduler.WinUI.App.Services.GetRequiredService<IWeekInteractionCompletionService>();
 
         // Static strings
@@ -217,10 +214,7 @@ public sealed partial class CalendarPage : Page
         var item = _vm?.SelectedDayEvents.FirstOrDefault(x => x.EventId == eventId);
         if (item == null) return;
 
-        var ev = _eventRepo.FindById(new Domain.ValueObjects.EventId(eventId));
-        if (ev == null) return;
-
-        if (ev.IsRecurring())
+        if (_vm?.IsEventRecurring(eventId) == true)
         {
             var dialog = new ContentDialog
             {

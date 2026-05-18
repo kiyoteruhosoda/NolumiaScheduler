@@ -4,7 +4,6 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
-using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
@@ -14,7 +13,6 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
 {
     private readonly BusinessCalendarApplicationService _service;
-    private readonly IBusinessCalendarRepository _repo;
 
     private string? _calendarId;
     private string _name = "";
@@ -72,12 +70,9 @@ public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
 
     public string? ValidationError { get; private set; }
 
-    public BusinessCalendarEditViewModel(
-        BusinessCalendarApplicationService service,
-        IBusinessCalendarRepository repo)
+    public BusinessCalendarEditViewModel(BusinessCalendarApplicationService service)
     {
         _service = service;
-        _repo = repo;
         AddHolidayCommand = new RelayCommand(AddHoliday);
         SaveCommand = new RelayCommand(Save);
         DeleteCommand = new RelayCommand(Delete);
@@ -87,7 +82,7 @@ public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
     {
         if (_calendarId == null) return;
 
-        var cal = _repo.FindById(new BusinessCalendarId(_calendarId));
+        var cal = _service.FindById(_calendarId);
         if (cal == null) return;
 
         Name = cal.Name;
@@ -185,17 +180,15 @@ public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
 
         if (_calendarId == null)
         {
-            var created = _service.Create(new CreateBusinessCalendarCommand(Name.Trim(), timezone, workdays));
+            var createdId = _service.Create(new CreateBusinessCalendarCommand(Name.Trim(), timezone, workdays));
             foreach (var h in Holidays)
-                _service.AddHoliday(new AddHolidayCommand(created.Id.Value, h.Date, h.Name));
+                _service.AddHoliday(new AddHolidayCommand(createdId, h.Date, h.Name));
         }
         else
         {
             _service.Update(new UpdateBusinessCalendarCommand(_calendarId, Name.Trim(), workdays));
 
-            // Full sync: snapshot existing dates, remove all, then re-add desired.
-            // This correctly handles additions, removals, AND name changes.
-            var existing = _repo.FindById(new BusinessCalendarId(_calendarId))!;
+            var existing = _service.FindById(_calendarId)!;
             var datesToRemove = existing.Holidays.Select(h => h.Date).ToList();
 
             foreach (var date in datesToRemove)

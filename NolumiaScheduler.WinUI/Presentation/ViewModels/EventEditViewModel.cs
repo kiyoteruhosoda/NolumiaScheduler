@@ -4,12 +4,9 @@ using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
-using NolumiaScheduler.Domain.Aggregates;
-using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
-using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
@@ -25,8 +22,7 @@ public enum AdjustmentIndex { None = 0, Forward = 1, Backward = 2 }
 public sealed class EventEditViewModel : INotifyPropertyChanged
 {
     private readonly CalendarEventApplicationService _eventService;
-    private readonly ICalendarEventRepository _eventRepo;
-    private readonly IBusinessCalendarRepository _calendarRepo;
+    private readonly BusinessCalendarApplicationService _calendarService;
 
     // ── Basic fields ────────────────────────────────────────────
     private string _title = "";
@@ -74,12 +70,10 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     // ── Constructor ──────────────────────────────────────────
     public EventEditViewModel(
         CalendarEventApplicationService eventService,
-        ICalendarEventRepository eventRepo,
-        IBusinessCalendarRepository calendarRepo)
+        BusinessCalendarApplicationService calendarService)
     {
         _eventService = eventService;
-        _eventRepo = eventRepo;
-        _calendarRepo = calendarRepo;
+        _calendarService = calendarService;
 
         SaveCommand = new RelayCommand(RequestSave);
 
@@ -114,7 +108,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     public void LoadEvent(string eventId, OccurrenceLocalKey? occurrenceKey = null)
     {
-        var ev = _eventRepo.FindById(new EventId(eventId));
+        var ev = _eventService.FindById(eventId);
         if (ev == null) return;
 
         _editingEventId = eventId;
@@ -574,13 +568,6 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             return;
         }
 
-        var ev = _eventRepo.FindById(new EventId(eventId));
-        if (ev == null || !ev.IsRecurring())
-        {
-            ValidationError = "繰り返し予定が見つかりません。";
-            return;
-        }
-
         var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
 
@@ -607,13 +594,6 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
             return;
         }
 
-        var ev = _eventRepo.FindById(new EventId(eventId));
-        if (ev == null || !ev.IsRecurring())
-        {
-            ValidationError = "繰り返し予定が見つかりません。";
-            return;
-        }
-
         var date = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(StartDate.Date));
         var start = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var end = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
@@ -632,27 +612,18 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     private void UpdateExisting(string eventId)
     {
-        var ev = _eventRepo.FindById(new EventId(eventId));
-        if (ev == null) { ValidationError = "Event not found."; return; }
+        var ev = _eventService.FindById(eventId);
+        var tz = ev?.TimeZoneId.Value ?? "Asia/Tokyo";
+        var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
+        DateTimeOffset? start = null, end = null;
 
-        ev.ChangeDetails(
-            new EventTitle(Title.Trim()),
-            string.IsNullOrWhiteSpace(Location) ? null : new Location(Location.Trim()),
-            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
-            ev.EventType,
-            ev.Description,
-            DateTimeOffset.UtcNow);
-
-        if (ev.IsSingle() && ev.SingleSchedule != null)
+        if (ev?.IsSingle() == true)
         {
-            var tz = ev.TimeZoneId.Value;
-            var tzInfo = TimeZoneInfo.FindSystemTimeZoneById(tz);
-            DateTimeOffset start, end;
             if (AllDay)
             {
                 var offset = tzInfo.GetUtcOffset(StartDate);
                 start = new DateTimeOffset(StartDate.Year, StartDate.Month, StartDate.Day, 0, 0, 0, offset);
-                end = start.AddDays(1);
+                end = start.Value.AddDays(1);
             }
             else
             {
@@ -662,14 +633,17 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
                 start = new DateTimeOffset(startDt, offset);
                 end   = new DateTimeOffset(endDt, offset);
             }
-            ev.RescheduleSingle(new SingleEventSchedule(start, end), DateTimeOffset.UtcNow);
         }
 
-        ev.SetAlarm(
-            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null,
-            DateTimeOffset.UtcNow);
-
-        _eventRepo.Save(ev);
+        _eventService.UpdateEvent(new UpdateEventCommand(
+            eventId,
+            Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            AllDay,
+            start,
+            end,
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 
     private void SaveSingle()
@@ -816,7 +790,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     {
         AvailableCalendarNames.Clear();
         _availableCalendarIds.Clear();
-        foreach (var cal in _calendarRepo.FindAll().OrderBy(c => c.Name))
+        foreach (var cal in _calendarService.FindAll().OrderBy(c => c.Name))
         {
             AvailableCalendarNames.Add(cal.Name);
             _availableCalendarIds.Add(cal.Id.Value);

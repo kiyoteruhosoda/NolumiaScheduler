@@ -29,6 +29,16 @@ public sealed record CreateRecurringEventCommand(
     RecurrenceRule RecurrenceRule,
     EventAlarm? Alarm = null);
 
+public sealed record UpdateEventCommand(
+    string EventId,
+    string Title,
+    string? Location,
+    Visibility Visibility,
+    bool AllDay,
+    DateTimeOffset? NewStart,
+    DateTimeOffset? NewEnd,
+    EventAlarm? Alarm);
+
 public sealed record SkipOccurrenceCommand(
     string EventId,
     OccurrenceLocalKey OccurrenceKey);

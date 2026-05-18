@@ -9,11 +9,24 @@ using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
 namespace NolumiaScheduler.Application.Services;
 
-public class CalendarEventApplicationService(ICalendarEventRepository repository)
+public class CalendarEventApplicationService(ICalendarEventRepository repository, ICalendarEventChanges changes)
 {
     private readonly ICalendarEventRepository _repository = repository;
+    private readonly ICalendarEventChanges _changes = changes;
 
-    public CalendarEvent CreateSingleEvent(CreateSingleEventCommand command)
+    public event Action? Changed
+    {
+        add => _changes.Changed += value;
+        remove => _changes.Changed -= value;
+    }
+
+    public CalendarEvent? FindById(string eventId) =>
+        _repository.FindById(new EventId(eventId));
+
+    public IReadOnlyList<CalendarEvent> FindAll() =>
+        _repository.FindAll();
+
+    public void CreateSingleEvent(CreateSingleEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
         var schedule = new SingleEventSchedule(command.Start, command.End);
@@ -32,10 +45,9 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             alarm: command.Alarm);
 
         _repository.Save(ev);
-        return ev;
     }
 
-    public CalendarEvent CreateRecurringEvent(CreateRecurringEventCommand command)
+    public void CreateRecurringEvent(CreateRecurringEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
         var schedule = new RecurringEventSchedule(
@@ -59,7 +71,25 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             alarm: command.Alarm);
 
         _repository.Save(ev);
-        return ev;
+    }
+
+    public void UpdateEvent(UpdateEventCommand command)
+    {
+        var ev = GetOrThrow(command.EventId);
+
+        ev.ChangeDetails(
+            new EventTitle(command.Title),
+            command.Location != null ? new Location(command.Location) : null,
+            command.Visibility,
+            ev.EventType,
+            ev.Description,
+            DateTimeOffset.UtcNow);
+
+        if (command.NewStart.HasValue && command.NewEnd.HasValue && ev.IsSingle())
+            ev.RescheduleSingle(new SingleEventSchedule(command.NewStart.Value, command.NewEnd.Value), DateTimeOffset.UtcNow);
+
+        ev.SetAlarm(command.Alarm, DateTimeOffset.UtcNow);
+        _repository.Save(ev);
     }
 
     public void SkipOccurrence(SkipOccurrenceCommand command)
@@ -117,7 +147,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         _repository.Save(ev);
     }
 
-    public CalendarEvent ChangeFollowingOccurrences(ChangeFollowingOccurrencesCommand command)
+    public void ChangeFollowingOccurrences(ChangeFollowingOccurrencesCommand command)
     {
         var ev = GetOrThrow(command.EventId);
         if (!ev.IsRecurring() || ev.RecurringSchedule == null)
@@ -149,14 +179,6 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             alarm: command.Alarm);
 
         _repository.Save(newEv);
-        return newEv;
-    }
-
-    private CalendarEvent GetOrThrow(string eventId)
-    {
-        var id = new EventId(eventId);
-        return _repository.FindById(id)
-            ?? throw new DomainException($"Event not found: {eventId}");
     }
 
     public void DeleteEvent(string eventId)
@@ -167,5 +189,12 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
     public void DeleteOccurrence(SkipOccurrenceCommand command)
     {
         SkipOccurrence(command);
+    }
+
+    private CalendarEvent GetOrThrow(string eventId)
+    {
+        var id = new EventId(eventId);
+        return _repository.FindById(id)
+            ?? throw new DomainException($"Event not found: {eventId}");
     }
 }

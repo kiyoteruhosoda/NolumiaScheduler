@@ -2,7 +2,7 @@ using Microsoft.UI;
 using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Media;
-using NolumiaScheduler.Domain.Repositories;
+using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Services;
@@ -12,20 +12,20 @@ namespace NolumiaScheduler.Presentation.Pages;
 public sealed partial class AlarmDebugWindow : Window
 {
     private readonly IAlarmService _alarmService;
-    private readonly ICalendarEventRepository _eventRepo;
+    private readonly CalendarEventApplicationService _eventService;
     private readonly IOccurrenceExpander _expander;
     private DispatcherQueueTimer? _refreshTimer;
     private DispatcherQueueTimer? _clockTimer;
 
     public AlarmDebugWindow(
         IAlarmService alarmService,
-        ICalendarEventRepository eventRepo,
+        CalendarEventApplicationService eventService,
         IOccurrenceExpander expander)
     {
         InitializeComponent();
 
         _alarmService = alarmService;
-        _eventRepo = eventRepo;
+        _eventService = eventService;
         _expander = expander;
 
         // Set window size
@@ -77,7 +77,7 @@ public sealed partial class AlarmDebugWindow : Window
         var now = DateTime.Now;
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
-        var allEvents = _eventRepo.FindAll();
+        var allEvents = _eventService.FindAll();
         var firedKeys = _alarmService.GetFiredKeys();
 
         // ── Section 1: Summary ──
@@ -97,7 +97,6 @@ public sealed partial class AlarmDebugWindow : Window
         var evLines = new List<string>();
         foreach (var ev in allEvents)
         {
-            var id = ev.Id.Value.Length > 8 ? ev.Id.Value[..8] + "…" : ev.Id.Value;
             evLines.Add($"━━━ {ev.Title.Value} ━━━");
             evLines.Add($"  ID       : {ev.Id.Value}");
             evLines.Add($"  Kind     : {ev.Kind}");
