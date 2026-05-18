@@ -31,6 +31,11 @@ public sealed partial class EventEditPage : Page
     private bool _suppressYearlyWeekdayChanged;
     private bool _suppressAdjustmentChanged;
     private bool _suppressCalendarPickerChanged;
+    private bool _suppressStartTimePickerChanged;
+    private bool _suppressEndTimePickerChanged;
+
+    // 15-minute interval time items ("00:00" to "23:45")
+    private static readonly List<string> TimeItems = [.. Enumerable.Range(0, 96).Select(i => $"{i / 4:D2}:{(i % 4) * 15:D2}")];
 
     public EventEditPage()
     {
@@ -119,13 +124,22 @@ public sealed partial class EventEditPage : Page
         _suppressStartDateChanged = false;
 
         // Time boxes
+        StartTimePicker.ItemsSource = TimeItems;
+        EndTimePicker.ItemsSource = TimeItems;
+
         _suppressStartTimeChanged = true;
+        _suppressStartTimePickerChanged = true;
         StartTimeBox.Text = _vm.StartTime.ToString(@"hh\:mm");
+        SyncTimePickerToValue(StartTimePicker, _vm.StartTime, ref _suppressStartTimePickerChanged);
         _suppressStartTimeChanged = false;
+        _suppressStartTimePickerChanged = false;
 
         _suppressEndTimeChanged = true;
+        _suppressEndTimePickerChanged = true;
         EndTimeBox.Text = _vm.EndTime.ToString(@"hh\:mm");
+        SyncTimePickerToValue(EndTimePicker, _vm.EndTime, ref _suppressEndTimePickerChanged);
         _suppressEndTimeChanged = false;
+        _suppressEndTimePickerChanged = false;
 
         // Recurrence pickers
         RepeatTypePicker.ItemsSource   = EventEditViewModel.RepeatTypeItems;
@@ -283,6 +297,12 @@ public sealed partial class EventEditPage : Page
                     StartTimeBox.Text = _vm.StartTime.ToString(@"hh\:mm");
                     _suppressStartTimeChanged = false;
                 }
+                if (!_suppressStartTimePickerChanged)
+                {
+                    _suppressStartTimePickerChanged = true;
+                    SyncTimePickerToValue(StartTimePicker, _vm.StartTime, ref _suppressStartTimePickerChanged);
+                    _suppressStartTimePickerChanged = false;
+                }
                 break;
 
             case nameof(EventEditViewModel.EndTime):
@@ -291,6 +311,12 @@ public sealed partial class EventEditPage : Page
                     _suppressEndTimeChanged = true;
                     EndTimeBox.Text = _vm.EndTime.ToString(@"hh\:mm");
                     _suppressEndTimeChanged = false;
+                }
+                if (!_suppressEndTimePickerChanged)
+                {
+                    _suppressEndTimePickerChanged = true;
+                    SyncTimePickerToValue(EndTimePicker, _vm.EndTime, ref _suppressEndTimePickerChanged);
+                    _suppressEndTimePickerChanged = false;
                 }
                 break;
         }
@@ -336,18 +362,95 @@ public sealed partial class EventEditPage : Page
         }
     }
 
+    private static TimeSpan? TryParseTimeInput(string text)
+    {
+        if (TimeSpan.TryParseExact(text, @"hh\:mm", null, out var ts))
+            return ts;
+        // Allow 4-digit input without colon (e.g. "0930" → 09:30)
+        if (text.Length == 4 && int.TryParse(text, out var num))
+        {
+            var h = num / 100;
+            var m = num % 100;
+            if (h is >= 0 and < 24 && m is >= 0 and < 60)
+                return new TimeSpan(h, m, 0);
+        }
+        return null;
+    }
+
+    private void AutoFormatTimeBox(TextBox box, ref bool suppress)
+    {
+        var parsed = TryParseTimeInput(box.Text);
+        if (parsed is { } ts && box.Text.Length == 4 && !box.Text.Contains(':'))
+        {
+            suppress = true;
+            box.Text = ts.ToString(@"hh\:mm");
+            box.SelectionStart = box.Text.Length;
+            suppress = false;
+        }
+    }
+
     private void OnStartTimeChanged(object sender, TextChangedEventArgs e)
     {
         if (_suppressStartTimeChanged || _vm == null) return;
-        if (TimeSpan.TryParseExact(StartTimeBox.Text, @"hh\:mm", null, out var ts))
-            _vm.StartTime = ts;
+        var ts = TryParseTimeInput(StartTimeBox.Text);
+        if (ts != null)
+            _vm.StartTime = ts.Value;
+    }
+
+    private void OnStartTimeLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_vm == null) return;
+        AutoFormatTimeBox(StartTimeBox, ref _suppressStartTimeChanged);
     }
 
     private void OnEndTimeChanged(object sender, TextChangedEventArgs e)
     {
         if (_suppressEndTimeChanged || _vm == null) return;
-        if (TimeSpan.TryParseExact(EndTimeBox.Text, @"hh\:mm", null, out var ts))
+        var ts = TryParseTimeInput(EndTimeBox.Text);
+        if (ts != null)
+            _vm.EndTime = ts.Value;
+    }
+
+    private void OnEndTimeLostFocus(object sender, RoutedEventArgs e)
+    {
+        if (_vm == null) return;
+        AutoFormatTimeBox(EndTimeBox, ref _suppressEndTimeChanged);
+    }
+
+    private void OnStartTimePickerChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressStartTimePickerChanged || _vm == null) return;
+        if (StartTimePicker.SelectedItem is string s && TimeSpan.TryParseExact(s, @"hh\:mm", null, out var ts))
+        {
+            _vm.StartTime = ts;
+            _suppressStartTimeChanged = true;
+            StartTimeBox.Text = s;
+            _suppressStartTimeChanged = false;
+        }
+    }
+
+    private void OnEndTimePickerChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressEndTimePickerChanged || _vm == null) return;
+        if (EndTimePicker.SelectedItem is string s && TimeSpan.TryParseExact(s, @"hh\:mm", null, out var ts))
+        {
             _vm.EndTime = ts;
+            _suppressEndTimeChanged = true;
+            EndTimeBox.Text = s;
+            _suppressEndTimeChanged = false;
+        }
+    }
+
+    private static void SyncTimePickerToValue(ComboBox picker, TimeSpan value, ref bool suppress)
+    {
+        // Snap to nearest 15-minute slot
+        var totalMinutes = (int)value.TotalMinutes;
+        var snapped = (int)Math.Round(totalMinutes / 15.0) * 15;
+        if (snapped >= 1440) snapped = 1425;
+        var index = snapped / 15;
+        suppress = true;
+        picker.SelectedIndex = index;
+        suppress = false;
     }
 
     private void OnRepeatTypeChanged(object sender, SelectionChangedEventArgs e)

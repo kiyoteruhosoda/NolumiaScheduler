@@ -49,15 +49,25 @@
                     <!-- Time row (hidden when AllDay) -->
                     <StackPanel x:Name="TimeSection">
                         <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
-                        <Grid ColumnDefinitions="Auto,*,Auto,*" MinHeight="48">
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto,Auto,*" MinHeight="48">
                             <TextBlock x:Name="StartTimeLabel" Grid.Column="0" FontSize="13" Width="48"
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
-                            <TextBox x:Name="StartTimeBox" Grid.Column="1" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnStartTimeChanged"/>
-                            <TextBlock x:Name="EndLabel" Grid.Column="2" FontSize="13" Width="48"
+                            <TextBox x:Name="StartTimeBox" Grid.Column="1" FontSize="14" Width="60"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnStartTimeChanged" LostFocus="OnStartTimeLostFocus"
+                                     PlaceholderText="0900" MaxLength="5"/>
+                            <ComboBox x:Name="StartTimePicker" Grid.Column="2" FontSize="14"
+                                      Foreground="{ThemeResource GCalTextPrimary}"
+                                      HorizontalAlignment="Stretch" Margin="4,0,8,0"
+                                      SelectionChanged="OnStartTimePickerChanged"/>
+                            <TextBlock x:Name="EndLabel" Grid.Column="3" FontSize="13" Width="48"
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
-                            <TextBox x:Name="EndTimeBox" Grid.Column="3" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnEndTimeChanged"/>
+                            <TextBox x:Name="EndTimeBox" Grid.Column="4" FontSize="14" Width="60"
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnEndTimeChanged" LostFocus="OnEndTimeLostFocus"
+                                     PlaceholderText="1000" MaxLength="5"/>
+                            <ComboBox x:Name="EndTimePicker" Grid.Column="5" FontSize="14"
+                                      Foreground="{ThemeResource GCalTextPrimary}"
+                                      HorizontalAlignment="Stretch" Margin="4,0,0,0"
+                                      SelectionChanged="OnEndTimePickerChanged"/>
                         </Grid>
                     </StackPanel>
                 </StackPanel>

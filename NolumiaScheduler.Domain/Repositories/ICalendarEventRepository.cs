@@ -1,8 +1,5 @@
 ﻿using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.ValueObjects;
-using System;
-using System.Collections.Generic;
-using System.Text;
 
 namespace NolumiaScheduler.Domain.Repositories;
 
@@ -12,4 +9,9 @@ public interface ICalendarEventRepository
     IReadOnlyList<CalendarEvent> FindAll();
     void Save(CalendarEvent calendarEvent);
     void Delete(EventId id);
+
+    /// <summary>
+    /// Raised after Save or Delete completes.
+    /// </summary>
+    event Action? Changed;
 }

@@ -31,6 +31,14 @@ public partial class App : Microsoft.UI.Xaml.Application
         MainWindow = new MainWindow();
         MainWindow.Activate();
         Services.GetRequiredService<IAlarmService>().Start();
+
+#if DEBUG
+        var debugWindow = new AlarmDebugWindow(
+            Services.GetRequiredService<IAlarmService>(),
+            Services.GetRequiredService<ICalendarEventRepository>(),
+            Services.GetRequiredService<IOccurrenceExpander>());
+        debugWindow.Activate();
+#endif
     }
 
     private static IServiceProvider BuildServices()

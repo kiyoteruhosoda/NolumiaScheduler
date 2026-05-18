@@ -17,15 +17,32 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
     private readonly List<SnoozeEntry> _snoozed = [];
     private bool _isShowingNotification;
 
+    public event Action? ScheduleChanged;
+
     public void Start()
     {
         _timer = MauiApp.Current!.Dispatcher.CreateTimer();
-        _timer.Interval = TimeSpan.FromSeconds(30);
+        _timer.Interval = TimeSpan.FromSeconds(10);
         _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
         _timer.Start();
+
+        _eventRepo.Changed += OnRepositoryChanged;
     }
 
-    public void Stop() => _timer?.Stop();
+    public void Stop()
+    {
+        _timer?.Stop();
+        _eventRepo.Changed -= OnRepositoryChanged;
+    }
+
+    private void OnRepositoryChanged()
+    {
+        MauiApp.Current?.Dispatcher.Dispatch(() =>
+        {
+            ScheduleChanged?.Invoke();
+            _ = CheckAlarmsAsync();
+        });
+    }
 
     public void ResetFiredKeys(string eventId)
     {

@@ -162,11 +162,11 @@ public sealed partial class WeekCalendarView : UserControl
                 Margin = new Thickness(2, 0, 0, 0)
             });
         }
-        TimeSlotList.Items.Clear();
+        TimeSlotList.Items?.Clear();
         foreach (var child in panel.Children.ToList())
         {
             panel.Children.Remove(child);
-            TimeSlotList.Items.Add(child);
+            TimeSlotList.Items?.Add(child);
         }
     }
 

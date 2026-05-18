@@ -184,8 +184,13 @@
                             Foreground="{ThemeResource GCalTextSecondary}"
                             Click="OnCloseSelectedDay"/>
                 </Grid>
-                <!-- Events list -->
-                <ItemsControl x:Name="EventsList" MaxHeight="200">
+                <!-- Holiday info -->
+                <TextBlock x:Name="HolidayLabel" Visibility="Collapsed"
+                           FontSize="12" Margin="12,0,12,4"
+                           Foreground="{StaticResource GCalRed}"/>
+                <!-- Events list (scrollable) -->
+                <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
+                    <ItemsControl x:Name="EventsList">
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:CalendarEventItem">
                             <Grid ColumnDefinitions="12,*,Auto,Auto" MinHeight="48" Padding="12,4">
@@ -210,7 +215,8 @@
                             </Grid>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
-                </ItemsControl>
+                    </ItemsControl>
+                </ScrollViewer>
                 <!-- No events label -->
                 <TextBlock x:Name="NoEventsLabel" Visibility="Collapsed"
                            FontSize="13" Margin="12,8"

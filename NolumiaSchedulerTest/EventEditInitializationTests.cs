@@ -197,11 +197,12 @@ public class EventEditInitializationTests
 
     private sealed class InMemoryEventRepo : ICalendarEventRepository
     {
+        public event Action? Changed;
         private readonly Dictionary<string, CalendarEvent> _map = [];
         public CalendarEvent? FindById(EventId id) => _map.TryGetValue(id.Value, out var ev) ? ev : null;
         public IReadOnlyList<CalendarEvent> FindAll() => _map.Values.ToList();
-        public void Save(CalendarEvent ev) => _map[ev.Id.Value] = ev;
-        public void Delete(EventId id) => _map.Remove(id.Value);
+        public void Save(CalendarEvent ev) { _map[ev.Id.Value] = ev; Changed?.Invoke(); }
+        public void Delete(EventId id) { _map.Remove(id.Value); Changed?.Invoke(); }
     }
 
     private sealed class InMemoryCalendarRepo : IBusinessCalendarRepository

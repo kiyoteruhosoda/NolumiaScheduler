@@ -93,6 +93,10 @@ public sealed partial class CalendarPage : Page
                 case nameof(CalendarViewModel.SelectedDayHasNoEvents):
                     NoEventsLabel.Visibility = _vm.SelectedDayHasNoEvents ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
                     break;
+                case nameof(CalendarViewModel.SelectedDayIsHoliday):
+                case nameof(CalendarViewModel.SelectedDayHolidayText):
+                    UpdateHolidayLabel();
+                    break;
                 case nameof(CalendarViewModel.WeekDayColumns):
                     WeekView.WeekDayColumns = _vm.WeekDayColumns;
                     break;
@@ -138,7 +142,15 @@ public sealed partial class CalendarPage : Page
             SelectedDayLabel.Text      = _vm.SelectedDayLabel;
             EventsList.ItemsSource     = _vm.SelectedDayEvents;
             NoEventsLabel.Visibility   = _vm.SelectedDayHasNoEvents ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+            UpdateHolidayLabel();
         }
+    }
+
+    private void UpdateHolidayLabel()
+    {
+        if (_vm == null) return;
+        HolidayLabel.Visibility = _vm.SelectedDayIsHoliday ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        HolidayLabel.Text = _vm.SelectedDayHolidayText;
     }
 
     // Header buttons

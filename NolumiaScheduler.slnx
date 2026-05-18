@@ -4,9 +4,6 @@
     <Platform Project="x64" />
     <Deploy />
   </Project>
-  <Project Path="NolumiaScheduler/NolumiaScheduler.WinUI/NolumiaScheduler.WinMAUI.csproj">
-    <Platform Project="x64" />
-  </Project>
   <Project Path="NolumiaScheduler/NolumiaScheduler/NolumiaScheduler.csproj" />
   <Project Path="NolumiaSchedulerTest/NolumiaSchedulerTest.csproj" Id="6ab5b4b8-2580-4e1c-b668-ae1eada89f40" />
 </Solution>

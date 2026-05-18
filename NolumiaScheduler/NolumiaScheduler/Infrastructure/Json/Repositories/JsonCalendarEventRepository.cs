@@ -11,6 +11,7 @@ namespace NolumiaScheduler.Infrastructure.Json.Repositories;
 
 public class JsonCalendarEventRepository : ICalendarEventRepository
 {
+    public event Action? Changed;
     private readonly string _directoryPath;
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -54,6 +55,7 @@ public class JsonCalendarEventRepository : ICalendarEventRepository
         var json = JsonSerializer.Serialize(dto, JsonOptions);
         var path = GetFilePath(calendarEvent.Id);
         File.WriteAllText(path, json);
+        Changed?.Invoke();
     }
 
     public void Delete(EventId id)
@@ -61,6 +63,7 @@ public class JsonCalendarEventRepository : ICalendarEventRepository
         var path = GetFilePath(id);
         if (File.Exists(path))
             File.Delete(path);
+        Changed?.Invoke();
     }
 
     private string GetFilePath(EventId id) => Path.Combine(_directoryPath, $"{id.Value}.json");

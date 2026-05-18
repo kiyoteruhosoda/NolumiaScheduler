@@ -3,7 +3,9 @@ using Microsoft.UI.Xaml;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Pages;
 using NolumiaScheduler.Resources.Strings;
+using System.Diagnostics;
 
 namespace NolumiaScheduler.Presentation.Services;
 
@@ -17,16 +19,36 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
     private bool _isShowingNotification;
     private DispatcherQueue? _dispatcherQueue;
 
+    public event Action? ScheduleChanged;
+
     public void Start()
     {
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _timer = _dispatcherQueue.CreateTimer();
-        _timer.Interval = TimeSpan.FromSeconds(30);
+        _timer.Interval = TimeSpan.FromSeconds(10);
         _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
         _timer.Start();
+
+        // Subscribe to repository changes for real-time sync
+        _eventRepo.Changed += OnRepositoryChanged;
     }
 
-    public void Stop() => _timer?.Stop();
+    public void Stop()
+    {
+        _timer?.Stop();
+        _eventRepo.Changed -= OnRepositoryChanged;
+    }
+
+    private void OnRepositoryChanged()
+    {
+        // Dispatch to UI thread, then re-check alarms and notify listeners
+        var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
+        dq.TryEnqueue(() =>
+        {
+            ScheduleChanged?.Invoke();
+            _ = CheckAlarmsAsync();
+        });
+    }
 
     public void ResetFiredKeys(string eventId)
     {
@@ -41,12 +63,14 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
 
+        Debug.WriteLine($"[AlarmService] CheckAlarms at {now:HH:mm:ss}");
+
         var dueSnoozes = _snoozed.Where(s => s.NotifyAt <= now).ToList();
         foreach (var snooze in dueSnoozes)
         {
             _snoozed.Remove(snooze);
             var snoozeMsg = string.Format(AppResources.AlarmSnoozeReminder, snooze.Title);
-            await ShowAlarmAsync(snooze.EventId, snooze.Title, snoozeMsg);
+            await ShowAlarmAsync(snooze.EventId, snooze.Title, snoozeMsg, snooze.Location);
             if (_isShowingNotification) return;
         }
 
@@ -76,11 +100,12 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
                     if (_firedKeys.Contains(key)) continue;
 
                     var notifyAt = occStart.AddMinutes(-min);
-                    if (now >= notifyAt.AddMinutes(-1) && now <= notifyAt.AddSeconds(30))
+                    // Fire window: [notifyAt - 2min, notifyAt + 1min]
+                    if (now >= notifyAt.AddMinutes(-2) && now <= notifyAt.AddMinutes(1))
                     {
                         _firedKeys.Add(key);
                         var msg = GetMinuteMessage(min);
-                        await ShowAlarmAsync(ev.Id.Value, occ.Title.Value, msg);
+                        await ShowAlarmAsync(ev.Id.Value, occ.Title.Value, msg, ev.Location?.Value);
                         if (_isShowingNotification) return;
                     }
                 }
@@ -95,44 +120,23 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         _  => AppResources.AlarmNotify1MinMsg
     };
 
-    private async Task ShowAlarmAsync(string eventId, string title, string message)
+    private async Task ShowAlarmAsync(string eventId, string title, string message, string? location = null)
     {
         _isShowingNotification = true;
         try
         {
             var tcs = new TaskCompletionSource<AlarmNotificationResult>();
 
-            // Show via ContentDialog on UI thread
             var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
             dq.TryEnqueue(async () =>
             {
                 try
                 {
-                    var window = NolumiaScheduler.WinUI.App.MainWindow;
-                    if (window?.Content is Microsoft.UI.Xaml.FrameworkElement root)
-                    {
-                        var dialog = new Microsoft.UI.Xaml.Controls.ContentDialog
-                        {
-                            Title = title,
-                            Content = message,
-                            PrimaryButtonText = AppResources.AlarmDismiss,
-                            SecondaryButtonText = AppResources.AlarmSnooze5Min,
-                            CloseButtonText = AppResources.AlarmSnooze1Min,
-                            XamlRoot = root.XamlRoot
-                        };
-                        var result = await dialog.ShowAsync();
-                        var alarmResult = result switch
-                        {
-                            Microsoft.UI.Xaml.Controls.ContentDialogResult.Secondary => AlarmNotificationResult.Snooze5Min,
-                            Microsoft.UI.Xaml.Controls.ContentDialogResult.None => AlarmNotificationResult.Snooze1Min,
-                            _ => AlarmNotificationResult.Dismiss
-                        };
-                        tcs.TrySetResult(alarmResult);
-                    }
-                    else
-                    {
-                        tcs.TrySetResult(AlarmNotificationResult.Dismiss);
-                    }
+                    var alarmWindow = new AlarmNotificationWindow(title, message, location);
+                    alarmWindow.Activate();
+
+                    var result = await alarmWindow.WaitForResultAsync();
+                    tcs.TrySetResult(result);
                 }
                 catch
                 {
@@ -143,9 +147,9 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
             var notificationResult = await tcs.Task;
 
             if (notificationResult == AlarmNotificationResult.Snooze5Min)
-                _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(5)));
-            else if (notificationResult == AlarmNotificationResult.Snooze1Min)
-                _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(1)));
+                    _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(5), location));
+                else if (notificationResult == AlarmNotificationResult.Snooze1Min)
+                    _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(1), location));
         }
         finally
         {
@@ -153,7 +157,7 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
         }
     }
 
-    private record SnoozeEntry(string EventId, string Title, DateTime NotifyAt);
+    private record SnoozeEntry(string EventId, string Title, DateTime NotifyAt, string? Location);
 
     public IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms()
     {
@@ -202,6 +206,71 @@ public class AlarmService(ICalendarEventRepository eventRepo, IOccurrenceExpande
     }
 
     public IReadOnlyList<string> GetFiredKeys() => [.. _firedKeys];
+
+    public IReadOnlyList<string> GetDiagnosticLines()
+    {
+        var lines = new List<string>();
+        var now = DateTime.Now;
+        var today = new LocalDateValue(now.Year, now.Month, now.Day);
+        var tomorrow = today.AddDays(1);
+
+        var events = _eventRepo.FindAll();
+        lines.Add($"[Diag] Total events: {events.Count}, Range: {today} ~ {tomorrow}");
+
+        foreach (var ev in events)
+        {
+            var evLabel = $"{ev.Title.Value} (id={ev.Id.Value[..Math.Min(8, ev.Id.Value.Length)]})";
+
+            if (ev.Alarm == null)
+            {
+                lines.Add($"  SKIP {evLabel}: Alarm is null");
+                continue;
+            }
+            if (!ev.Alarm.IsEnabled)
+            {
+                lines.Add($"  SKIP {evLabel}: Alarm disabled");
+                continue;
+            }
+
+            var occurrences = _expander.Expand(ev, today, tomorrow, null);
+            lines.Add($"  {evLabel}: Alarm ON, Occurrences in range = {occurrences.Count}");
+
+            foreach (var occ in occurrences)
+            {
+                if (occ.AllDay)
+                {
+                    lines.Add($"    SKIP occ {occ.Date}: AllDay=true");
+                    continue;
+                }
+                if (occ.StartTime == null)
+                {
+                    lines.Add($"    SKIP occ {occ.Date}: StartTime=null");
+                    continue;
+                }
+
+                var occStart = new DateTime(
+                    occ.Date.Year, occ.Date.Month, occ.Date.Day,
+                    occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
+
+                lines.Add($"    occ {occ.Date} start={occStart:HH:mm} | 15m={ev.Alarm.Notify15Min} 5m={ev.Alarm.Notify5Min} 1m={ev.Alarm.Notify1Min}");
+
+                var minutesBefore = new[] { 15, 5, 1 };
+                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min };
+                for (int i = 0; i < minutesBefore.Length; i++)
+                {
+                    if (!notifyFlags[i]) continue;
+                    var min = minutesBefore[i];
+                    var notifyAt = occStart.AddMinutes(-min);
+                    var key = $"{ev.Id.Value}:{occ.Date}:{min}";
+                    var fired = _firedKeys.Contains(key);
+                    var inWindow = now >= notifyAt.AddMinutes(-2) && now <= notifyAt.AddMinutes(1);
+                    lines.Add($"      {min}min: notifyAt={notifyAt:HH:mm:ss} fired={fired} inWindow={inWindow}");
+                }
+            }
+        }
+
+        return lines;
+    }
 
     public async Task ShowTestAlarmAsync()
     {

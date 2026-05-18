@@ -8,6 +8,11 @@ public interface IAlarmService
     IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms();
     IReadOnlyList<string> GetFiredKeys();
     Task ShowTestAlarmAsync();
+
+    /// <summary>
+    /// Raised when the alarm schedule has changed (event added/deleted/modified).
+    /// </summary>
+    event Action? ScheduleChanged;
 }
 
 public record AlarmScheduleEntry(
