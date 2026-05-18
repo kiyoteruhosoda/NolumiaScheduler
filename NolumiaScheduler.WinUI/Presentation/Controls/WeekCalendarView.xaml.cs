@@ -21,7 +21,9 @@ public sealed partial class WeekCalendarView : UserControl
     private WeekEventBlock? _activeBlock;
     private Point _pressStartPoint;
     private Point _lastPoint;
-    private bool _isResizing;
+    #pragma warning disable CS0414 // Reserved for future resize support
+        private bool _isResizing;
+    #pragma warning restore CS0414
     private DateTime _suppressTapUntilUtc;
     private DateTime _lastInteractionFrameUtc = DateTime.MinValue;
     private double _weekDayColumnWidth = 120;
@@ -282,8 +284,12 @@ public sealed partial class WeekCalendarView : UserControl
             };
 
             // Overlay
-            var overlay = new WeekInteractionOverlayView { Height = WeekCanvasHeight, IsHitTestVisible = false };
-            overlay.Preview = InteractionPreview;
+            var overlay = new WeekInteractionOverlayView
+            {
+                Height = WeekCanvasHeight,
+                IsHitTestVisible = false,
+                Preview = InteractionPreview
+            };
             Canvas.SetLeft(overlay, 0);
             Canvas.SetTop(overlay, 0);
             lane.Children.Add(overlay);

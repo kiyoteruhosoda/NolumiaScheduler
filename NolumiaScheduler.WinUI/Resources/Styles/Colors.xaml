@@ -46,13 +46,6 @@
     </ResourceDictionary.ThemeDictionaries>
 
     <!-- Static colors (same in all themes) -->
-    <Color x:Key="GCalBlueColor">#1a73e8</Color>
-    <Color x:Key="GCalRedColor">#d93025</Color>
-    <Color x:Key="GCalGreenColor">#1e8e3e</Color>
-    <Color x:Key="GCalEventMovedColor">#9c27b0</Color>
-    <Color x:Key="GCalWhiteColor">#ffffff</Color>
-    <Color x:Key="GCalSelectedCircleColor">#70757a</Color>
-
     <SolidColorBrush x:Key="GCalBlue"           Color="#1a73e8"/>
     <SolidColorBrush x:Key="GCalRed"            Color="#d93025"/>
     <SolidColorBrush x:Key="GCalGreen"          Color="#1e8e3e"/>

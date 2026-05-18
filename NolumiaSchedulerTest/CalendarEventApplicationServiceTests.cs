@@ -237,7 +237,7 @@ public class CalendarEventApplicationServiceTests
             EndTime: new LocalTimeValue(10, 30, 0)));
 
         var saved = _repo.FindById(new EventId("ovr2"))!;
-        Assert.IsTrue(saved.Moves.Count >= 1);
+        Assert.IsGreaterThanOrEqualTo(saved.Moves.Count, 1);
     }
 
     // ── MoveOccurrence ─────────────────────────────────────────────────────
