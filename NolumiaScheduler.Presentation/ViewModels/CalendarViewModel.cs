@@ -9,12 +9,12 @@ using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Services;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class CalendarViewModel : INotifyPropertyChanged
+public partial class CalendarViewModel : INotifyPropertyChanged
 {
     private readonly CalendarEventApplicationService _eventService;
     private readonly BusinessCalendarApplicationService _calendarService;

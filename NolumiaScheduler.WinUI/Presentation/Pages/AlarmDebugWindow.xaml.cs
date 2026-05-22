@@ -7,7 +7,7 @@ using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Services;
 
-namespace NolumiaScheduler.Presentation.Pages;
+namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class AlarmDebugWindow : Window
 {

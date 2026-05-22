@@ -7,7 +7,7 @@ namespace NolumiaScheduler.WinUI.Helpers;
 /// <summary>
 /// Manages a system tray (notification area) icon using Shell_NotifyIcon Win32 API.
 /// </summary>
-internal sealed class TrayIconManager : IDisposable
+internal partial class TrayIconManager : IDisposable
 {
     private const int WM_USER = 0x0400;
     private const int WM_TRAYICON = WM_USER + 1;

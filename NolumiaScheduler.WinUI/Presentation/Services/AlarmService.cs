@@ -3,11 +3,12 @@ using Microsoft.UI.Xaml;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.Presentation.Pages;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
+using NolumiaScheduler.Presentation.Services;
+using NolumiaScheduler.WinUI.Presentation.Pages;
 using System.Diagnostics;
 
-namespace NolumiaScheduler.Presentation.Services;
+namespace NolumiaScheduler.WinUI.Presentation.Services;
 
 public class AlarmService(CalendarEventApplicationService eventService, IOccurrenceExpander expander) : IAlarmService
 {

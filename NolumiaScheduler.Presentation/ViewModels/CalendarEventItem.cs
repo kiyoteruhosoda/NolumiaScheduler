@@ -1,6 +1,6 @@
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;

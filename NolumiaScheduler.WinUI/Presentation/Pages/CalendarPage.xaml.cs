@@ -5,11 +5,14 @@ using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Presentation.Controls;
 using NolumiaScheduler.Presentation.Services;
+using NolumiaScheduler.WinUI.Presentation.Controls;
+using NolumiaScheduler.WinUI.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.WinUI.Presentation.Pages;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
-namespace NolumiaScheduler.Presentation.Pages;
+namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class CalendarPage : Page
 {
@@ -262,6 +265,15 @@ public sealed partial class CalendarPage : Page
                 EventId: e.EventId,
                 OccurrenceDate: e.Date.ToString("yyyy-MM-dd"),
                 OccurrenceStartMinute: e.StartMinute));
+    }
+
+    private void OnWeekSlotDragCreated(object sender, WeekSlotDragCreatedEventArgs e)
+    {
+        NavigationService.Instance.Navigate(typeof(EventEditPage),
+            new EventEditParams(
+                StartDate: e.Date.ToString("yyyy-MM-dd"),
+                StartMinute: e.StartMinute,
+                EndMinute: e.EndMinute));
     }
 
     private async void OnWeekEventDragCompleted(object sender, WeekEventDragCompletedEventArgs e)

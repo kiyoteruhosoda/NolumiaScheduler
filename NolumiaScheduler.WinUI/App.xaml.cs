@@ -5,10 +5,11 @@ using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure.Json.Repositories;
 using NolumiaScheduler.Infrastructure.Json.Seeder;
-using NolumiaScheduler.Presentation.Pages;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.WinUI.Presentation.Pages;
+using NolumiaScheduler.WinUI.Presentation.Services;
 
 namespace NolumiaScheduler.WinUI;
 
@@ -67,7 +68,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         }
     }
 
-    private static IServiceProvider BuildServices()
+    private static ServiceProvider BuildServices()
     {
         var services = new ServiceCollection();
 

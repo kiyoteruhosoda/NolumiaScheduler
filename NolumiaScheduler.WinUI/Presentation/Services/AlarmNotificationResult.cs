@@ -1,4 +1,4 @@
-namespace NolumiaScheduler.Presentation.Services;
+namespace NolumiaScheduler.WinUI.Presentation.Services;
 
 public enum AlarmNotificationResult
 {

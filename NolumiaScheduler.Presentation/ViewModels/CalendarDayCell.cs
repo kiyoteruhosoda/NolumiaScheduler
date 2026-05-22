@@ -6,7 +6,7 @@ using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class CalendarDayCell : INotifyPropertyChanged
+public sealed partial class CalendarDayCell : INotifyPropertyChanged
 {
     private bool _isSelected;
 

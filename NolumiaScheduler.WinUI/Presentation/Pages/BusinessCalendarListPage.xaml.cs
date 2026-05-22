@@ -3,11 +3,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.ViewModels;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
 
-namespace NolumiaScheduler.Presentation.Pages;
+namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class BusinessCalendarListPage : Page
 {

@@ -4,10 +4,10 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
-using NolumiaScheduler.Presentation.Pages;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.WinUI.Presentation.Pages;
 using System.ComponentModel;
 
 namespace NolumiaScheduler.WinUI;
@@ -32,7 +32,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         InitializeComponent();
 
         // Localized nav item labels
-        CalendarNavItem.Content         = AppResources.CalendarTab;
+        CalendarNavItem.Content = AppResources.CalendarTab;
         BusinessCalendarNavItem.Content = AppResources.BusinessCalendarsTab;
 
         NavigationService.Instance.Initialize(ContentFrame);
