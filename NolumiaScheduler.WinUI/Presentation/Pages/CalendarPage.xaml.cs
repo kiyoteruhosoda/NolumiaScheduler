@@ -6,7 +6,7 @@ using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Presentation.Controls;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
 
 namespace NolumiaScheduler.Presentation.Pages;

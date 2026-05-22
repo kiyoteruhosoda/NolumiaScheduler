@@ -9,7 +9,7 @@ using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Services;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
 
 namespace NolumiaScheduler.Presentation.ViewModels;

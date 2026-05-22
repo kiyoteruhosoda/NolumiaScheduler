@@ -1,5 +1,5 @@
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
 using Windows.UI;
 

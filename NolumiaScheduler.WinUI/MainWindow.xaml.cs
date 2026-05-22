@@ -6,7 +6,7 @@ using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Presentation.Pages;
 using NolumiaScheduler.Presentation.Services;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
 using System.ComponentModel;
 

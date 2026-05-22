@@ -1,7 +1,7 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using NolumiaScheduler.Presentation.Services;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using WinRT.Interop;

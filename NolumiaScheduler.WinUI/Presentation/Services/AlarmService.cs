@@ -4,7 +4,7 @@ using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Pages;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using System.Diagnostics;
 
 namespace NolumiaScheduler.Presentation.Services;

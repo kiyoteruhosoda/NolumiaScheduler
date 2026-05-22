@@ -3,7 +3,7 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using NolumiaScheduler.Application.Services;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
 
 namespace NolumiaScheduler.Presentation.ViewModels;

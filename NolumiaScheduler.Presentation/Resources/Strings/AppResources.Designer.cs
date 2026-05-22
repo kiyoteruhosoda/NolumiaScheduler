@@ -6,7 +6,7 @@
 using System.Globalization;
 using System.Resources;
 
-namespace NolumiaScheduler.Resources.Strings;
+namespace NolumiaScheduler.Presentation.Resources.Strings;
 
 public static class AppResources
 {
@@ -17,7 +17,7 @@ public static class AppResources
         get
         {
             _resourceMan ??= new ResourceManager(
-                "NolumiaScheduler.Resources.Strings.AppResources",
+                "NolumiaScheduler.Presentation.Resources.Strings.AppResources",
                 typeof(AppResources).Assembly);
             return _resourceMan;
         }

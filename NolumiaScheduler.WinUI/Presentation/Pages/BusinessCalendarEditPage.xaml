@@ -2,7 +2,7 @@
 <Page x:Class="NolumiaScheduler.Presentation.Pages.BusinessCalendarEditPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:res="using:NolumiaScheduler.Resources.Strings"
+      xmlns:res="using:NolumiaScheduler.Presentation.Resources.Strings"
       Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <ScrollViewer Background="{ThemeResource GCalSurfaceVariant}">

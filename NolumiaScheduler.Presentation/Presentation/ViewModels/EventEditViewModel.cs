@@ -7,7 +7,7 @@ using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Helpers;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
