@@ -4,12 +4,12 @@
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <Platforms>x86;x64;ARM64</Platforms>
-    <RootNamespace>NolumiaScheduler</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>
