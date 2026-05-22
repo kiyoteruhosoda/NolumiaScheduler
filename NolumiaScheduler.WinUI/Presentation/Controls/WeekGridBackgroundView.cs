@@ -1,12 +1,11 @@
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 
-namespace NolumiaScheduler.Presentation.Controls;
+namespace NolumiaScheduler.WinUI.Presentation.Controls;
 
-public sealed class WeekGridBackgroundView : UserControl
+public partial class WeekGridBackgroundView : UserControl
 {
     private readonly Canvas _canvas = new();
 

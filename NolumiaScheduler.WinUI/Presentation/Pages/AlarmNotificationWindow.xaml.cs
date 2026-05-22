@@ -1,12 +1,12 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
-using NolumiaScheduler.Presentation.Services;
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
+using NolumiaScheduler.WinUI.Presentation.Services;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
 using WinRT.Interop;
 
-namespace NolumiaScheduler.Presentation.Pages;
+namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class AlarmNotificationWindow : Window
 {
@@ -112,10 +112,10 @@ public sealed partial class AlarmNotificationWindow : Window
         }
     }
 
-    private static class NativeMethods
+    private static partial class NativeMethods
     {
-        [DllImport("user32.dll")]
+        [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
-        public static extern bool EnableWindow(nint hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
+        public static partial bool EnableWindow(nint hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
     }
 }

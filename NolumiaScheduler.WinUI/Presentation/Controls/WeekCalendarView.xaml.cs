@@ -1,16 +1,15 @@
 using System.Collections;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.UI;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
-using Microsoft.UI.Xaml.Shapes;
+using NolumiaScheduler.Presentation.Controls;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using Windows.Foundation;
 
-namespace NolumiaScheduler.Presentation.Controls;
+namespace NolumiaScheduler.WinUI.Presentation.Controls;
 
 public sealed partial class WeekCalendarView : UserControl
 {
@@ -28,11 +27,16 @@ public sealed partial class WeekCalendarView : UserControl
     private DateTime _lastInteractionFrameUtc = DateTime.MinValue;
     private double _weekDayColumnWidth = 120;
     private bool _initialScrollDone;
+    private Canvas? _dragCreateLane;
+    private WeekDayColumn? _dragCreateDay;
+    private int _dragCreateStartMinute;
+    private int _dragCreateCurrentMinute;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
     public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
     public event EventHandler<WeekEventResizeCompletedEventArgs>? EventResizeCompleted;
+    public event EventHandler<WeekSlotDragCreatedEventArgs>? SlotDragCreated;
 
     // DependencyProperties
     public static readonly DependencyProperty WeekTimeSlotsProperty =
@@ -297,6 +301,9 @@ public sealed partial class WeekCalendarView : UserControl
             // Tap on empty slot
             lane.Tapped += OnLaneTapped;
             lane.PointerPressed += OnLanePointerPressed;
+            lane.PointerMoved += OnLanePointerMoved;
+            lane.PointerReleased += OnLanePointerReleased;
+            lane.PointerCanceled += OnLanePointerCanceled;
 
             Grid.SetColumn(lane, i);
             WeekBodyGrid.Children.Add(lane);
@@ -452,7 +459,99 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnLanePointerPressed(object sender, PointerRoutedEventArgs e)
     {
-        // Used for future drag support; empty for now
+        if (sender is not Canvas canvas || canvas.Tag is not WeekDayColumn dayColumn) return;
+        var pos = e.GetCurrentPoint(canvas).Position;
+        _dragCreateLane = canvas;
+        _dragCreateDay = dayColumn;
+        _dragCreateStartMinute = _mapper.MapToMinute(pos.Y);
+        _dragCreateCurrentMinute = _dragCreateStartMinute;
+        _pressStartPoint = pos;
+        canvas.CapturePointer(e.Pointer);
+    }
+
+    private void OnLanePointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (_dragCreateLane == null || _dragCreateDay == null) return;
+        if (sender is not Canvas canvas) return;
+        var pos = e.GetCurrentPoint(canvas).Position;
+
+        // Only start drag-create after a small movement threshold
+        if (_interactionState != WeekInteractionState.DraggingCreate)
+        {
+            if (Math.Abs(pos.Y - _pressStartPoint.Y) < 6) return;
+            TransitionTo(WeekInteractionState.DraggingCreate);
+        }
+
+        _dragCreateCurrentMinute = _mapper.MapToMinute(pos.Y);
+        var startMin = Math.Min(_dragCreateStartMinute, _dragCreateCurrentMinute);
+        var endMin = Math.Max(_dragCreateStartMinute, _dragCreateCurrentMinute);
+        endMin = Math.Max(endMin, startMin + 15);
+
+        InteractionPreview = new WeekInteractionPreview
+        {
+            IsVisible = true,
+            EventId = null,
+            Date = _dragCreateDay.Date,
+            StartMinute = startMin,
+            EndMinute = endMin,
+            LeftRatio = 0,
+            WidthRatio = 1
+        };
+        UpdateOverlayPreview();
+    }
+
+    private void OnLanePointerReleased(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Canvas canvas)
+            canvas.ReleasePointerCapture(e.Pointer);
+
+        if (_interactionState == WeekInteractionState.DraggingCreate && _dragCreateDay != null)
+        {
+            var startMin = Math.Min(_dragCreateStartMinute, _dragCreateCurrentMinute);
+            var endMin = Math.Max(_dragCreateStartMinute, _dragCreateCurrentMinute);
+            endMin = Math.Max(endMin, startMin + 15);
+
+            SlotDragCreated?.Invoke(this, new WeekSlotDragCreatedEventArgs
+            {
+                Date = _dragCreateDay.Date,
+                StartMinute = startMin,
+                EndMinute = endMin
+            });
+
+            _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
+        }
+
+        ResetDragCreateState();
+    }
+
+    private void OnLanePointerCanceled(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is Canvas canvas)
+            canvas.ReleasePointerCapture(e.Pointer);
+        ResetDragCreateState();
+    }
+
+    private void ResetDragCreateState()
+    {
+        _dragCreateLane = null;
+        _dragCreateDay = null;
+        TransitionTo(WeekInteractionState.Idle);
+        ClearPreview();
+        UpdateOverlayPreview();
+    }
+
+    private void UpdateOverlayPreview()
+    {
+        foreach (var canvas in WeekBodyGrid.Children.OfType<Canvas>())
+        {
+            foreach (var overlay in canvas.Children.OfType<WeekInteractionOverlayView>())
+            {
+                if (canvas == _dragCreateLane)
+                    overlay.Preview = InteractionPreview;
+                else
+                    overlay.Preview = new WeekInteractionPreview { IsVisible = false };
+            }
+        }
     }
 
     private void OnEventBlockTapped(object sender, TappedRoutedEventArgs e)

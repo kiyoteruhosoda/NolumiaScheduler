@@ -94,7 +94,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
     public bool RequiresRecurringEditScopeSelection => IsEditing && IsRecurring && IsOccurrenceEditing;
 
-    public void InitializeNewEvent(DateOnly date, int startMinute)
+    public void InitializeNewEvent(DateOnly date, int startMinute, int? endMinute = null)
     {
         if (IsEditing) return;
 
@@ -106,7 +106,9 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
         StartTime = TimeSpan.FromMinutes(snapped);
 
-        var endMinutes = Math.Min(snapped + 60, 23 * 60 + 59);
+        var endMinutes = endMinute.HasValue
+            ? Math.Clamp(endMinute.Value, snapped + 15, 23 * 60 + 59)
+            : Math.Min(snapped + 60, 23 * 60 + 59);
         EndTime = TimeSpan.FromMinutes(endMinutes);
     }
     public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;

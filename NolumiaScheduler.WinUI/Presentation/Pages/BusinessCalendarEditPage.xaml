@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<Page x:Class="NolumiaScheduler.Presentation.Pages.BusinessCalendarEditPage"
+<Page x:Class="NolumiaScheduler.WinUI.Presentation.Pages.BusinessCalendarEditPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       xmlns:res="using:NolumiaScheduler.Resources.Strings"
@@ -91,7 +91,8 @@
             <!-- Add holiday row -->
             <Border Background="{ThemeResource GCalSurfaceVariant}" CornerRadius="8" Padding="12,8">
                 <Grid ColumnDefinitions="*,*,56" ColumnSpacing="8">
-                    <CalendarDatePicker x:Name="NewHolidayDatePicker" Grid.Column="0" FontSize="13" MinWidth="0"/>
+                    <CalendarDatePicker x:Name="NewHolidayDatePicker" Grid.Column="0" FontSize="13" MinWidth="0"
+                                        DateFormat="{}{year.full}/{month.integer(2)}/{day.integer(2)}({dayofweek.abbreviated})"/>
                     <TextBox x:Name="NewHolidayNameBox" Grid.Column="1" FontSize="13"
                              Foreground="{ThemeResource GCalTextPrimary}"/>
                     <Button x:Name="AddHolidayBtn" Grid.Column="2" FontSize="13" Height="40"

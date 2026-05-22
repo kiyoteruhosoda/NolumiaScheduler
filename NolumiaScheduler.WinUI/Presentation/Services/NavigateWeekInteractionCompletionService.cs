@@ -1,8 +1,9 @@
 using NolumiaScheduler.Presentation.Controls;
-using NolumiaScheduler.Presentation.Pages;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.WinUI.Helpers;
+using NolumiaScheduler.WinUI.Presentation.Pages;
 
-namespace NolumiaScheduler.Presentation.Services;
+namespace NolumiaScheduler.WinUI.Presentation.Services;
 
 public sealed class NavigateWeekInteractionCompletionService : IWeekInteractionCompletionService
 {

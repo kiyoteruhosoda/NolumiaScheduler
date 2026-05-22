@@ -5,12 +5,12 @@ using System.Windows.Input;
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.ValueObjects;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class BusinessCalendarEditViewModel : INotifyPropertyChanged
+public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
 {
     private readonly BusinessCalendarApplicationService _service;
 
