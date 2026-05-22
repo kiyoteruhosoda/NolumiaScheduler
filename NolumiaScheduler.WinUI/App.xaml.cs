@@ -8,6 +8,7 @@ using NolumiaScheduler.Infrastructure.Json.Seeder;
 using NolumiaScheduler.Presentation.Pages;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.WinUI.Helpers;
 
 namespace NolumiaScheduler.WinUI;
 
@@ -18,6 +19,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         ?? throw new InvalidOperationException("Services not initialized");
 
     public static Window? MainWindow { get; private set; }
+    private TrayIconManager? _trayIcon;
 
     public App()
     {
@@ -32,13 +34,37 @@ public partial class App : Microsoft.UI.Xaml.Application
         MainWindow.Activate();
         Services.GetRequiredService<IAlarmService>().Start();
 
-#if DEBUG
-        var debugWindow = new AlarmDebugWindow(
-            Services.GetRequiredService<IAlarmService>(),
-            Services.GetRequiredService<CalendarEventApplicationService>(),
-            Services.GetRequiredService<IOccurrenceExpander>());
-        debugWindow.Activate();
-#endif
+        // Set up system tray icon (shown only when window is hidden)
+        _trayIcon = new TrayIconManager(MainWindow, "Nolumia Scheduler");
+        _trayIcon.ShowRequested += OnTrayShowRequested;
+        _trayIcon.ExitRequested += OnTrayExitRequested;
+
+        if (MainWindow is MainWindow mw)
+        {
+            mw.MinimizedToTray += (_, _) => _trayIcon.Show();
+        }
+
+
+    }
+
+    private void OnTrayShowRequested()
+    {
+        _trayIcon?.Hide();
+        if (MainWindow is not null)
+        {
+            MainWindow.AppWindow.Show();
+            MainWindow.Activate();
+        }
+    }
+
+    private void OnTrayExitRequested()
+    {
+        _trayIcon?.Dispose();
+        _trayIcon = null;
+        if (MainWindow is MainWindow mw)
+        {
+            mw.ForceClose();
+        }
     }
 
     private static IServiceProvider BuildServices()

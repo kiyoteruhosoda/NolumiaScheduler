@@ -1,7 +1,11 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
+using NolumiaScheduler.Application.Services;
+using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Presentation.Pages;
+using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.WinUI.Helpers;
 using System.ComponentModel;
@@ -38,7 +42,53 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         // Default to calendar
         NavView.SelectedItem = CalendarNavItem;
         ContentFrame.Navigate(typeof(CalendarPage));
+
+        // Intercept close to minimize to tray instead
+        AppWindow.Closing += OnAppWindowClosing;
+
+        // Intercept minimize to hide to tray
+        ((Microsoft.UI.Windowing.OverlappedPresenter)AppWindow.Presenter).IsMinimizable = true;
+        AppWindow.Changed += OnAppWindowChanged;
     }
+
+    private bool _wasMinimized;
+
+    private void OnAppWindowChanged(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowChangedEventArgs args)
+    {
+        if (!args.DidPresenterChange && !args.DidSizeChange) return;
+
+        var presenter = (Microsoft.UI.Windowing.OverlappedPresenter)sender.Presenter;
+        if (presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized && !_wasMinimized)
+        {
+            _wasMinimized = true;
+            sender.Hide();
+            MinimizedToTray?.Invoke(this, EventArgs.Empty);
+        }
+        else if (presenter.State != Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
+        {
+            _wasMinimized = false;
+        }
+    }
+
+    private bool _forceClose;
+
+    public void ForceClose()
+    {
+        _forceClose = true;
+        Close();
+    }
+
+    private void OnAppWindowClosing(Microsoft.UI.Windowing.AppWindow sender, Microsoft.UI.Windowing.AppWindowClosingEventArgs args)
+    {
+        if (_forceClose) return;
+        args.Cancel = true;
+        this.AppWindow.Hide();
+        MinimizedToTray?.Invoke(this, EventArgs.Empty);
+    }
+
+    /// <summary>Raised when the window is hidden to tray (close or minimize).</summary>
+    public event EventHandler? MinimizedToTray;
+    public event EventHandler? RestoredFromTray;
 
     private void OnFrameNavigated(object sender, NavigationEventArgs e)
     {
@@ -67,8 +117,26 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                     if (ContentFrame.CurrentSourcePageType != typeof(BusinessCalendarListPage))
                         ContentFrame.Navigate(typeof(BusinessCalendarListPage));
                     break;
+                case "Debug":
+                    OpenAlarmDebugWindow();
+                    break;
             }
         }
+    }
+
+    private AlarmDebugWindow? _debugWindow;
+
+    private void OpenAlarmDebugWindow()
+    {
+        if (_debugWindow is null || _debugWindow.AppWindow is null)
+        {
+            var services = App.Services;
+            _debugWindow = new AlarmDebugWindow(
+                services.GetRequiredService<IAlarmService>(),
+                services.GetRequiredService<CalendarEventApplicationService>(),
+                services.GetRequiredService<IOccurrenceExpander>());
+        }
+        _debugWindow.Activate();
     }
 
     private void OnBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)

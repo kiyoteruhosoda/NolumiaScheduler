@@ -30,6 +30,14 @@
             </NavigationViewItem>
         </NavigationView.MenuItems>
 
+        <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="DebugNavItem" Tag="Debug" Content="Alarm Debug">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xEBE8;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
         <Frame x:Name="ContentFrame" NavigationFailed="OnNavigationFailed"/>
     </NavigationView>
 </Window>
