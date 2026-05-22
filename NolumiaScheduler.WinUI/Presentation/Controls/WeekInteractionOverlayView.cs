@@ -2,10 +2,11 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
+using NolumiaScheduler.Presentation.Controls;
 
-namespace NolumiaScheduler.Presentation.Controls;
+namespace NolumiaScheduler.WinUI.Presentation.Controls;
 
-public sealed class WeekInteractionOverlayView : UserControl
+public partial class WeekInteractionOverlayView : UserControl
 {
     private readonly Canvas _canvas = new();
 

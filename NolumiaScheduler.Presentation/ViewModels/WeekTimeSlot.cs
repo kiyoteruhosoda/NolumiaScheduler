@@ -1,4 +1,4 @@
-using NolumiaScheduler.Resources.Strings;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 

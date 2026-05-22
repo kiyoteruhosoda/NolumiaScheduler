@@ -3,12 +3,12 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Input;
 using NolumiaScheduler.Application.Services;
-using NolumiaScheduler.Resources.Strings;
 using NolumiaScheduler.Presentation.Helpers;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class BusinessCalendarListViewModel : INotifyPropertyChanged
+public partial class BusinessCalendarListViewModel : INotifyPropertyChanged
 {
     private readonly BusinessCalendarApplicationService _service;
 

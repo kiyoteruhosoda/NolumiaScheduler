@@ -1,6 +1,6 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Window
-    x:Class="NolumiaScheduler.Presentation.Pages.AlarmNotificationWindow"
+    x:Class="NolumiaScheduler.WinUI.Presentation.Pages.AlarmNotificationWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Alarm">

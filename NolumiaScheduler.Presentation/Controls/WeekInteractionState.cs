@@ -6,6 +6,7 @@ public enum WeekInteractionState
     Pressed,
     DraggingMove,
     DraggingResize,
+    DraggingCreate,
     LongPressPending,
     Canceled
 }
