@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
@@ -9,12 +8,6 @@ namespace NolumiaScheduler.Infrastructure.Json.Repositories;
 public class JsonBusinessCalendarRepository : IBusinessCalendarRepository
 {
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
 
     public JsonBusinessCalendarRepository(string directoryPath)
     {
@@ -28,7 +21,7 @@ public class JsonBusinessCalendarRepository : IBusinessCalendarRepository
         if (!File.Exists(path)) return null;
 
         var json = File.ReadAllText(path);
-        var dto = JsonSerializer.Deserialize<BusinessCalendarDto>(json, JsonOptions);
+        var dto = JsonSerializer.Deserialize(json, AppJsonContext.Default.BusinessCalendarDto);
         return dto?.ToDomain();
     }
 
@@ -38,7 +31,7 @@ public class JsonBusinessCalendarRepository : IBusinessCalendarRepository
         foreach (var file in Directory.GetFiles(_directoryPath, "*.json"))
         {
             var json = File.ReadAllText(file);
-            var dto = JsonSerializer.Deserialize<BusinessCalendarDto>(json, JsonOptions);
+            var dto = JsonSerializer.Deserialize(json, AppJsonContext.Default.BusinessCalendarDto);
             if (dto != null)
                 results.Add(dto.ToDomain());
         }
@@ -48,7 +41,7 @@ public class JsonBusinessCalendarRepository : IBusinessCalendarRepository
     public void Save(BusinessCalendar calendar)
     {
         var dto = BusinessCalendarDto.FromDomain(calendar);
-        var json = JsonSerializer.Serialize(dto, JsonOptions);
+        var json = JsonSerializer.Serialize(dto, AppJsonContext.Default.BusinessCalendarDto);
         File.WriteAllText(GetFilePath(calendar.Id), json);
     }
 

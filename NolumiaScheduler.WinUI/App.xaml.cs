@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using NolumiaScheduler.Application.Services;
@@ -22,30 +23,71 @@ public partial class App : Microsoft.UI.Xaml.Application
     public static Window? MainWindow { get; private set; }
     private TrayIconManager? _trayIcon;
 
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
+
     public App()
     {
+        UnhandledException += OnAppUnhandledException;
         InitializeComponent();
-        _services = BuildServices();
+        try
+        {
+            _services = BuildServices();
+        }
+        catch (Exception ex)
+        {
+            ShowFatalError(ex);
+            Exit();
+        }
     }
 
     protected override void OnLaunched(LaunchActivatedEventArgs args)
     {
-        MainWindow = new MainWindow();
-        MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
-        MainWindow.Activate();
-        Services.GetRequiredService<IAlarmService>().Start();
-
-        // Set up system tray icon (shown only when window is hidden)
-        _trayIcon = new TrayIconManager(MainWindow, "Nolumia Scheduler");
-        _trayIcon.ShowRequested += OnTrayShowRequested;
-        _trayIcon.ExitRequested += OnTrayExitRequested;
-
-        if (MainWindow is MainWindow mw)
+        try
         {
-            mw.MinimizedToTray += (_, _) => _trayIcon.Show();
+            MainWindow = new MainWindow();
+            MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
+            MainWindow.Activate();
+            Services.GetRequiredService<IAlarmService>().Start();
+
+            _trayIcon = new TrayIconManager(MainWindow, "Nolumia Scheduler");
+            _trayIcon.ShowRequested += OnTrayShowRequested;
+            _trayIcon.ExitRequested += OnTrayExitRequested;
+
+            if (MainWindow is MainWindow mw)
+            {
+                mw.MinimizedToTray += (_, _) => _trayIcon.Show();
+            }
         }
+        catch (Exception ex)
+        {
+            ShowFatalError(ex);
+            Exit();
+        }
+    }
 
+    private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
+    {
+        e.Handled = true;
+        ShowFatalError(e.Exception);
+        Exit();
+    }
 
+    private static void ShowFatalError(Exception ex)
+    {
+        var logDir = Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+            "NolumiaScheduler");
+        Directory.CreateDirectory(logDir);
+        var logPath = Path.Combine(logDir, "crash.log");
+        File.WriteAllText(logPath, $"[{DateTime.Now:O}]{Environment.NewLine}{ex}");
+
+        const uint MB_ICONERROR = 0x10;
+        MessageBox(
+            IntPtr.Zero,
+            $"NolumiaScheduler の起動中にエラーが発生しました。\n\n{ex.Message}\n\nログファイル: {logPath}",
+            "NolumiaScheduler - 起動エラー",
+            MB_ICONERROR);
     }
 
     private void OnTrayShowRequested()

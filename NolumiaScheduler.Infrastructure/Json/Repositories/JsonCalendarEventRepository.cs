@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Repositories;
@@ -13,12 +12,6 @@ public class JsonCalendarEventRepository : ICalendarEventRepository, ICalendarEv
 {
     public event Action? Changed;
     private readonly string _directoryPath;
-    private static readonly JsonSerializerOptions JsonOptions = new()
-    {
-        WriteIndented = true,
-        PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
-        DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull
-    };
 
     public JsonCalendarEventRepository(string directoryPath)
     {
@@ -32,7 +25,7 @@ public class JsonCalendarEventRepository : ICalendarEventRepository, ICalendarEv
         if (!File.Exists(path)) return null;
 
         var json = File.ReadAllText(path);
-        var dto = JsonSerializer.Deserialize<CalendarEventDto>(json, JsonOptions);
+        var dto = JsonSerializer.Deserialize(json, AppJsonContext.Default.CalendarEventDto);
         return dto?.ToDomain();
     }
 
@@ -42,7 +35,7 @@ public class JsonCalendarEventRepository : ICalendarEventRepository, ICalendarEv
         foreach (var file in Directory.GetFiles(_directoryPath, "*.json"))
         {
             var json = File.ReadAllText(file);
-            var dto = JsonSerializer.Deserialize<CalendarEventDto>(json, JsonOptions);
+            var dto = JsonSerializer.Deserialize(json, AppJsonContext.Default.CalendarEventDto);
             if (dto != null)
                 results.Add(dto.ToDomain());
         }
@@ -52,7 +45,7 @@ public class JsonCalendarEventRepository : ICalendarEventRepository, ICalendarEv
     public void Save(CalendarEvent calendarEvent)
     {
         var dto = CalendarEventDto.FromDomain(calendarEvent);
-        var json = JsonSerializer.Serialize(dto, JsonOptions);
+        var json = JsonSerializer.Serialize(dto, AppJsonContext.Default.CalendarEventDto);
         var path = GetFilePath(calendarEvent.Id);
         File.WriteAllText(path, json);
         Changed?.Invoke();
