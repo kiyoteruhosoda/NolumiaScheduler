@@ -1,3 +1,4 @@
+using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Presentation.Resources.Strings;
@@ -7,6 +8,10 @@ namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class EventEditWindow : Window
 {
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetWindowLongPtr(IntPtr hWnd, int nIndex, IntPtr dwNewLong);
+    private const int GWLP_HWNDPARENT = -8;
+
     public EventEditWindow(EventEditParams p)
     {
         InitializeComponent();
@@ -20,9 +25,18 @@ public sealed partial class EventEditWindow : Window
         {
             var pos  = main.Position;
             var size = main.Size;
-            AppWindow.Move(new Windows.Graphics.PointInt32(
+            AppWindow.Move(new PointInt32(
                 pos.X + (size.Width  - w) / 2,
                 pos.Y + (size.Height - h) / 2));
+        }
+
+        // Set MainWindow as Win32 owner so this window always appears above it,
+        // while still being draggable outside the main window bounds.
+        if (App.MainWindow != null)
+        {
+            var editHwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
+            var mainHwnd = WinRT.Interop.WindowNative.GetWindowHandle(App.MainWindow);
+            SetWindowLongPtr(editHwnd, GWLP_HWNDPARENT, mainHwnd);
         }
 
         EditFrame.Navigated += OnFrameNavigated;
