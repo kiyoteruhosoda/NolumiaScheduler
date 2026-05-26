@@ -97,7 +97,10 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         // dayLabel=30, holiday=14, topPadding=2 => remaining for chips
         var chipCount = Math.Max(1, (int)((_dayCellHeight - 46) / 19));
         foreach (var cell in DayCells)
+        {
             cell.AvailableChipCount = chipCount;
+            cell.CellHeight = _dayCellHeight;
+        }
     }
     public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
     public static double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;

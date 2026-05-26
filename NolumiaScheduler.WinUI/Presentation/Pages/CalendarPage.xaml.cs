@@ -124,6 +124,13 @@ public sealed partial class CalendarPage : Page
         };
     }
 
+    private void OnCalendarAreaSizeChanged(object sender, SizeChangedEventArgs e)
+    {
+        if (_vm == null || !_vm.IsMonthMode || e.NewSize.Height <= 0) return;
+        var rowCount = Math.Max(1, (_vm.DayCells.Count + 6) / 7);
+        _vm.DayCellHeight = e.NewSize.Height / rowCount;
+    }
+
     private void UpdateViewMode()
     {
         if (_vm == null) return;
@@ -134,7 +141,12 @@ public sealed partial class CalendarPage : Page
         GridSeparator.Visibility       = isMonth ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         SelectedDayPanel.Visibility    = (isMonth && _vm.HasSelectedDay) ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
 
-        if (!isMonth)
+        if (isMonth && CalendarAreaSentinel.ActualHeight > 0)
+        {
+            var rowCount = Math.Max(1, (_vm.DayCells.Count + 6) / 7);
+            _vm.DayCellHeight = CalendarAreaSentinel.ActualHeight / rowCount;
+        }
+        else if (!isMonth)
         {
             WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
             WeekView.IsCurrentWeek = _vm.IsCurrentWeek;

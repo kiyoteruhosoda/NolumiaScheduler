@@ -73,6 +73,18 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
     public EventOccurrence? SecondEvent => Events.Count > 1 ? Events[1] : null;
     public int ExtraCount => Events.Count > 2 ? Events.Count - 2 : 0;
 
+    private double _cellHeight = 88;
+    public double CellHeight
+    {
+        get => _cellHeight;
+        set
+        {
+            if (Math.Abs(_cellHeight - value) < 0.5) return;
+            _cellHeight = value;
+            OnPropertyChanged();
+        }
+    }
+
     private int _availableChipCount = 2;
     public int AvailableChipCount
     {
@@ -93,8 +105,10 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
     public IReadOnlyList<CalendarEventChip> VisibleEvents =>
         [.. Events.Take(_availableChipCount).Select(e => new CalendarEventChip(e))];
 
+    // When overflow exists, ShowSecondChip is false (chip 2 hidden), so only 1 chip is visible.
+    // The hidden count is therefore Events.Count - 1, not Events.Count - _availableChipCount.
     public int VisibleExtraCount =>
-        Events.Count > _availableChipCount ? Events.Count - _availableChipCount : 0;
+        Events.Count > _availableChipCount ? Events.Count - 1 : 0;
     public bool HasSecondEvent => SecondEvent != null;
     public bool HasMoreEvents => VisibleExtraCount > 0;
     public bool ShowSecondChip => HasSecondEvent && !HasMoreEvents;

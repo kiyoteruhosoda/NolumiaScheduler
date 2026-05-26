@@ -111,6 +111,11 @@
         <!-- Separator -->
         <Rectangle x:Name="GridSeparator" Grid.Row="4" Fill="{ThemeResource GCalBorder}"/>
 
+        <!-- Invisible sentinel that stretches to fill Row 5; used to measure available height -->
+        <Border x:Name="CalendarAreaSentinel" Grid.Row="5"
+                IsHitTestVisible="False" Background="Transparent"
+                SizeChanged="OnCalendarAreaSizeChanged"/>
+
         <!-- Month grid (ItemsRepeater 7-column) -->
         <ItemsRepeater x:Name="MonthGrid" Grid.Row="5"
                        Background="{ThemeResource GCalSurface}">
@@ -120,7 +125,7 @@
             </ItemsRepeater.Layout>
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:CalendarDayCell">
-                    <Border MinHeight="80"
+                    <Border MinHeight="{x:Bind CellHeight, Mode=OneWay}"
                             BorderThickness="0,0,0.5,0.5"
                             BorderBrush="{ThemeResource GCalBorder}"
                             Background="{x:Bind CellBackgroundColor, Converter={StaticResource ColorToBrush}, Mode=OneWay}"
