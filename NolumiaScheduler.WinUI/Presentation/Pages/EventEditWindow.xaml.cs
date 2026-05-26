@@ -13,7 +13,17 @@ public sealed partial class EventEditWindow : Window
 
         Title = p.EventId != null ? AppResources.EditEventTitle : AppResources.NewEventTitle;
 
-        AppWindow.Resize(new SizeInt32(500, 760));
+        const int w = 500, h = 760;
+        AppWindow.Resize(new SizeInt32(w, h));
+
+        if (App.MainWindow?.AppWindow is { } main)
+        {
+            var pos  = main.Position;
+            var size = main.Size;
+            AppWindow.Move(new Windows.Graphics.PointInt32(
+                pos.X + (size.Width  - w) / 2,
+                pos.Y + (size.Height - h) / 2));
+        }
 
         EditFrame.Navigated += OnFrameNavigated;
         EditFrame.Navigate(typeof(EventEditPage), p);
