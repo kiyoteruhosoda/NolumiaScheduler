@@ -16,7 +16,8 @@
                     IsBackEnabled="{x:Bind CanGoBack, Mode=OneWay}"
                     BackRequested="OnBackRequested"
                     SelectionChanged="OnNavSelectionChanged"
-                    IsPaneToggleButtonVisible="True">
+                    IsPaneToggleButtonVisible="True"
+                    IsPaneOpen="False">
         <NavigationView.MenuItems>
             <NavigationViewItem x:Name="CalendarNavItem" Tag="Calendar">
                 <NavigationViewItem.Icon>
