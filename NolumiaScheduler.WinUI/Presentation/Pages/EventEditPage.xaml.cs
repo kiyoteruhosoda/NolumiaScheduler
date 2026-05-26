@@ -10,6 +10,15 @@ namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class EventEditPage : Page
 {
+    /// <summary>Set by a hosting window to override the default GoBack navigation on dismiss.</summary>
+    public Action? DismissAction { get; set; }
+
+    private void Dismiss()
+    {
+        if (DismissAction != null) DismissAction();
+        else NavigationService.Instance.GoBack();
+    }
+
     private EventEditViewModel? _vm;
 
     // Guards to prevent feedback loops when programmatically updating controls
@@ -100,7 +109,7 @@ public sealed partial class EventEditPage : Page
             }
         }
 
-        _vm.SaveCompleted += () => NavigationService.Instance.GoBack();
+        _vm.SaveCompleted += Dismiss;
         _vm.PropertyChanged += OnVmPropertyChanged;
 
         BindViewModel();
@@ -614,7 +623,7 @@ public sealed partial class EventEditPage : Page
     }
 
     private void OnCancelClicked(object sender, RoutedEventArgs e)
-        => NavigationService.Instance.GoBack();
+        => Dismiss();
 
     private async System.Threading.Tasks.Task<RecurringEditScope?> ShowRecurringScopeDialogAsync()
     {

@@ -1,3 +1,4 @@
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Maui.Controls;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
@@ -13,6 +14,7 @@ public partial class CalendarPage : ContentPage
     private readonly CalendarViewModel _vm;
     private readonly ICalendarEventRepository _eventRepo;
     private readonly IWeekInteractionCompletionService _interactionCompletionService;
+    private readonly IServiceProvider _services;
 
     private Color _rowHoverColor = Color.FromArgb("#e8eaed");
     private Color _iconHoverColor = Color.FromArgb("#e0e0e0");
@@ -21,12 +23,14 @@ public partial class CalendarPage : ContentPage
     public CalendarPage(
         CalendarViewModel vm,
         ICalendarEventRepository eventRepo,
-        IWeekInteractionCompletionService interactionCompletionService)
+        IWeekInteractionCompletionService interactionCompletionService,
+        IServiceProvider services)
     {
         InitializeComponent();
         _vm = vm;
         _eventRepo = eventRepo;
         _interactionCompletionService = interactionCompletionService;
+        _services = services;
         BindingContext = vm;
         SizeChanged += OnPageSizeChanged;
     }
@@ -123,27 +127,51 @@ public partial class CalendarPage : ContentPage
 
     private async void OnNewEventClicked(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("EventEdit");
+        await OpenEventEditModalAsync(startDate: DateOnly.FromDateTime(DateTime.Today));
     }
 
     // ── Edit event ────────────────────────────────────────────
 
     private async void OnEditEventClicked(object? sender, TappedEventArgs e)
     {
-        // sender is the Border; its BindingContext is CalendarEventItem (inherited from parent Grid)
         if (sender is Border b && b.BindingContext is CalendarEventItem item)
-            await Shell.Current.GoToAsync($"EventEdit?eventId={item.EventId}");
+            await OpenEventEditModalAsync(eventId: item.EventId);
     }
-
 
     private async void OnWeekEventBlockTapped(object? sender, Controls.WeekEventBlockTappedEventArgs e)
     {
-        await Shell.Current.GoToAsync($"EventEdit?eventId={e.EventId}&occurrenceDate={e.Date:yyyy-MM-dd}&occurrenceStartMinute={e.StartMinute}");
+        await OpenEventEditModalAsync(eventId: e.EventId, occurrenceDate: e.Date, occurrenceStartMinute: e.StartMinute);
     }
 
     private async void OnWeekEmptySlotTapped(object? sender, Controls.WeekEmptySlotTappedEventArgs e)
     {
-        await Shell.Current.GoToAsync($"EventEdit?startDate={e.Date:yyyy-MM-dd}&startMinute={e.StartMinute}");
+        await OpenEventEditModalAsync(startDate: e.Date, startMinute: e.StartMinute);
+    }
+
+    private async Task OpenEventEditModalAsync(
+        string? eventId = null,
+        DateOnly? startDate = null,
+        int? startMinute = null,
+        DateOnly? occurrenceDate = null,
+        int? occurrenceStartMinute = null)
+    {
+        var page = _services.GetRequiredService<EventEditPage>();
+
+        // Set query properties in an order that avoids premature loads:
+        // occurrence params first, then eventId/startDate to trigger the load.
+        if (occurrenceDate.HasValue)
+            page.OccurrenceDate = occurrenceDate.Value.ToString("yyyy-MM-dd");
+        if (occurrenceStartMinute.HasValue)
+            page.OccurrenceStartMinute = occurrenceStartMinute.Value.ToString();
+        if (startMinute.HasValue)
+            page.StartMinute = startMinute.Value.ToString();
+
+        if (eventId != null)
+            page.EventId = eventId;
+        else if (startDate.HasValue)
+            page.StartDate = startDate.Value.ToString("yyyy-MM-dd");
+
+        await Navigation.PushModalAsync(new NavigationPage(page));
     }
 
     private async void OnWeekEventDragCompleted(object? sender, Controls.WeekEventDragCompletedEventArgs e)

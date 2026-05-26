@@ -23,14 +23,14 @@
                     <FontIcon Glyph="&#xE787;"/>
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
+        </NavigationView.MenuItems>
+
+        <NavigationView.FooterMenuItems>
             <NavigationViewItem x:Name="BusinessCalendarNavItem" Tag="BusinessCalendars">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE736;"/>
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-        </NavigationView.MenuItems>
-
-        <NavigationView.FooterMenuItems>
             <NavigationViewItem x:Name="DebugNavItem" Tag="Debug" Content="Alarm Debug">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xEBE8;"/>

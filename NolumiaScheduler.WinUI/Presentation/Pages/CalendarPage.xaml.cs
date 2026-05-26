@@ -170,8 +170,7 @@ public sealed partial class CalendarPage : Page
 
     private void OnNewEventClicked(object sender, RoutedEventArgs e)
     {
-        NavigationService.Instance.Navigate(typeof(EventEditPage),
-            new EventEditParams(StartDate: DateTime.Today.ToString("yyyy-MM-dd")));
+        new EventEditWindow(new EventEditParams(StartDate: DateTime.Today.ToString("yyyy-MM-dd"))).Activate();
     }
 
     private void OnDayCellTapped(object sender, TappedRoutedEventArgs e)
@@ -202,11 +201,10 @@ public sealed partial class CalendarPage : Page
         if (sender is Button btn && btn.Tag is string eventId)
         {
             var occ = _vm?.SelectedDayEvents.FirstOrDefault(x => x.EventId == eventId);
-            NavigationService.Instance.Navigate(typeof(EventEditPage),
-                new EventEditParams(
-                    EventId: eventId,
-                    OccurrenceDate: occ?.Date.ToString("yyyy-MM-dd"),
-                    OccurrenceStartMinute: occ?.StartMinuteOfDay));
+            new EventEditWindow(new EventEditParams(
+                EventId: eventId,
+                OccurrenceDate: occ?.Date.ToString("yyyy-MM-dd"),
+                OccurrenceStartMinute: occ?.StartMinuteOfDay)).Activate();
         }
     }
 
@@ -252,28 +250,25 @@ public sealed partial class CalendarPage : Page
     // Week view event handlers
     private void OnWeekEmptySlotTapped(object sender, WeekEmptySlotTappedEventArgs e)
     {
-        NavigationService.Instance.Navigate(typeof(EventEditPage),
-            new EventEditParams(
-                StartDate: e.Date.ToString("yyyy-MM-dd"),
-                StartMinute: e.StartMinute));
+        new EventEditWindow(new EventEditParams(
+            StartDate: e.Date.ToString("yyyy-MM-dd"),
+            StartMinute: e.StartMinute)).Activate();
     }
 
     private void OnWeekEventBlockTapped(object sender, WeekEventBlockTappedEventArgs e)
     {
-        NavigationService.Instance.Navigate(typeof(EventEditPage),
-            new EventEditParams(
-                EventId: e.EventId,
-                OccurrenceDate: e.Date.ToString("yyyy-MM-dd"),
-                OccurrenceStartMinute: e.StartMinute));
+        new EventEditWindow(new EventEditParams(
+            EventId: e.EventId,
+            OccurrenceDate: e.Date.ToString("yyyy-MM-dd"),
+            OccurrenceStartMinute: e.StartMinute)).Activate();
     }
 
     private void OnWeekSlotDragCreated(object sender, WeekSlotDragCreatedEventArgs e)
     {
-        NavigationService.Instance.Navigate(typeof(EventEditPage),
-            new EventEditParams(
-                StartDate: e.Date.ToString("yyyy-MM-dd"),
-                StartMinute: e.StartMinute,
-                EndMinute: e.EndMinute));
+        new EventEditWindow(new EventEditParams(
+            StartDate: e.Date.ToString("yyyy-MM-dd"),
+            StartMinute: e.StartMinute,
+            EndMinute: e.EndMinute)).Activate();
     }
 
     private async void OnWeekEventDragCompleted(object sender, WeekEventDragCompletedEventArgs e)

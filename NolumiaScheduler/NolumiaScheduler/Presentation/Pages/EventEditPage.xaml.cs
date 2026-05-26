@@ -37,8 +37,16 @@ public partial class EventEditPage : ContentPage
         {
             if (_vm.EditingEventId is { } id)
                 _alarmService.ResetFiredKeys(id);
-            await Shell.Current.GoToAsync("..");
+            await DismissAsync();
         };
+    }
+
+    private async Task DismissAsync()
+    {
+        if (Navigation.ModalStack.Count > 0)
+            await Navigation.PopModalAsync();
+        else
+            await Shell.Current.GoToAsync("..");
     }
 
     private void ApplyNavigationContext()
@@ -60,7 +68,7 @@ public partial class EventEditPage : ContentPage
 
     private async void OnCancelClicked(object? sender, EventArgs e)
     {
-        await Shell.Current.GoToAsync("..");
+        await DismissAsync();
     }
 
     private async void OnSaveClicked(object? sender, EventArgs e)
