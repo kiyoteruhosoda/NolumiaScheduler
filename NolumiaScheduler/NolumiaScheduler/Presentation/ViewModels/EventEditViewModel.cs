@@ -39,6 +39,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     // ── Recurrence ───────────────────────────────────────────
     private int _repeatTypeIndex;
     private int _interval = 1;
+    private bool _hasEndDate = false;
     private DateTime _endDate = DateTime.Today.AddYears(1);
 
     // Weekly
@@ -165,6 +166,7 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     private void LoadRecurrenceRule(RecurrenceRule rule)
     {
         EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
+        HasEndDate = rule.EndDate.Year < 9999;
         Interval = rule.Interval;
 
         switch (rule.RuleType)
@@ -331,6 +333,19 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
     {
         get => _interval;
         set { _interval = Math.Max(1, value); OnPropertyChanged(); }
+    }
+
+    public bool HasEndDate
+    {
+        get => _hasEndDate;
+        set
+        {
+            _hasEndDate = value;
+            if (value && _endDate < DateTime.Today)
+                _endDate = DateTime.Today.AddYears(1);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(EndDate));
+        }
     }
 
     public DateTime EndDate
@@ -736,7 +751,9 @@ public sealed class EventEditViewModel : INotifyPropertyChanged
 
     private RecurrenceRule BuildRecurrenceRule()
     {
-        var endDate  = new LocalDateValue(EndDate.Year, EndDate.Month, EndDate.Day);
+        var endDate = _hasEndDate
+            ? new LocalDateValue(_endDate.Year, _endDate.Month, _endDate.Day)
+            : new LocalDateValue(9999, 12, 31);
         var adjustment = BuildAdjustmentRule();
 
         return (ViewModels.RepeatTypeIndex)_repeatTypeIndex switch
