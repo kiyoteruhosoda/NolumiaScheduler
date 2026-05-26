@@ -25,6 +25,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         }
     }
 
+    private bool _suppressNavChange;
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     public MainWindow()
@@ -32,16 +34,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         InitializeComponent();
 
         // Localized nav item labels
-        CalendarNavItem.Content = AppResources.CalendarTab;
+        MonthNavItem.Content = AppResources.MonthViewLabel;
+        WeekNavItem.Content  = AppResources.WeekViewLabel;
         BusinessCalendarNavItem.Content = AppResources.BusinessCalendarsTab;
 
         NavigationService.Instance.Initialize(ContentFrame);
 
         ContentFrame.Navigated += OnFrameNavigated;
 
-        // Default to calendar
-        NavView.SelectedItem = CalendarNavItem;
-        ContentFrame.Navigate(typeof(CalendarPage));
+        // Default to week view
+        NavView.SelectedItem = WeekNavItem;
+        ContentFrame.Navigate(typeof(CalendarPage), "Week");
 
         // Intercept close to minimize to tray instead
         AppWindow.Closing += OnAppWindowClosing;
@@ -94,24 +97,27 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         CanGoBack = ContentFrame.CanGoBack;
 
-        // Sync nav selection with current page type
+        _suppressNavChange = true;
         if (e.SourcePageType == typeof(CalendarPage))
-            NavView.SelectedItem = CalendarNavItem;
+            NavView.SelectedItem = e.Parameter as string == "Month" ? MonthNavItem : WeekNavItem;
         else if (e.SourcePageType == typeof(BusinessCalendarListPage))
             NavView.SelectedItem = BusinessCalendarNavItem;
+        _suppressNavChange = false;
     }
 
     private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
     {
-        if (args.IsSettingsSelected) return;
+        if (_suppressNavChange || args.IsSettingsSelected) return;
 
         if (args.SelectedItem is NavigationViewItem item)
         {
             switch (item.Tag as string)
             {
-                case "Calendar":
-                    if (ContentFrame.CurrentSourcePageType != typeof(CalendarPage))
-                        ContentFrame.Navigate(typeof(CalendarPage));
+                case "Month":
+                    ContentFrame.Navigate(typeof(CalendarPage), "Month");
+                    break;
+                case "Week":
+                    ContentFrame.Navigate(typeof(CalendarPage), "Week");
                     break;
                 case "BusinessCalendars":
                     if (ContentFrame.CurrentSourcePageType != typeof(BusinessCalendarListPage))

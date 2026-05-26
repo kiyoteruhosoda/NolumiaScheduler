@@ -27,8 +27,6 @@ public sealed partial class CalendarPage : Page
 
         // Static strings
         BtnToday.Content     = AppResources.TodayButton;
-        BtnMonthView.Content = AppResources.MonthViewLabel;
-        BtnWeekView.Content  = AppResources.WeekViewLabel;
         LblSun.Text          = AppResources.DaySun;
         LblMon.Text          = AppResources.DayMon;
         LblTue.Text          = AppResources.DayTue;
@@ -44,6 +42,10 @@ public sealed partial class CalendarPage : Page
         base.OnNavigatedTo(e);
         _vm = NolumiaScheduler.WinUI.App.Services.GetRequiredService<CalendarViewModel>();
         _vm.ReloadCurrentMonth();
+        if (e.Parameter as string == "Month")
+            _vm.SwitchToMonthViewCommand.Execute(null);
+        else
+            _vm.SwitchToWeekViewCommand.Execute(null);
         BindViewModel();
     }
 
@@ -175,15 +177,19 @@ public sealed partial class CalendarPage : Page
     }
 
     // Header buttons
-    private void OnPrevClicked(object sender, RoutedEventArgs e)    => _vm?.PreviousMonthCommand.Execute(null);
-    private void OnNextClicked(object sender, RoutedEventArgs e)    => _vm?.NextMonthCommand.Execute(null);
-    private void OnTodayClicked(object sender, RoutedEventArgs e)   => _vm?.GoTodayCommand.Execute(null);
-    private void OnMonthViewClicked(object sender, RoutedEventArgs e) => _vm?.SwitchToMonthViewCommand.Execute(null);
-    private void OnWeekViewClicked(object sender, RoutedEventArgs e)  => _vm?.SwitchToWeekViewCommand.Execute(null);
+    private void OnPrevClicked(object sender, RoutedEventArgs e)  => _vm?.PreviousMonthCommand.Execute(null);
+    private void OnNextClicked(object sender, RoutedEventArgs e)  => _vm?.NextMonthCommand.Execute(null);
+    private void OnTodayClicked(object sender, RoutedEventArgs e) => _vm?.GoTodayCommand.Execute(null);
 
     private void OnNewEventClicked(object sender, RoutedEventArgs e)
     {
         OpenEditWindow(new EventEditParams(StartDate: DateTime.Today.ToString("yyyy-MM-dd")));
+    }
+
+    private void OnNewEventForSelectedDayClicked(object sender, RoutedEventArgs e)
+    {
+        if (_vm?.SelectedDate is DateOnly date)
+            OpenEditWindow(new EventEditParams(StartDate: date.ToString("yyyy-MM-dd")));
     }
 
     private void OnDayCellTapped(object sender, TappedRoutedEventArgs e)

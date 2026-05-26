@@ -27,6 +27,10 @@ public sealed partial class WeekCalendarView : UserControl
     private DateTime _lastInteractionFrameUtc = DateTime.MinValue;
     private double _weekDayColumnWidth = 120;
     private bool _initialScrollDone;
+    private enum ResizeEdge { None, Top, Bottom }
+    private ResizeEdge _activeResizeEdge = ResizeEdge.None;
+    private int _resizeOriginalStartMinute;
+    private int _resizeOriginalEndMinute;
     private Canvas? _dragCreateLane;
     private WeekDayColumn? _dragCreateDay;
     private int _dragCreateStartMinute;
@@ -392,6 +396,7 @@ public sealed partial class WeekCalendarView : UserControl
         border.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
         border.ManipulationDelta += OnEventBlockManipulationDelta;
         border.ManipulationCompleted += OnEventBlockManipulationCompleted;
+        border.ManipulationStarted += OnEventBlockManipulationStarted;
 
         return border;
     }
@@ -587,6 +592,33 @@ public sealed partial class WeekCalendarView : UserControl
         }
     }
 
+    private void UpdateLaneOverlay(DateTime date)
+    {
+        foreach (var canvas in WeekBodyGrid.Children.OfType<Canvas>())
+        {
+            var isTarget = canvas.Tag is WeekDayColumn d && d.Date.Date == date.Date;
+            foreach (var overlay in canvas.Children.OfType<WeekInteractionOverlayView>())
+                overlay.Preview = isTarget ? InteractionPreview : new WeekInteractionPreview { IsVisible = false };
+        }
+    }
+
+    private const double ResizeHandlePx = 10;
+
+    private void OnEventBlockManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
+    {
+        if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
+        var relY = e.Position.Y;
+        var height = b.ActualHeight;
+        if (relY <= ResizeHandlePx && height > ResizeHandlePx * 2.5)
+            _activeResizeEdge = ResizeEdge.Top;
+        else if (relY >= height - ResizeHandlePx && height > ResizeHandlePx * 2.5)
+            _activeResizeEdge = ResizeEdge.Bottom;
+        else
+            _activeResizeEdge = ResizeEdge.None;
+        _resizeOriginalStartMinute = block.StartMinute;
+        _resizeOriginalEndMinute = block.EndMinute;
+    }
+
     private void OnEventBlockManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
@@ -595,14 +627,37 @@ public sealed partial class WeekCalendarView : UserControl
         _lastInteractionFrameUtc = now;
 
         _activeBlock = block;
-        var newPoint = new Point(
-            block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
-            block.Top + e.Cumulative.Translation.Y);
-        var dt = _mapper.MapToDateTime(newPoint, WeekStartDate, _weekDayColumnWidth);
-        UpdatePreview(block.EventId, dt.Date, dt.Hour * 60 + dt.Minute,
-            dt.Hour * 60 + dt.Minute + Math.Max(15, block.EndMinute - block.StartMinute));
-        TransitionTo(WeekInteractionState.DraggingMove, block, newPoint);
         _suppressTapUntilUtc = now.AddMilliseconds(300);
+
+        if (_activeResizeEdge != ResizeEdge.None)
+        {
+            var deltaMin = (int)Math.Round(e.Cumulative.Translation.Y);
+            int previewStart, previewEnd;
+            if (_activeResizeEdge == ResizeEdge.Top)
+            {
+                previewStart = _mapper.SnapMinute(Math.Clamp(_resizeOriginalStartMinute + deltaMin, 0, _resizeOriginalEndMinute - 15));
+                previewEnd = _resizeOriginalEndMinute;
+            }
+            else
+            {
+                previewStart = _resizeOriginalStartMinute;
+                previewEnd = _mapper.SnapMinute(Math.Clamp(_resizeOriginalEndMinute + deltaMin, _resizeOriginalStartMinute + 15, 24 * 60));
+            }
+            UpdatePreview(block.EventId, block.Date, previewStart, previewEnd);
+            UpdateLaneOverlay(block.Date);
+            TransitionTo(WeekInteractionState.DraggingResize, block);
+        }
+        else
+        {
+            var newPoint = new Point(
+                block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
+                block.Top + e.Cumulative.Translation.Y);
+            var dt = _mapper.MapToDateTime(newPoint, WeekStartDate, _weekDayColumnWidth);
+            UpdatePreview(block.EventId, dt.Date, dt.Hour * 60 + dt.Minute,
+                dt.Hour * 60 + dt.Minute + Math.Max(15, block.EndMinute - block.StartMinute));
+            UpdateLaneOverlay(dt.Date);
+            TransitionTo(WeekInteractionState.DraggingMove, block, newPoint);
+        }
     }
 
     private void OnEventBlockManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
@@ -617,7 +672,45 @@ public sealed partial class WeekCalendarView : UserControl
             e.Cumulative.Translation.X * e.Cumulative.Translation.X +
             e.Cumulative.Translation.Y * e.Cumulative.Translation.Y);
 
-        if (_activeBlock == null || totalMovement < 8)
+        if (_activeResizeEdge != ResizeEdge.None && totalMovement >= 4)
+        {
+            var deltaMin = (int)Math.Round(e.Cumulative.Translation.Y);
+            int startMin, endMin;
+            if (_activeResizeEdge == ResizeEdge.Top)
+            {
+                startMin = _mapper.SnapMinute(Math.Clamp(_resizeOriginalStartMinute + deltaMin, 0, _resizeOriginalEndMinute - 15));
+                endMin = _resizeOriginalEndMinute;
+            }
+            else
+            {
+                startMin = _resizeOriginalStartMinute;
+                endMin = _mapper.SnapMinute(Math.Clamp(_resizeOriginalEndMinute + deltaMin, _resizeOriginalStartMinute + 15, 24 * 60));
+            }
+            EventResizeCompleted?.Invoke(this, new WeekEventResizeCompletedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.Date,
+                StartMinute = startMin,
+                EndMinute = endMin
+            });
+        }
+        else if (_activeResizeEdge == ResizeEdge.None && _activeBlock != null && totalMovement >= 8)
+        {
+            var finalPoint = new Point(
+                block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
+                block.Top + e.Cumulative.Translation.Y);
+            var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
+            var startMinute = dt.Hour * 60 + dt.Minute;
+            var duration = Math.Max(15, block.EndMinute - block.StartMinute);
+            SlotDragCreated?.Invoke(this, new WeekSlotDragCreatedEventArgs
+            {
+                Date = dt.Date,
+                StartMinute = startMinute,
+                EndMinute = startMinute + duration
+            });
+            _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
+        }
+        else
         {
             _selectedEventId = block.EventId;
             UpdateSelectionState();
@@ -629,32 +722,12 @@ public sealed partial class WeekCalendarView : UserControl
                 StartMinute = block.StartMinute,
                 OccurrenceKey = block.OccurrenceKey
             });
-            TransitionTo(WeekInteractionState.Idle);
-            ClearPreview();
-            _activeBlock = null;
-            return;
         }
 
-        var finalPoint = new Point(
-            block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
-            block.Top + e.Cumulative.Translation.Y);
-
-        var decision = _gestureArbitrationService.Decide(
-            true, false, _pressStartPoint, finalPoint, TimeSpan.FromMilliseconds(350));
-
-        if (decision == WeekGestureDecision.Drag || decision == WeekGestureDecision.LongPress)
-        {
-            var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
-            EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
-            {
-                EventId = block.EventId,
-                TargetDateTime = dt,
-                TargetStartMinute = dt.Hour * 60 + dt.Minute
-            });
-        }
-
+        _activeResizeEdge = ResizeEdge.None;
         TransitionTo(WeekInteractionState.Idle);
         ClearPreview();
+        UpdateLaneOverlay(block.Date);
         _activeBlock = null;
     }
 
