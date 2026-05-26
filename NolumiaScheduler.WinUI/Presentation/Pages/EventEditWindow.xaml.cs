@@ -1,3 +1,4 @@
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using Windows.Graphics;
