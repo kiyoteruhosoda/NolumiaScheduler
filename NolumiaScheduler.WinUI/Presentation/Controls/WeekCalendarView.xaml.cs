@@ -373,7 +373,8 @@ public sealed partial class WeekCalendarView : UserControl
 
         Canvas.SetLeft(border, block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth);
         Canvas.SetTop(border, block.Top);
-        border.Width = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
+        var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
+        border.Width = Math.Min(rawWidth, _weekDayColumnWidth * 0.8);
         border.Height = Math.Max(16, block.Height);
 
         var title = new TextBlock
@@ -606,9 +607,31 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
     {
-        if (sender is not Border b || b.Tag is not WeekEventBlock block || _activeBlock == null)
+        if (sender is not Border b || b.Tag is not WeekEventBlock block)
         {
             CancelCurrentInteraction();
+            return;
+        }
+
+        var totalMovement = Math.Sqrt(
+            e.Cumulative.Translation.X * e.Cumulative.Translation.X +
+            e.Cumulative.Translation.Y * e.Cumulative.Translation.Y);
+
+        if (_activeBlock == null || totalMovement < 8)
+        {
+            _selectedEventId = block.EventId;
+            UpdateSelectionState();
+            _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
+            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.Date,
+                StartMinute = block.StartMinute,
+                OccurrenceKey = block.OccurrenceKey
+            });
+            TransitionTo(WeekInteractionState.Idle);
+            ClearPreview();
+            _activeBlock = null;
             return;
         }
 
