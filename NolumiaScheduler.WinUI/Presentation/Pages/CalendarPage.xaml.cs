@@ -25,6 +25,10 @@ public sealed partial class CalendarPage : Page
         InitializeComponent();
         _interactionCompletionService = NolumiaScheduler.WinUI.App.Services.GetRequiredService<IWeekInteractionCompletionService>();
 
+        // Wire callback so resize/drag completions open EventEditWindow (not ContentFrame navigation)
+        if (_interactionCompletionService is NavigateWeekInteractionCompletionService svc)
+            svc.OpenEditWindowCallback = OpenEditWindow;
+
         // Static strings
         BtnToday.Content     = AppResources.TodayButton;
         LblSun.Text          = AppResources.DaySun;

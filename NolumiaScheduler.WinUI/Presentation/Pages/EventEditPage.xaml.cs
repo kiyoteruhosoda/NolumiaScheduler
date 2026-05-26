@@ -101,6 +101,11 @@ public sealed partial class EventEditPage : Page
                     occKey = new NolumiaScheduler.Domain.ValueObjects.OccurrenceLocalKey(occDate, occTime);
                 }
                 _vm.LoadEvent(p.EventId, occKey);
+                // Override times when opened from drag/resize (params carry the new time)
+                if (p.OccurrenceStartMinute.HasValue)
+                    _vm.StartTime = TimeSpan.FromMinutes(p.OccurrenceStartMinute.Value);
+                if (p.OccurrenceEndMinute.HasValue)
+                    _vm.EndTime = TimeSpan.FromMinutes(p.OccurrenceEndMinute.Value);
             }
             else if (p.StartDate != null && p.StartMinute.HasValue
                      && DateTime.TryParse(p.StartDate, out var startDt))
