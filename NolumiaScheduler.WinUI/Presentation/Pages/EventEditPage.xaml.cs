@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.WinUI.Helpers;
 using NolumiaScheduler.Presentation.ViewModels;
@@ -224,7 +225,7 @@ public sealed partial class EventEditPage : Page
         IntervalUnitLabel.Text = _vm.IntervalUnitLabel;
 
         _suppressEndDateChanged = true;
-        EndDatePicker.Date = new DateTimeOffset(_vm.EndDate);
+        EndDatePicker.Date = _vm.HasEndDate ? new DateTimeOffset(_vm.EndDate) : (DateTimeOffset?)null;
         _suppressEndDateChanged = false;
 
         // Adjustment
@@ -247,8 +248,42 @@ public sealed partial class EventEditPage : Page
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
         ValidationText.Text = _vm.ValidationError;
 
+        // Scroll time pickers so the selected item appears at the top when the dropdown opens
+        StartTimePicker.DropDownOpened += OnTimePickerDropDownOpened;
+        EndTimePicker.DropDownOpened   += OnTimePickerDropDownOpened;
+
         // Apply initial section visibility
         ApplySectionVisibility();
+    }
+
+    private void OnTimePickerDropDownOpened(object sender, object e)
+    {
+        if (sender is not ComboBox picker || picker.SelectedIndex < 0) return;
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal,
+            () => ScrollComboBoxSelectionToTop(picker));
+    }
+
+    private static void ScrollComboBoxSelectionToTop(ComboBox comboBox)
+    {
+        if (comboBox.Items.Count == 0) return;
+        var sv = FindDescendant<ScrollViewer>(comboBox);
+        if (sv == null || sv.ExtentHeight <= 0) return;
+        var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
+        sv.ChangeView(null, comboBox.SelectedIndex * itemHeight, null, true);
+    }
+
+    private static T? FindDescendant<T>(DependencyObject? parent) where T : DependencyObject
+    {
+        if (parent == null) return null;
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) return match;
+            var result = FindDescendant<T>(child);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
@@ -288,6 +323,16 @@ public sealed partial class EventEditPage : Page
                     _suppressRepeatTypeChanged = true;
                     RepeatTypePicker.SelectedIndex = _vm.RepeatTypeIndex;
                     _suppressRepeatTypeChanged = false;
+                }
+                break;
+
+            case nameof(EventEditViewModel.HasEndDate):
+            case nameof(EventEditViewModel.EndDate):
+                if (!_suppressEndDateChanged)
+                {
+                    _suppressEndDateChanged = true;
+                    EndDatePicker.Date = _vm.HasEndDate ? new DateTimeOffset(_vm.EndDate) : (DateTimeOffset?)null;
+                    _suppressEndDateChanged = false;
                 }
                 break;
 
@@ -573,12 +618,17 @@ public sealed partial class EventEditPage : Page
     private void OnEndDateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
     {
         if (_suppressEndDateChanged || _vm == null) return;
+        _suppressEndDateChanged = true;
         if (sender.Date is { } d)
         {
-            _suppressEndDateChanged = true;
+            _vm.HasEndDate = true;
             _vm.EndDate = new DateTime(d.Year, d.Month, d.Day);
-            _suppressEndDateChanged = false;
         }
+        else
+        {
+            _vm.HasEndDate = false;
+        }
+        _suppressEndDateChanged = false;
     }
 
     private void OnAdjustmentChanged(object sender, SelectionChangedEventArgs e)

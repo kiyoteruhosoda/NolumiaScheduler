@@ -291,16 +291,21 @@
                         </Grid>
                         <BoxView HeightRequest="0.5"
                                  BackgroundColor="{AppThemeBinding Light={StaticResource GCalBorder}, Dark={StaticResource GCalBorderDark}}" />
-                        <Grid ColumnDefinitions="Auto,*" MinimumHeightRequest="44">
+                        <Grid ColumnDefinitions="Auto,*,Auto" MinimumHeightRequest="44">
                             <Label Grid.Column="0" Text="{x:Static res:AppResources.EndDateLabel}"
                                    FontSize="13" WidthRequest="64"
                                    TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
                                    VerticalOptions="Center" />
                             <DatePicker Grid.Column="1"
                                         Date="{Binding EndDate}"
+                                        IsVisible="{Binding HasEndDate}"
                                         FontSize="14"
                                         MinimumHeightRequest="44"
                                         TextColor="{AppThemeBinding Light={StaticResource GCalTextPrimary}, Dark={StaticResource White}}" />
+                            <Switch Grid.Column="2"
+                                    IsToggled="{Binding HasEndDate}"
+                                    OnColor="{StaticResource GCalBlue}"
+                                    VerticalOptions="Center" />
                         </Grid>
                     </VerticalStackLayout>
 
