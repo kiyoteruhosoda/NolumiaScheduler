@@ -18,13 +18,15 @@
             <!-- Title -->
             <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2">
                 <TextBox x:Name="TitleBox" BorderThickness="0" FontSize="16" FontWeight="SemiBold"
-                         MinHeight="52" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"/>
+                         MinHeight="52" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
+                         VerticalContentAlignment="Center"/>
             </Border>
 
             <!-- Location -->
             <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,16">
                 <TextBox x:Name="LocationBox" BorderThickness="0" FontSize="14"
-                         MinHeight="48" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"/>
+                         MinHeight="48" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
+                         VerticalContentAlignment="Center"/>
             </Border>
 
             <!-- Date / Time section -->
@@ -125,7 +127,8 @@
                             <TextBlock x:Name="DayLbl" Grid.Column="0" FontSize="13" Width="56"
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                             <TextBox x:Name="DomBox" Grid.Column="1" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnDomChanged"/>
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnDomChanged"
+                                     VerticalContentAlignment="Center"/>
                         </Grid>
                         <Grid x:Name="NthWeekdaySection" ColumnDefinitions="*,*" ColumnSpacing="8" Visibility="Collapsed">
                             <ComboBox x:Name="WeekIndexPicker" Grid.Column="0" FontSize="13" MinHeight="44"
@@ -142,13 +145,16 @@
                                   HorizontalAlignment="Stretch" SelectionChanged="OnYearlyRuleChanged"/>
                         <Grid x:Name="YearlyDomSection" ColumnDefinitions="*,*" ColumnSpacing="8">
                             <TextBox x:Name="YearlyMonthBox" Grid.Column="0" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyMonthChanged"/>
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyMonthChanged"
+                                     VerticalContentAlignment="Center"/>
                             <TextBox x:Name="YearlyDayBox" Grid.Column="1" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyDayChanged"/>
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyDayChanged"
+                                     VerticalContentAlignment="Center"/>
                         </Grid>
                         <Grid x:Name="YearlyNthSection" ColumnDefinitions="*,*,*" ColumnSpacing="8" Visibility="Collapsed">
                             <TextBox x:Name="YearlyMonthBox2" Grid.Column="0" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyMonth2Changed"/>
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnYearlyMonth2Changed"
+                                     VerticalContentAlignment="Center"/>
                             <ComboBox x:Name="YearlyWeekIndexPicker" Grid.Column="1" FontSize="13" MinHeight="44"
                                       HorizontalAlignment="Stretch" SelectionChanged="OnYearlyWeekIndexChanged"/>
                             <ComboBox x:Name="YearlyWeekdayPicker" Grid.Column="2" FontSize="13" MinHeight="44"
@@ -163,7 +169,8 @@
                             <TextBlock x:Name="IntervalLabel" Grid.Column="0" FontSize="13" Width="64"
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                             <TextBox x:Name="IntervalBox" Grid.Column="1" FontSize="14"
-                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnIntervalChanged"/>
+                                     Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnIntervalChanged"
+                                     VerticalContentAlignment="Center"/>
                             <TextBlock x:Name="IntervalUnitLabel" Grid.Column="2" FontSize="13" Margin="8,0,0,0"
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                         </Grid>
@@ -234,8 +241,17 @@
                 </StackPanel>
             </Border>
 
+            <!-- Delete (editing only) -->
+            <Button x:Name="DeleteBtn" Visibility="Collapsed"
+                    FontSize="14" CornerRadius="8" Height="48"
+                    HorizontalAlignment="Stretch" Margin="0,8,0,0"
+                    Background="Transparent" BorderThickness="1"
+                    BorderBrush="{StaticResource GCalRed}"
+                    Foreground="{StaticResource GCalRed}"
+                    Click="OnDeleteClicked"/>
+
             <!-- Save / Cancel -->
-            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,20,0,32">
+            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,8,0,32">
                 <Button x:Name="SaveBtn" Grid.Column="0" FontSize="15" CornerRadius="8" Height="48"
                         HorizontalAlignment="Stretch"
                         Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"

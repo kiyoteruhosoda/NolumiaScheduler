@@ -16,25 +16,25 @@
     <!--
         Row layout:
           0  Header (48)
-          1  View-mode bar (40)
+          1  Day-of-week labels (36)
           2  Separator (1)
-          3  Day-of-week labels (36)
-          4  Separator (1)
-          5  6x7 calendar grid OR week view (*)
-          6  Selected-day events panel (Auto)
+          3  6x7 calendar grid OR week view (*)
+          4  Selected-day events panel (Auto)
     -->
-    <Grid RowDefinitions="48,40,1,36,1,*,Auto"
+    <Grid RowDefinitions="48,36,1,*,Auto"
           Background="{ThemeResource GCalSurface}">
 
         <!-- Header -->
-        <Grid Grid.Row="0" ColumnDefinitions="48,*,Auto,Auto,48"
+        <Grid Grid.Row="0" ColumnDefinitions="48,*,Auto,48"
               Background="{ThemeResource GCalSurface}">
 
-            <Button x:Name="BtnPrev" Grid.Column="0" Content="&#x2039;" FontSize="26"
-                    Width="36" Height="36" Padding="0" CornerRadius="18"
-                    Background="Transparent" BorderThickness="0"
-                    Foreground="{ThemeResource GCalTextPrimary}"
-                    Click="OnPrevClicked"/>
+            <Button x:Name="BtnPrev" Grid.Column="0"
+                Width="36" Height="36" Padding="0"
+                CornerRadius="18"
+                Background="Transparent" BorderThickness="0"
+                Click="OnPrevClicked" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE76B;" FontSize="14" VerticalAlignment="Center" />
+            </Button>
 
             <TextBlock x:Name="MonthYearLabel" Grid.Column="1" FontSize="18" FontWeight="SemiBold"
                        Foreground="{ThemeResource GCalTextPrimary}"
@@ -48,41 +48,18 @@
                     VerticalAlignment="Center"
                     Click="OnTodayClicked"/>
 
-            <Button x:Name="BtnNewEvent" Grid.Column="3" Content="+" FontSize="20"
-                    Height="32" Width="40" Padding="0" Margin="4,0" CornerRadius="6"
-                    Background="Transparent" BorderThickness="1"
-                    BorderBrush="{ThemeResource GCalBorder}"
-                    Foreground="{StaticResource GCalBlue}"
-                    VerticalAlignment="Center"
-                    Click="OnNewEventClicked"/>
+            <Button x:Name="BtnNext" Grid.Column="3"
+                Width="36" Height="36" Padding="0"
+                CornerRadius="18"
+                Background="Transparent" BorderThickness="0"
+                Click="OnNextClicked" VerticalAlignment="Center">
+                <FontIcon Glyph="&#xE76C;" FontSize="14" VerticalAlignment="Center" />
+            </Button>
 
-            <Button x:Name="BtnNext" Grid.Column="4" Content="&#x203A;" FontSize="26"
-                    Width="36" Height="36" Padding="0" CornerRadius="18"
-                    Background="Transparent" BorderThickness="0"
-                    Foreground="{ThemeResource GCalTextPrimary}"
-                    Click="OnNextClicked"/>
         </Grid>
 
-        <!-- View mode bar -->
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Padding="12,4"
-                    Background="{ThemeResource GCalSurface}">
-            <Button x:Name="BtnMonthView" Height="32" Padding="10,0" CornerRadius="6"
-                    Background="Transparent" BorderThickness="1"
-                    BorderBrush="{ThemeResource GCalBorder}"
-                    Foreground="{StaticResource GCalBlue}"
-                    Click="OnMonthViewClicked"/>
-            <Button x:Name="BtnWeekView" Height="32" Padding="10,0" CornerRadius="6"
-                    Background="Transparent" BorderThickness="1"
-                    BorderBrush="{ThemeResource GCalBorder}"
-                    Foreground="{StaticResource GCalBlue}"
-                    Click="OnWeekViewClicked"/>
-        </StackPanel>
-
-        <!-- Separator -->
-        <Rectangle Grid.Row="2" Fill="{ThemeResource GCalBorder}"/>
-
         <!-- Day-of-week labels (month mode only) -->
-        <Grid x:Name="DayOfWeekHeader" Grid.Row="3"
+        <Grid x:Name="DayOfWeekHeader" Grid.Row="1"
               ColumnDefinitions="*,*,*,*,*,*,*"
               Background="{ThemeResource GCalSurface}">
             <TextBlock x:Name="LblSun" Grid.Column="0" FontSize="11"
@@ -109,10 +86,15 @@
         </Grid>
 
         <!-- Separator -->
-        <Rectangle x:Name="GridSeparator" Grid.Row="4" Fill="{ThemeResource GCalBorder}"/>
+        <Rectangle x:Name="GridSeparator" Grid.Row="2" Fill="{ThemeResource GCalBorder}"/>
+
+        <!-- Invisible sentinel that stretches to fill Row 3; used to measure available height -->
+        <Border x:Name="CalendarAreaSentinel" Grid.Row="3"
+                IsHitTestVisible="False" Background="Transparent"
+                SizeChanged="OnCalendarAreaSizeChanged"/>
 
         <!-- Month grid (ItemsRepeater 7-column) -->
-        <ItemsRepeater x:Name="MonthGrid" Grid.Row="5"
+        <ItemsRepeater x:Name="MonthGrid" Grid.Row="3"
                        Background="{ThemeResource GCalSurface}">
             <ItemsRepeater.Layout>
                 <UniformGridLayout MaximumRowsOrColumns="7" Orientation="Horizontal"
@@ -120,7 +102,7 @@
             </ItemsRepeater.Layout>
             <ItemsRepeater.ItemTemplate>
                 <DataTemplate x:DataType="vm:CalendarDayCell">
-                    <Border MinHeight="80"
+                    <Border MinHeight="{x:Bind CellHeight, Mode=OneWay}"
                             BorderThickness="0,0,0.5,0.5"
                             BorderBrush="{ThemeResource GCalBorder}"
                             Background="{x:Bind CellBackgroundColor, Converter={StaticResource ColorToBrush}, Mode=OneWay}"
@@ -163,7 +145,7 @@
         </ItemsRepeater>
 
         <!-- Week view -->
-        <controls:WeekCalendarView x:Name="WeekView" Grid.Row="5"
+        <controls:WeekCalendarView x:Name="WeekView" Grid.Row="3"
                                    Visibility="Collapsed"
                                    EmptySlotTapped="OnWeekEmptySlotTapped"
                                    EventBlockTapped="OnWeekEventBlockTapped"
@@ -172,15 +154,20 @@
                                    SlotDragCreated="OnWeekSlotDragCreated"/>
 
         <!-- Selected-day events panel -->
-        <Border x:Name="SelectedDayPanel" Grid.Row="6" Visibility="Collapsed"
+        <Border x:Name="SelectedDayPanel" Grid.Row="4" Visibility="Collapsed"
                 BorderThickness="0,1,0,0" BorderBrush="{ThemeResource GCalBorder}"
                 Background="{ThemeResource GCalSurface}">
             <StackPanel>
-                <!-- Selected day label + close button -->
-                <Grid ColumnDefinitions="*,48" Padding="12,8">
+                <!-- Selected day label + add button + close button -->
+                <Grid ColumnDefinitions="*,48,48" Padding="12,8">
                     <TextBlock x:Name="SelectedDayLabel" Grid.Column="0" FontSize="14" FontWeight="SemiBold"
                                Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
-                    <Button Grid.Column="1" Content="&#x2715;" Width="40" Height="40" FontSize="16"
+                    <Button Grid.Column="1" Content="+" FontSize="20"
+                            Width="40" Height="40" Padding="0"
+                            Background="Transparent" BorderThickness="0"
+                            Foreground="{StaticResource GCalBlue}"
+                            Click="OnNewEventForSelectedDayClicked"/>
+                    <Button Grid.Column="2" Content="&#x2715;" Width="40" Height="40" FontSize="16"
                             Background="Transparent" BorderThickness="0"
                             Foreground="{ThemeResource GCalTextSecondary}"
                             Click="OnCloseSelectedDay"/>
@@ -192,30 +179,30 @@
                 <!-- Events list (scrollable) -->
                 <ScrollViewer MaxHeight="240" VerticalScrollBarVisibility="Auto">
                     <ItemsControl x:Name="EventsList">
-                    <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:CalendarEventItem">
-                            <Grid ColumnDefinitions="12,*,Auto,Auto" MinHeight="48" Padding="12,4">
-                                <Rectangle Grid.Column="0" Width="4" Height="32" RadiusX="2" RadiusY="2"
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:CalendarEventItem">
+                                <Grid ColumnDefinitions="12,*,Auto,Auto" MinHeight="48" Padding="12,4">
+                                    <Rectangle Grid.Column="0" Width="4" Height="32" RadiusX="2" RadiusY="2"
                                            Fill="{x:Bind DotColor, Converter={StaticResource ColorToBrush}}"/>
-                                <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                    <TextBlock Text="{x:Bind Title}" FontSize="14"
+                                    <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
+                                        <TextBlock Text="{x:Bind Title}" FontSize="14"
                                                Foreground="{ThemeResource GCalTextPrimary}"/>
-                                    <TextBlock Text="{x:Bind TimeRange}" FontSize="12"
+                                        <TextBlock Text="{x:Bind TimeRange}" FontSize="12"
                                                Foreground="{ThemeResource GCalTextSecondary}"/>
-                                </StackPanel>
-                                <Button Grid.Column="2" Content="&#x270E;" Width="40" Height="40"
+                                    </StackPanel>
+                                    <Button Grid.Column="2" Content="&#x270E;" Width="40" Height="40"
                                         Background="Transparent" BorderThickness="0"
                                         Foreground="{ThemeResource GCalTextSecondary}"
                                         Tag="{x:Bind EventId}"
                                         Click="OnEditEventClicked"/>
-                                <Button Grid.Column="3" Content="&#x2715;" Width="40" Height="40"
+                                    <Button Grid.Column="3" Content="&#x2715;" Width="40" Height="40"
                                         Background="Transparent" BorderThickness="0"
                                         Foreground="{ThemeResource GCalTextSecondary}"
                                         Tag="{x:Bind EventId}"
                                         Click="OnDeleteEventClicked"/>
-                            </Grid>
-                        </DataTemplate>
-                    </ItemsControl.ItemTemplate>
+                                </Grid>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
                     </ItemsControl>
                 </ScrollViewer>
                 <!-- No events label -->

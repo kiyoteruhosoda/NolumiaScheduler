@@ -1,6 +1,7 @@
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.WinUI.Helpers;
 using NolumiaScheduler.Presentation.ViewModels;
@@ -10,6 +11,15 @@ namespace NolumiaScheduler.WinUI.Presentation.Pages;
 
 public sealed partial class EventEditPage : Page
 {
+    /// <summary>Set by a hosting window to override the default GoBack navigation on dismiss.</summary>
+    public Action? DismissAction { get; set; }
+
+    private void Dismiss()
+    {
+        if (DismissAction != null) DismissAction();
+        else NavigationService.Instance.GoBack();
+    }
+
     private EventEditViewModel? _vm;
 
     // Guards to prevent feedback loops when programmatically updating controls
@@ -91,17 +101,30 @@ public sealed partial class EventEditPage : Page
                     occKey = new NolumiaScheduler.Domain.ValueObjects.OccurrenceLocalKey(occDate, occTime);
                 }
                 _vm.LoadEvent(p.EventId, occKey);
+                // Override times when opened from drag/resize (params carry the new time)
+                if (p.OccurrenceStartMinute.HasValue)
+                    _vm.StartTime = TimeSpan.FromMinutes(p.OccurrenceStartMinute.Value);
+                if (p.OccurrenceEndMinute.HasValue)
+                    _vm.EndTime = TimeSpan.FromMinutes(p.OccurrenceEndMinute.Value);
             }
-            else if (p.StartDate != null && p.StartMinute.HasValue
+            else if (p.StartDate != null
                      && DateTime.TryParse(p.StartDate, out var startDt))
             {
                 var dateOnly = DateOnly.FromDateTime(startDt);
-                _vm.InitializeNewEvent(dateOnly, p.StartMinute.Value, p.EndMinute);
+                _vm.InitializeNewEvent(dateOnly, p.StartMinute ?? (9 * 60), p.EndMinute);
             }
         }
 
-        _vm.SaveCompleted += () => NavigationService.Instance.GoBack();
+        _vm.SaveCompleted += Dismiss;
+        _vm.DeleteCompleted += Dismiss;
         _vm.PropertyChanged += OnVmPropertyChanged;
+
+        // Show delete button only when editing an existing event
+        if (_vm.IsEditing)
+        {
+            DeleteBtn.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+            DeleteBtn.Content = AppResources.DeleteButton;
+        }
 
         BindViewModel();
     }
@@ -215,7 +238,7 @@ public sealed partial class EventEditPage : Page
         IntervalUnitLabel.Text = _vm.IntervalUnitLabel;
 
         _suppressEndDateChanged = true;
-        EndDatePicker.Date = new DateTimeOffset(_vm.EndDate);
+        EndDatePicker.Date = _vm.HasEndDate ? new DateTimeOffset(_vm.EndDate) : (DateTimeOffset?)null;
         _suppressEndDateChanged = false;
 
         // Adjustment
@@ -238,8 +261,42 @@ public sealed partial class EventEditPage : Page
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
         ValidationText.Text = _vm.ValidationError;
 
+        // Scroll time pickers so the selected item appears at the top when the dropdown opens
+        StartTimePicker.DropDownOpened += OnTimePickerDropDownOpened;
+        EndTimePicker.DropDownOpened   += OnTimePickerDropDownOpened;
+
         // Apply initial section visibility
         ApplySectionVisibility();
+    }
+
+    private void OnTimePickerDropDownOpened(object sender, object e)
+    {
+        if (sender is not ComboBox picker || picker.SelectedIndex < 0) return;
+        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal,
+            () => ScrollComboBoxSelectionToTop(picker));
+    }
+
+    private static void ScrollComboBoxSelectionToTop(ComboBox comboBox)
+    {
+        if (comboBox.Items.Count == 0) return;
+        var sv = FindDescendant<ScrollViewer>(comboBox);
+        if (sv == null || sv.ExtentHeight <= 0) return;
+        var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
+        sv.ChangeView(null, comboBox.SelectedIndex * itemHeight, null, true);
+    }
+
+    private static T? FindDescendant<T>(DependencyObject? parent) where T : DependencyObject
+    {
+        if (parent == null) return null;
+        int count = VisualTreeHelper.GetChildrenCount(parent);
+        for (int i = 0; i < count; i++)
+        {
+            var child = VisualTreeHelper.GetChild(parent, i);
+            if (child is T match) return match;
+            var result = FindDescendant<T>(child);
+            if (result != null) return result;
+        }
+        return null;
     }
 
     private void OnVmPropertyChanged(object? sender, System.ComponentModel.PropertyChangedEventArgs args)
@@ -279,6 +336,16 @@ public sealed partial class EventEditPage : Page
                     _suppressRepeatTypeChanged = true;
                     RepeatTypePicker.SelectedIndex = _vm.RepeatTypeIndex;
                     _suppressRepeatTypeChanged = false;
+                }
+                break;
+
+            case nameof(EventEditViewModel.HasEndDate):
+            case nameof(EventEditViewModel.EndDate):
+                if (!_suppressEndDateChanged)
+                {
+                    _suppressEndDateChanged = true;
+                    EndDatePicker.Date = _vm.HasEndDate ? new DateTimeOffset(_vm.EndDate) : (DateTimeOffset?)null;
+                    _suppressEndDateChanged = false;
                 }
                 break;
 
@@ -564,12 +631,17 @@ public sealed partial class EventEditPage : Page
     private void OnEndDateChanged(CalendarDatePicker sender, CalendarDatePickerDateChangedEventArgs args)
     {
         if (_suppressEndDateChanged || _vm == null) return;
+        _suppressEndDateChanged = true;
         if (sender.Date is { } d)
         {
-            _suppressEndDateChanged = true;
+            _vm.HasEndDate = true;
             _vm.EndDate = new DateTime(d.Year, d.Month, d.Day);
-            _suppressEndDateChanged = false;
         }
+        else
+        {
+            _vm.HasEndDate = false;
+        }
+        _suppressEndDateChanged = false;
     }
 
     private void OnAdjustmentChanged(object sender, SelectionChangedEventArgs e)
@@ -614,7 +686,43 @@ public sealed partial class EventEditPage : Page
     }
 
     private void OnCancelClicked(object sender, RoutedEventArgs e)
-        => NavigationService.Instance.GoBack();
+        => Dismiss();
+
+    private async void OnDeleteClicked(object sender, RoutedEventArgs e)
+    {
+        if (_vm == null) return;
+
+        if (_vm.IsRecurring)
+        {
+            var dialog = new ContentDialog
+            {
+                Title               = AppResources.DeleteEventTitle,
+                PrimaryButtonText   = AppResources.DeleteOccurrence,
+                SecondaryButtonText = AppResources.DeleteAllOccurrences,
+                CloseButtonText     = AppResources.CancelButton,
+                XamlRoot            = XamlRoot
+            };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+                _vm.DeleteOccurrence();
+            else if (result == ContentDialogResult.Secondary)
+                _vm.DeleteEntireEvent();
+        }
+        else
+        {
+            var dialog = new ContentDialog
+            {
+                Title             = AppResources.DeleteEventTitle,
+                Content           = _vm.Title,
+                PrimaryButtonText = AppResources.DeleteButton,
+                CloseButtonText   = AppResources.CancelButton,
+                XamlRoot          = XamlRoot
+            };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+                _vm.DeleteEntireEvent();
+        }
+    }
 
     private async System.Threading.Tasks.Task<RecurringEditScope?> ShowRecurringScopeDialogAsync()
     {

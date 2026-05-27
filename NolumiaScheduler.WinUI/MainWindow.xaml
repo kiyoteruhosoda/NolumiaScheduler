@@ -16,21 +16,27 @@
                     IsBackEnabled="{x:Bind CanGoBack, Mode=OneWay}"
                     BackRequested="OnBackRequested"
                     SelectionChanged="OnNavSelectionChanged"
-                    IsPaneToggleButtonVisible="True">
+                    IsPaneToggleButtonVisible="True"
+                    IsPaneOpen="False">
         <NavigationView.MenuItems>
-            <NavigationViewItem x:Name="CalendarNavItem" Tag="Calendar">
+            <NavigationViewItem x:Name="MonthNavItem" Tag="Month">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE787;"/>
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
-            <NavigationViewItem x:Name="BusinessCalendarNavItem" Tag="BusinessCalendars">
+            <NavigationViewItem x:Name="WeekNavItem" Tag="Week">
                 <NavigationViewItem.Icon>
-                    <FontIcon Glyph="&#xE736;"/>
+                    <FontIcon Glyph="&#xE8BF;"/>
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.MenuItems>
 
         <NavigationView.FooterMenuItems>
+            <NavigationViewItem x:Name="BusinessCalendarNavItem" Tag="BusinessCalendars">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE736;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
             <NavigationViewItem x:Name="DebugNavItem" Tag="Debug" Content="Alarm Debug">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xEBE8;"/>

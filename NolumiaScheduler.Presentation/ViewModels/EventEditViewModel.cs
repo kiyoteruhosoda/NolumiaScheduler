@@ -37,6 +37,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     // ── Recurrence ───────────────────────────────────────────
     private int _repeatTypeIndex;
     private int _interval = 1;
+    private bool _hasEndDate = false;
     private DateTime _endDate = DateTime.Today.AddYears(1);
 
     // Weekly
@@ -163,6 +164,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private void LoadRecurrenceRule(RecurrenceRule rule)
     {
         EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
+        HasEndDate = rule.EndDate.Year < 9999;
         Interval = rule.Interval;
 
         switch (rule.RuleType)
@@ -329,6 +331,19 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         get => _interval;
         set { _interval = Math.Max(1, value); OnPropertyChanged(); }
+    }
+
+    public bool HasEndDate
+    {
+        get => _hasEndDate;
+        set
+        {
+            _hasEndDate = value;
+            if (value && _endDate < DateTime.Today)
+                _endDate = DateTime.Today.AddYears(1);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(EndDate));
+        }
     }
 
     public DateTime EndDate
@@ -686,7 +701,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     private RecurrenceRule BuildRecurrenceRule()
     {
-        var endDate  = new LocalDateValue(EndDate.Year, EndDate.Month, EndDate.Day);
+        var endDate = _hasEndDate
+            ? new LocalDateValue(_endDate.Year, _endDate.Month, _endDate.Day)
+            : new LocalDateValue(9999, 12, 31);
         var adjustment = BuildAdjustmentRule();
 
         return (ViewModels.RepeatTypeIndex)_repeatTypeIndex switch
@@ -773,6 +790,24 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             _availableCalendarIds.Add(cal.Id.Value);
         }
         OnPropertyChanged(nameof(HasAvailableCalendars));
+    }
+
+    // ── Delete logic ──────────────────────────────────────────────
+
+    public event Action? DeleteCompleted;
+
+    public void DeleteEntireEvent()
+    {
+        if (_editingEventId == null) return;
+        _eventService.DeleteEvent(_editingEventId);
+        DeleteCompleted?.Invoke();
+    }
+
+    public void DeleteOccurrence()
+    {
+        if (_editingEventId == null || EditingOccurrenceKey == null) return;
+        _eventService.DeleteOccurrence(new SkipOccurrenceCommand(_editingEventId, EditingOccurrenceKey));
+        DeleteCompleted?.Invoke();
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

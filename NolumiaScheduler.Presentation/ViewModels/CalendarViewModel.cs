@@ -97,7 +97,10 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         // dayLabel=30, holiday=14, topPadding=2 => remaining for chips
         var chipCount = Math.Max(1, (int)((_dayCellHeight - 46) / 19));
         foreach (var cell in DayCells)
+        {
             cell.AvailableChipCount = chipCount;
+            cell.CellHeight = _dayCellHeight;
+        }
     }
     public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
     public static double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;
@@ -138,6 +141,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         private set { _selectedDayHolidayText = value; OnPropertyChanged(); }
     }
 
+    public DateOnly? SelectedDate => _selectedCell?.Date.ToDateOnly();
+
     public ICommand PreviousMonthCommand { get; }
     public ICommand NextMonthCommand { get; }
     public ICommand GoTodayCommand { get; }
@@ -174,6 +179,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         var date = cell.Date.ToDateOnly();
         SelectedDayLabel = date.ToString(AppResources.SelectedDayFormat, AppResources.FormatCulture);
         HasSelectedDay = true;
+        OnPropertyChanged(nameof(SelectedDate));
 
         SelectedDayEvents.Clear();
         foreach (var occ in cell.Events)
@@ -259,6 +265,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
         LoadMonth();
         LoadWeek();
+        if (IsWeekMode)
+            MonthYearTitle = FormatWeekRangeTitle(_weekStartDate);
     }
 
     private void ClearSelection()
@@ -266,6 +274,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         _selectedCell?.IsSelected = false;
         _selectedCell = null;
         HasSelectedDay = false;
+        OnPropertyChanged(nameof(SelectedDate));
         SelectedDayHasNoEvents = false;
         SelectedDayIsHoliday = false;
         SelectedDayHolidayText = "";

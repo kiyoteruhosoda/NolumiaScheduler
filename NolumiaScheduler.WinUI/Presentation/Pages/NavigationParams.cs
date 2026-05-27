@@ -6,7 +6,8 @@ public sealed record EventEditParams(
     int? StartMinute = null,
     int? EndMinute = null,
     string? OccurrenceDate = null,
-    int? OccurrenceStartMinute = null);
+    int? OccurrenceStartMinute = null,
+    int? OccurrenceEndMinute = null);
 
 public sealed record BusinessCalendarEditParams(
     string? CalendarId = null);
