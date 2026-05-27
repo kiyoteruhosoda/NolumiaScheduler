@@ -116,7 +116,15 @@ public sealed partial class EventEditPage : Page
         }
 
         _vm.SaveCompleted += Dismiss;
+        _vm.DeleteCompleted += Dismiss;
         _vm.PropertyChanged += OnVmPropertyChanged;
+
+        // Show delete button only when editing an existing event
+        if (_vm.IsEditing)
+        {
+            DeleteBtn.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+            DeleteBtn.Content = AppResources.DeleteButton;
+        }
 
         BindViewModel();
     }
@@ -679,6 +687,42 @@ public sealed partial class EventEditPage : Page
 
     private void OnCancelClicked(object sender, RoutedEventArgs e)
         => Dismiss();
+
+    private async void OnDeleteClicked(object sender, RoutedEventArgs e)
+    {
+        if (_vm == null) return;
+
+        if (_vm.IsRecurring)
+        {
+            var dialog = new ContentDialog
+            {
+                Title               = AppResources.DeleteEventTitle,
+                PrimaryButtonText   = AppResources.DeleteOccurrence,
+                SecondaryButtonText = AppResources.DeleteAllOccurrences,
+                CloseButtonText     = AppResources.CancelButton,
+                XamlRoot            = XamlRoot
+            };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+                _vm.DeleteOccurrence();
+            else if (result == ContentDialogResult.Secondary)
+                _vm.DeleteEntireEvent();
+        }
+        else
+        {
+            var dialog = new ContentDialog
+            {
+                Title             = AppResources.DeleteEventTitle,
+                Content           = _vm.Title,
+                PrimaryButtonText = AppResources.DeleteButton,
+                CloseButtonText   = AppResources.CancelButton,
+                XamlRoot          = XamlRoot
+            };
+            var result = await dialog.ShowAsync();
+            if (result == ContentDialogResult.Primary)
+                _vm.DeleteEntireEvent();
+        }
+    }
 
     private async System.Threading.Tasks.Task<RecurringEditScope?> ShowRecurringScopeDialogAsync()
     {

@@ -388,10 +388,11 @@ public sealed partial class WeekCalendarView : UserControl
             Tag = block
         };
 
-        Canvas.SetLeft(border, block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth);
+        const double chipMarginLeft = 2;
+        Canvas.SetLeft(border, (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + chipMarginLeft);
         Canvas.SetTop(border, block.Top);
         var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
-        border.Width = Math.Min(rawWidth, _weekDayColumnWidth * 0.8);
+        border.Width = Math.Min(rawWidth - chipMarginLeft, _weekDayColumnWidth * 0.8 - chipMarginLeft);
         var chipHeight = Math.Max(16, block.Height);
         border.Height = chipHeight;
 
