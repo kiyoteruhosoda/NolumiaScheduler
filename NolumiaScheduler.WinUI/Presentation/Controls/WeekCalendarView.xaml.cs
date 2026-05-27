@@ -1,4 +1,5 @@
 using System.Collections;
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -35,6 +36,19 @@ public sealed partial class WeekCalendarView : UserControl
     private WeekDayColumn? _dragCreateDay;
     private int _dragCreateStartMinute;
     private int _dragCreateCurrentMinute;
+
+    // Win32 cursor control
+    [DllImport("user32.dll", CharSet = CharSet.Auto)]
+    private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
+    [DllImport("user32.dll")]
+    private static extern IntPtr SetCursor(IntPtr hCursor);
+    private static readonly IntPtr CursorArrow  = LoadCursor(IntPtr.Zero, 32512); // IDC_ARROW
+    private static readonly IntPtr CursorSizeNS  = LoadCursor(IntPtr.Zero, 32645); // IDC_SIZENS
+    private static readonly IntPtr CursorSizeAll = LoadCursor(IntPtr.Zero, 32646); // IDC_SIZEALL
+
+    private const double MoveHandlePx = 22;
+    private bool _isMoveOperation;
+    private Border? _activeMoveChip;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
@@ -371,7 +385,6 @@ public sealed partial class WeekCalendarView : UserControl
         {
             Background = new SolidColorBrush(block.BackgroundColor),
             CornerRadius = new CornerRadius(6),
-            Padding = new Thickness(2, 0, 2, 0),
             Tag = block
         };
 
@@ -379,24 +392,84 @@ public sealed partial class WeekCalendarView : UserControl
         Canvas.SetTop(border, block.Top);
         var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
         border.Width = Math.Min(rawWidth, _weekDayColumnWidth * 0.8);
-        border.Height = Math.Max(16, block.Height);
+        var chipHeight = Math.Max(16, block.Height);
+        border.Height = chipHeight;
 
-        var title = new TextBlock
+        if (chipHeight >= ResizeHandlePx * 2 + MoveHandlePx + 8)
         {
-            Text = block.Title,
-            FontSize = 10,
-            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-            VerticalAlignment = VerticalAlignment.Top,
-            TextWrapping = TextWrapping.NoWrap,
-            TextTrimming = TextTrimming.CharacterEllipsis
-        };
-        border.Child = title;
+            var grid = new Grid();
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(MoveHandlePx) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
+
+            var topStrip = new Border
+            {
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(50, 255, 255, 255)),
+                BorderThickness = new Thickness(0, 0, 0, 1),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(70, 255, 255, 255))
+            };
+            Grid.SetRow(topStrip, 0);
+            grid.Children.Add(topStrip);
+
+            var moveRow = new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0)) };
+            var gripIcon = new TextBlock
+            {
+                Text = "≡",
+                FontSize = 9,
+                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(160, 255, 255, 255)),
+                HorizontalAlignment = HorizontalAlignment.Center,
+                VerticalAlignment = VerticalAlignment.Center
+            };
+            moveRow.Child = gripIcon;
+            Grid.SetRow(moveRow, 1);
+            grid.Children.Add(moveRow);
+
+            var title = new TextBlock
+            {
+                Text = block.Title,
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                VerticalAlignment = VerticalAlignment.Top,
+                TextWrapping = TextWrapping.NoWrap,
+                TextTrimming = TextTrimming.CharacterEllipsis,
+                Margin = new Thickness(2, 0, 2, 0)
+            };
+            Grid.SetRow(title, 2);
+            grid.Children.Add(title);
+
+            var bottomStrip = new Border
+            {
+                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(50, 255, 255, 255)),
+                BorderThickness = new Thickness(0, 1, 0, 0),
+                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(70, 255, 255, 255))
+            };
+            Grid.SetRow(bottomStrip, 3);
+            grid.Children.Add(bottomStrip);
+
+            border.Child = grid;
+        }
+        else
+        {
+            border.Padding = new Thickness(2, 0, 2, 0);
+            border.Child = new TextBlock
+            {
+                Text = block.Title,
+                FontSize = 10,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                VerticalAlignment = VerticalAlignment.Top,
+                TextWrapping = TextWrapping.NoWrap,
+                TextTrimming = TextTrimming.CharacterEllipsis
+            };
+        }
 
         border.Tapped += OnEventBlockTapped;
         border.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
+        border.ManipulationStarted += OnEventBlockManipulationStarted;
         border.ManipulationDelta += OnEventBlockManipulationDelta;
         border.ManipulationCompleted += OnEventBlockManipulationCompleted;
-        border.ManipulationStarted += OnEventBlockManipulationStarted;
+        border.PointerMoved += OnChipPointerMoved;
+        border.PointerExited += OnChipPointerExited;
 
         return border;
     }
@@ -609,12 +682,29 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
         var relY = e.Position.Y;
         var height = b.ActualHeight;
+
         if (relY <= ResizeHandlePx && height > ResizeHandlePx * 2.5)
+        {
             _activeResizeEdge = ResizeEdge.Top;
+            _isMoveOperation = false;
+        }
         else if (relY >= height - ResizeHandlePx && height > ResizeHandlePx * 2.5)
+        {
             _activeResizeEdge = ResizeEdge.Bottom;
-        else
+            _isMoveOperation = false;
+        }
+        else if (height >= ResizeHandlePx * 2 + MoveHandlePx + 8 &&
+                 relY >= ResizeHandlePx && relY < ResizeHandlePx + MoveHandlePx)
+        {
             _activeResizeEdge = ResizeEdge.None;
+            _isMoveOperation = true;
+        }
+        else
+        {
+            _activeResizeEdge = ResizeEdge.None;
+            _isMoveOperation = false;
+        }
+
         _resizeOriginalStartMinute = block.StartMinute;
         _resizeOriginalEndMinute = block.EndMinute;
     }
@@ -649,6 +739,13 @@ public sealed partial class WeekCalendarView : UserControl
         }
         else
         {
+            // Fade the original chip when performing a move operation
+            if (_isMoveOperation && _activeMoveChip == null)
+            {
+                _activeMoveChip = b;
+                b.Opacity = 0.35;
+            }
+
             var newPoint = new Point(
                 block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
                 block.Top + e.Cumulative.Translation.Y);
@@ -696,21 +793,36 @@ public sealed partial class WeekCalendarView : UserControl
         }
         else if (_activeResizeEdge == ResizeEdge.None && _activeBlock != null && totalMovement >= 8)
         {
+            RestoreMoveChipOpacity();
             var finalPoint = new Point(
                 block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
                 block.Top + e.Cumulative.Translation.Y);
             var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
             var startMinute = dt.Hour * 60 + dt.Minute;
-            EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
+            if (_isMoveOperation)
             {
-                EventId = block.EventId,
-                TargetDateTime = dt.Date,
-                TargetStartMinute = startMinute
-            });
+                EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
+                {
+                    EventId = block.EventId,
+                    TargetDateTime = dt.Date,
+                    TargetStartMinute = startMinute
+                });
+            }
+            else
+            {
+                var duration = Math.Max(15, block.EndMinute - block.StartMinute);
+                SlotDragCreated?.Invoke(this, new WeekSlotDragCreatedEventArgs
+                {
+                    Date = dt.Date,
+                    StartMinute = startMinute,
+                    EndMinute = startMinute + duration
+                });
+            }
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
         }
         else
         {
+            RestoreMoveChipOpacity();
             _selectedEventId = block.EventId;
             UpdateSelectionState();
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
@@ -724,14 +836,54 @@ public sealed partial class WeekCalendarView : UserControl
         }
 
         _activeResizeEdge = ResizeEdge.None;
+        _isMoveOperation = false;
         TransitionTo(WeekInteractionState.Idle);
         ClearPreview();
         UpdateLaneOverlay(block.Date);
         _activeBlock = null;
     }
 
+    private void RestoreMoveChipOpacity()
+    {
+        if (_activeMoveChip != null)
+        {
+            _activeMoveChip.Opacity = 1.0;
+            _activeMoveChip = null;
+        }
+    }
+
+    private void OnChipPointerMoved(object sender, PointerRoutedEventArgs e)
+    {
+        if (sender is not Border b) return;
+        var pos = e.GetCurrentPoint(b).Position;
+        var height = b.ActualHeight;
+
+        if (height > ResizeHandlePx * 2.5)
+        {
+            if (pos.Y < ResizeHandlePx || pos.Y >= height - ResizeHandlePx)
+            {
+                SetCursor(CursorSizeNS);
+                return;
+            }
+            if (height >= ResizeHandlePx * 2 + MoveHandlePx + 8 &&
+                pos.Y >= ResizeHandlePx && pos.Y < ResizeHandlePx + MoveHandlePx)
+            {
+                SetCursor(CursorSizeAll);
+                return;
+            }
+        }
+        SetCursor(CursorArrow);
+    }
+
+    private void OnChipPointerExited(object sender, PointerRoutedEventArgs e)
+    {
+        SetCursor(CursorArrow);
+    }
+
     public void CancelCurrentInteraction()
     {
+        RestoreMoveChipOpacity();
+        _isMoveOperation = false;
         TransitionTo(WeekInteractionState.Canceled);
         ClearPreview();
         TransitionTo(WeekInteractionState.Idle);

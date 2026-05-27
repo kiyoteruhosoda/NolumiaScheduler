@@ -107,11 +107,11 @@ public sealed partial class EventEditPage : Page
                 if (p.OccurrenceEndMinute.HasValue)
                     _vm.EndTime = TimeSpan.FromMinutes(p.OccurrenceEndMinute.Value);
             }
-            else if (p.StartDate != null && p.StartMinute.HasValue
+            else if (p.StartDate != null
                      && DateTime.TryParse(p.StartDate, out var startDt))
             {
                 var dateOnly = DateOnly.FromDateTime(startDt);
-                _vm.InitializeNewEvent(dateOnly, p.StartMinute.Value, p.EndMinute);
+                _vm.InitializeNewEvent(dateOnly, p.StartMinute ?? (9 * 60), p.EndMinute);
             }
         }
 
