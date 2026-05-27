@@ -250,18 +250,11 @@
                     Foreground="{StaticResource GCalRed}"
                     Click="OnDeleteClicked"/>
 
-            <!-- Save / Cancel -->
-            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,8,0,32">
-                <Button x:Name="SaveBtn" Grid.Column="0" FontSize="15" CornerRadius="8" Height="48"
-                        HorizontalAlignment="Stretch"
-                        Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
-                        Click="OnSaveClicked"/>
-                <Button x:Name="CancelBtn" Grid.Column="1" Content="&#x2715;" FontSize="18"
-                        Height="48" Background="Transparent" BorderThickness="1"
-                        BorderBrush="{ThemeResource GCalBorder}"
-                        Foreground="{ThemeResource GCalTextSecondary}"
-                        CornerRadius="8" Click="OnCancelClicked"/>
-            </Grid>
+            <!-- Save -->
+            <Button x:Name="SaveBtn" FontSize="15" CornerRadius="8" Height="48"
+                    HorizontalAlignment="Stretch" Margin="0,8,0,32"
+                    Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
+                    Click="OnSaveClicked"/>
 
         </StackPanel>
     </ScrollViewer>

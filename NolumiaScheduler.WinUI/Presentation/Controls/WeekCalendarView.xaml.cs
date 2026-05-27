@@ -330,6 +330,11 @@ public sealed partial class WeekCalendarView : UserControl
 
         // Rebuild time slots
         BuildTimeSlots();
+
+        // Compute all-day lane height from current blocks
+        var allDayBlocks = (WeekAllDayEventBlocks as IEnumerable)?.OfType<WeekAllDayEventBlock>().ToList() ?? [];
+        var maxRow = allDayBlocks.Count == 0 ? 0 : allDayBlocks.Max(b => b.Row);
+        WeekAllDayGrid.Height = Math.Max(28d, (maxRow + 1) * 24d);
     }
 
     private void RefreshLaneEvents(Canvas lane, WeekDayColumn day)
@@ -355,6 +360,7 @@ public sealed partial class WeekCalendarView : UserControl
 
         foreach (var block in blocks)
         {
+            var chipColWidth = _weekDayColumnWidth > 0 ? _weekDayColumnWidth : BASE_COLUMN_SIZE;
             var chip = new Border
             {
                 Background = new SolidColorBrush(block.BackgroundColor),
@@ -363,7 +369,7 @@ public sealed partial class WeekCalendarView : UserControl
                 Height = 20,
                 Opacity = 0.82,
                 Tag = block,
-                Width = BASE_COLUMN_SIZE * 0.8
+                Width = chipColWidth - 4
             };
             var label = new TextBlock
             {

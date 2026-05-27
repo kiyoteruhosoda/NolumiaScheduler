@@ -251,6 +251,10 @@ public partial class WeekCalendarView : ContentView
             Grid.SetColumn(lane, i);
             WeekBodyGrid.Children.Add(lane);
         }
+
+        var allDayBlocks = (WeekAllDayEventBlocks as IEnumerable)?.OfType<WeekAllDayEventBlock>().ToList() ?? [];
+        var maxRow = allDayBlocks.Count == 0 ? 0 : allDayBlocks.Max(b => b.Row);
+        WeekAllDayGrid.HeightRequest = Math.Max(28d, (maxRow + 1) * 24d);
     }
 
     private AbsoluteLayout BuildAllDayLane(DateTime day)
@@ -307,7 +311,8 @@ public partial class WeekCalendarView : ContentView
                 StrokeThickness = 1,
                 Stroke = Colors.Transparent,
                 StrokeShape = new Microsoft.Maui.Controls.Shapes.RoundRectangle { CornerRadius = 6 },
-                MinimumHeightRequest = 0
+                MinimumHeightRequest = 0,
+                IsClippedToBounds = true
             };
             border.SetBinding(BackgroundColorProperty, nameof(WeekEventBlock.BackgroundColor));
             border.Margin = new Thickness(1, 0, 1, 0);

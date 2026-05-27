@@ -415,27 +415,15 @@
                 </VerticalStackLayout>
             </Border>
 
-            <!-- ── Save / Cancel ── -->
-            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,20,0,32">
-                <Button Grid.Column="0"
-                        Text="{x:Static res:AppResources.SaveButton}"
-                        Clicked="OnSaveClicked"
-                        BackgroundColor="{StaticResource GCalBlue}"
-                        TextColor="{StaticResource White}"
-                        FontSize="15"
-                        CornerRadius="8"
-                        HeightRequest="48" />
-                <Button Grid.Column="1"
-                        Text="✕"
-                        Clicked="OnCancelClicked"
-                        BackgroundColor="Transparent"
-                        BorderColor="{StaticResource GCalBorder}"
-                        BorderWidth="1"
-                        TextColor="{AppThemeBinding Light={StaticResource GCalTextSecondary}, Dark={StaticResource GCalTextSecondaryDark}}"
-                        FontSize="18"
-                        CornerRadius="8"
-                        HeightRequest="48" />
-            </Grid>
+            <!-- ── Save ── -->
+            <Button Text="{x:Static res:AppResources.SaveButton}"
+                    Clicked="OnSaveClicked"
+                    BackgroundColor="{StaticResource GCalBlue}"
+                    TextColor="{StaticResource White}"
+                    FontSize="15"
+                    CornerRadius="8"
+                    HeightRequest="48"
+                    Margin="0,20,0,32" />
 
         </VerticalStackLayout>
     </ScrollView>
