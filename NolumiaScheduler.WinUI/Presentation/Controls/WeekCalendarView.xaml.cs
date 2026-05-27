@@ -701,12 +701,11 @@ public sealed partial class WeekCalendarView : UserControl
                 block.Top + e.Cumulative.Translation.Y);
             var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
             var startMinute = dt.Hour * 60 + dt.Minute;
-            var duration = Math.Max(15, block.EndMinute - block.StartMinute);
-            SlotDragCreated?.Invoke(this, new WeekSlotDragCreatedEventArgs
+            EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
             {
-                Date = dt.Date,
-                StartMinute = startMinute,
-                EndMinute = startMinute + duration
+                EventId = block.EventId,
+                TargetDateTime = dt.Date,
+                TargetStartMinute = startMinute
             });
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
         }

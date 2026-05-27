@@ -25,7 +25,7 @@
           Background="{ThemeResource GCalSurface}">
 
         <!-- Header -->
-        <Grid Grid.Row="0" ColumnDefinitions="48,*,Auto,Auto,48"
+        <Grid Grid.Row="0" ColumnDefinitions="48,*,Auto,48"
               Background="{ThemeResource GCalSurface}">
 
             <Button x:Name="BtnPrev" Grid.Column="0" Content="&#x2039;" FontSize="26"
@@ -46,15 +46,7 @@
                     VerticalAlignment="Center"
                     Click="OnTodayClicked"/>
 
-            <Button x:Name="BtnNewEvent" Grid.Column="3" Content="+" FontSize="20"
-                    Height="32" Width="40" Padding="0" Margin="4,0" CornerRadius="6"
-                    Background="Transparent" BorderThickness="1"
-                    BorderBrush="{ThemeResource GCalBorder}"
-                    Foreground="{StaticResource GCalBlue}"
-                    VerticalAlignment="Center"
-                    Click="OnNewEventClicked"/>
-
-            <Button x:Name="BtnNext" Grid.Column="4" Content="&#x203A;" FontSize="26"
+            <Button x:Name="BtnNext" Grid.Column="3" Content="&#x203A;" FontSize="26"
                     Width="36" Height="36" Padding="0" CornerRadius="18"
                     Background="Transparent" BorderThickness="0"
                     Foreground="{ThemeResource GCalTextPrimary}"

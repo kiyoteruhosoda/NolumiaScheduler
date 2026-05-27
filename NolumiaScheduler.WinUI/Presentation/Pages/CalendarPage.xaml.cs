@@ -185,11 +185,6 @@ public sealed partial class CalendarPage : Page
     private void OnNextClicked(object sender, RoutedEventArgs e)  => _vm?.NextMonthCommand.Execute(null);
     private void OnTodayClicked(object sender, RoutedEventArgs e) => _vm?.GoTodayCommand.Execute(null);
 
-    private void OnNewEventClicked(object sender, RoutedEventArgs e)
-    {
-        OpenEditWindow(new EventEditParams(StartDate: DateTime.Today.ToString("yyyy-MM-dd")));
-    }
-
     private void OnNewEventForSelectedDayClicked(object sender, RoutedEventArgs e)
     {
         if (_vm?.SelectedDate is DateOnly date)
