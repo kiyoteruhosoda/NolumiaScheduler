@@ -792,6 +792,24 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(HasAvailableCalendars));
     }
 
+    // ── Delete logic ──────────────────────────────────────────────
+
+    public event Action? DeleteCompleted;
+
+    public void DeleteEntireEvent()
+    {
+        if (_editingEventId == null) return;
+        _eventService.DeleteEvent(_editingEventId);
+        DeleteCompleted?.Invoke();
+    }
+
+    public void DeleteOccurrence()
+    {
+        if (_editingEventId == null || EditingOccurrenceKey == null) return;
+        _eventService.DeleteOccurrence(new SkipOccurrenceCommand(_editingEventId, EditingOccurrenceKey));
+        DeleteCompleted?.Invoke();
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)

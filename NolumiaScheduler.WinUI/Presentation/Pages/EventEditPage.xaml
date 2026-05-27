@@ -241,8 +241,17 @@
                 </StackPanel>
             </Border>
 
+            <!-- Delete (editing only) -->
+            <Button x:Name="DeleteBtn" Visibility="Collapsed"
+                    FontSize="14" CornerRadius="8" Height="48"
+                    HorizontalAlignment="Stretch" Margin="0,8,0,0"
+                    Background="Transparent" BorderThickness="1"
+                    BorderBrush="{StaticResource GCalRed}"
+                    Foreground="{StaticResource GCalRed}"
+                    Click="OnDeleteClicked"/>
+
             <!-- Save / Cancel -->
-            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,20,0,32">
+            <Grid ColumnDefinitions="*,56" ColumnSpacing="8" Margin="0,8,0,32">
                 <Button x:Name="SaveBtn" Grid.Column="0" FontSize="15" CornerRadius="8" Height="48"
                         HorizontalAlignment="Stretch"
                         Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"

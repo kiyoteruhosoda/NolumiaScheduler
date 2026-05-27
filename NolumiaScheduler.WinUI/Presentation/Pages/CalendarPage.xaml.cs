@@ -293,7 +293,11 @@ public sealed partial class CalendarPage : Page
     {
         var window = new EventEditWindow(p);
         _openEditWindows.Add(window);
-        window.Closed += (_, _) => _openEditWindows.Remove(window);
+        window.Closed += (_, _) =>
+        {
+            _openEditWindows.Remove(window);
+            _vm?.ReloadCurrentMonth();
+        };
         window.Activate();
     }
 
