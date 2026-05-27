@@ -26,7 +26,8 @@ public sealed partial class WeekCalendarView : UserControl
     #pragma warning restore CS0414
     private DateTime _suppressTapUntilUtc;
     private DateTime _lastInteractionFrameUtc = DateTime.MinValue;
-    private double _weekDayColumnWidth = 120;
+    const int BASE_COLUMN_SIZE = 120;
+    private double _weekDayColumnWidth = BASE_COLUMN_SIZE;
     private bool _initialScrollDone;
     private enum ResizeEdge { None, Top, Bottom }
     private ResizeEdge _activeResizeEdge = ResizeEdge.None;
@@ -357,11 +358,12 @@ public sealed partial class WeekCalendarView : UserControl
             var chip = new Border
             {
                 Background = new SolidColorBrush(block.BackgroundColor),
-                CornerRadius = new CornerRadius(4),
+                CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(6, 2, 6, 2),
                 Height = 20,
                 Opacity = 0.82,
-                Tag = block
+                Tag = block,
+                Width = BASE_COLUMN_SIZE * 0.8
             };
             var label = new TextBlock
             {
@@ -384,11 +386,11 @@ public sealed partial class WeekCalendarView : UserControl
         var border = new Border
         {
             Background = new SolidColorBrush(block.BackgroundColor),
-            CornerRadius = new CornerRadius(6),
+            CornerRadius = new CornerRadius(2),
             Tag = block
         };
 
-        const double chipMarginLeft = 2;
+        const double chipMarginLeft = 4;
         Canvas.SetLeft(border, (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + chipMarginLeft);
         Canvas.SetTop(border, block.Top);
         var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
