@@ -44,7 +44,7 @@ public sealed partial class AlarmNotificationWindow : Window
             BeforeEventGrid.Visibility = Visibility.Visible;
         }
 
-        // Configure window: full-screen, no titlebar
+        // Configure window: full-screen, no titlebar, always on top
         if (AppWindow is not null)
         {
             // Set taskbar icon
@@ -54,6 +54,12 @@ public sealed partial class AlarmNotificationWindow : Window
             AppWindow.TitleBar?.PreferredHeightOption = TitleBarHeightOption.Collapsed;
             AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
         }
+
+        // Force to foreground and pin as topmost so the alarm is always visible
+        var hwnd = WindowNative.GetWindowHandle(this);
+        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_SHOWWINDOW);
+        NativeMethods.SetForegroundWindow(hwnd);
 
         // Disable other app windows to simulate system-modal
         DisableOtherWindows(true);
@@ -114,8 +120,21 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private static partial class NativeMethods
     {
+        public static readonly nint HWND_TOPMOST = -1;
+        public const uint SWP_NOMOVE      = 0x0002;
+        public const uint SWP_NOSIZE      = 0x0001;
+        public const uint SWP_SHOWWINDOW  = 0x0040;
+
         [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool EnableWindow(nint hWnd, [MarshalAs(UnmanagedType.Bool)] bool bEnable);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool SetWindowPos(nint hWnd, nint hWndInsertAfter, int x, int y, int cx, int cy, uint uFlags);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool SetForegroundWindow(nint hWnd);
     }
 }
