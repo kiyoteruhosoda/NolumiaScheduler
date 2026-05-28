@@ -265,6 +265,13 @@ public sealed partial class CalendarPage : Page
             StartMinute: e.StartMinute));
     }
 
+    private void OnWeekAllDaySlotTapped(object sender, WeekEmptySlotTappedEventArgs e)
+    {
+        OpenEditWindow(new EventEditParams(
+            StartDate: e.Date.ToString("yyyy-MM-dd"),
+            AllDay: true));
+    }
+
     private void OnWeekEventBlockTapped(object sender, WeekEventBlockTappedEventArgs e)
     {
         OpenEditWindow(new EventEditParams(

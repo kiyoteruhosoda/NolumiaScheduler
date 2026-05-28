@@ -148,6 +148,7 @@
         <controls:WeekCalendarView x:Name="WeekView" Grid.Row="3"
                                    Visibility="Collapsed"
                                    EmptySlotTapped="OnWeekEmptySlotTapped"
+                                   AllDaySlotTapped="OnWeekAllDaySlotTapped"
                                    EventBlockTapped="OnWeekEventBlockTapped"
                                    EventDragCompleted="OnWeekEventDragCompleted"
                                    EventResizeCompleted="OnWeekEventResizeCompleted"

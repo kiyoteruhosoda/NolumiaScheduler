@@ -112,6 +112,7 @@ public sealed partial class EventEditPage : Page
             {
                 var dateOnly = DateOnly.FromDateTime(startDt);
                 _vm.InitializeNewEvent(dateOnly, p.StartMinute ?? (9 * 60), p.EndMinute);
+                if (p.AllDay) _vm.AllDay = true;
             }
         }
 

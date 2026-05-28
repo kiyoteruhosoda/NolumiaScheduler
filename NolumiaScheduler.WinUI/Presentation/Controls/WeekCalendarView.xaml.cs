@@ -54,6 +54,7 @@ public sealed partial class WeekCalendarView : UserControl
     private const double ChipMarginLeft = 4;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
+    public event EventHandler<WeekEmptySlotTappedEventArgs>? AllDaySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
     public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
     public event EventHandler<WeekEventResizeCompletedEventArgs>? EventResizeCompleted;
@@ -393,7 +394,8 @@ public sealed partial class WeekCalendarView : UserControl
 
     private Canvas BuildAllDayLane(DateTime day)
     {
-        var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
+        var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), Tag = day };
+        canvas.Tapped += OnAllDayLaneTapped;
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
             .Where(b => b.StartDate.Date <= day.Date && b.EndDate.Date >= day.Date)
@@ -716,6 +718,8 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnAllDayBlockTapped(object sender, TappedRoutedEventArgs e)
     {
+        // Handled so the tap does not also bubble to the lane and start a new-event create.
+        e.Handled = true;
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
         {
             _selectedEventId = block.EventId;
@@ -727,6 +731,13 @@ public sealed partial class WeekCalendarView : UserControl
                 OccurrenceKey = block.OccurrenceKey
             });
         }
+    }
+
+    private void OnAllDayLaneTapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (DateTime.UtcNow < _suppressTapUntilUtc) return;
+        if (sender is not Canvas canvas || canvas.Tag is not DateTime day) return;
+        AllDaySlotTapped?.Invoke(this, new WeekEmptySlotTappedEventArgs { Date = day, StartMinute = 0 });
     }
 
     private void UpdateLaneOverlay(DateTime date)
