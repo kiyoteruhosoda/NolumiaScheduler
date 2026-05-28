@@ -771,9 +771,9 @@ public sealed partial class WeekCalendarView : UserControl
         }
         else
         {
-            // Move: the chip itself follows the cursor, semi-transparent, so the
-            // user sees the actual object move (no separate preview overlay, which
-            // is what previously caused the block to flash at the column's far left).
+            // Move: the chip itself follows the cursor (semi-transparent) while a faint
+            // ghost is painted on the day/time slot where the event will snap, so the
+            // user can see the landing spot before releasing.
             if (_activeMoveChip == null)
             {
                 _activeMoveChip = b;
@@ -792,6 +792,13 @@ public sealed partial class WeekCalendarView : UserControl
                 BlockAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
             TransitionTo(WeekInteractionState.DraggingMove, block, newPoint);
+
+            var target = _mapper.MapToDateTime(newPoint, WeekStartDate, _weekDayColumnWidth);
+            var targetStart = target.Hour * 60 + target.Minute;
+            var duration = Math.Max(15, block.EndMinute - block.StartMinute);
+            var targetEnd = Math.Min(targetStart + duration, 24 * 60);
+            UpdatePreview(block.EventId, target.Date, targetStart, targetEnd);
+            UpdateLaneOverlay(target.Date);
         }
     }
 
