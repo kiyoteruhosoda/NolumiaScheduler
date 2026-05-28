@@ -72,15 +72,17 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             columns[column].Add(segment);
         }
 
+        // Every event in a connected group shares the same column count (the maximum number
+        // of simultaneously overlapping events) so the columns tile consistently. Using a
+        // per-event overlap count instead makes long events that touch several
+        // non-overlapping neighbours too narrow and misaligned with those neighbours.
+        var groupColumns = columns.Count;
         foreach (var segment in group)
         {
-            segment.ColumnCount = ResolveConcurrentColumnCount(segment, group);
+            segment.GroupColumns = groupColumns;
             segment.ColumnSpan = ResolveExpandableSpan(segment, columns);
         }
     }
-
-    private static int ResolveConcurrentColumnCount(Segment pivot, IEnumerable<Segment> group)
-        => Math.Max(1, group.Count(other => Overlaps(pivot, other)));
 
     private static int ResolveExpandableSpan(Segment pivot, IReadOnlyList<List<Segment>> columns)
     {
@@ -103,16 +105,16 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
     {
         var duration = Math.Max(MinimumEventHeight, segment.End - segment.Start);
         double leftRatio, widthRatio;
-        if (segment.ColumnCount <= 1)
+        if (segment.GroupColumns <= 1)
         {
             leftRatio  = 0d;
             widthRatio = 1d;
         }
         else
         {
-            // 同時重複数に応じた基準レーン幅を算出し、右側に空き列がある場合は拡張する
-            var effectiveColumns = Math.Max(segment.ColumnCount, segment.Column + segment.ColumnSpan);
-            var baseWidthRatio = (1d - ColumnGapRatio * (effectiveColumns - 1)) / effectiveColumns;
+            // 列幅はグループ共通の列数で割り、右側に空き列があれば ColumnSpan の分だけ拡張する
+            var totalColumns = segment.GroupColumns;
+            var baseWidthRatio = (1d - ColumnGapRatio * (totalColumns - 1)) / totalColumns;
             widthRatio = baseWidthRatio * segment.ColumnSpan + ColumnGapRatio * (segment.ColumnSpan - 1);
             leftRatio  = segment.Column * (baseWidthRatio + ColumnGapRatio);
         }
@@ -147,7 +149,7 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
         public int Start { get; } = start;
         public int End { get; } = Math.Max(start + 1, end);
         public int Column { get; set; }
-        public int ColumnCount { get; set; } = 1;
+        public int GroupColumns { get; set; } = 1;
         public int ColumnSpan { get; set; } = 1;
     }
 }

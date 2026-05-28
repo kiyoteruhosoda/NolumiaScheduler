@@ -112,8 +112,9 @@ public class WeekViewPresentationTests
             CreateItem("c", 11, 0, 12, 0, false),
         ]).ToDictionary(x => x.EventId);
 
+        // 同時に重なるのは最大2件なので、連鎖していても全員が2列幅になる
         Assert.IsLessThan(0.02, Math.Abs(blocks["a"].WidthRatio - ExpectedWidthRatio(2)));
-        Assert.IsLessThan(0.02, Math.Abs(blocks["b"].WidthRatio - ExpectedWidthRatio(3)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["b"].WidthRatio - ExpectedWidthRatio(2)));
         Assert.IsLessThan(0.02, Math.Abs(blocks["c"].WidthRatio - ExpectedWidthRatio(2)));
     }
 
@@ -127,9 +128,32 @@ public class WeekViewPresentationTests
             CreateItem("short2", 10, 30, 11, 0, false),
         ]).ToDictionary(x => x.EventId);
 
-        Assert.IsLessThan(0.02, Math.Abs(blocks["long"].WidthRatio - ExpectedWidthRatio(3)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["long"].WidthRatio - ExpectedWidthRatio(2)));
         Assert.IsLessThan(0.02, Math.Abs(blocks["short1"].WidthRatio - ExpectedWidthRatio(2)));
         Assert.IsLessThan(0.02, Math.Abs(blocks["short2"].WidthRatio - ExpectedWidthRatio(2)));
+    }
+
+    [TestMethod]
+    public void 両隣が重ならない長い予定は両隣と水平に重ならない()
+    {
+        // 予定B(長い)はAともCとも重なるが、AとCは互いに重ならない。
+        // 同時重複は最大2件なので2列で割り、Bは左半分・A/Cは右半分に並ぶ。
+        var strategy = new DefaultWeekEventLayoutStrategy();
+        var blocks = strategy.Layout([
+            CreateItem("A", 15, 0, 15, 30, false),
+            CreateItem("B", 10, 0, 19, 30, false),
+            CreateItem("C", 18, 0, 19, 0, false),
+        ]).ToDictionary(x => x.EventId);
+
+        Assert.IsLessThan(0.02, Math.Abs(blocks["B"].WidthRatio - ExpectedWidthRatio(2)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["A"].WidthRatio - ExpectedWidthRatio(2)));
+        Assert.IsLessThan(0.02, Math.Abs(blocks["C"].WidthRatio - ExpectedWidthRatio(2)));
+
+        // B は左端、A と C は B の右端より右側に配置され、水平に重ならない
+        Assert.IsLessThan(0.0001, Math.Abs(blocks["B"].LeftRatio));
+        var bRight = blocks["B"].LeftRatio + blocks["B"].WidthRatio;
+        Assert.IsTrue(bRight <= blocks["A"].LeftRatio + 0.0001, "B が A に重なっています");
+        Assert.IsTrue(bRight <= blocks["C"].LeftRatio + 0.0001, "B が C に重なっています");
     }
     [TestMethod]
     public void 終日イベントは終日レーンに配置される()
