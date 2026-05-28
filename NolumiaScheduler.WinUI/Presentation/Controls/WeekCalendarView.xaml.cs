@@ -333,11 +333,15 @@ public sealed partial class WeekCalendarView : UserControl
             {
                 Height = WeekCanvasHeight,
                 IsHitTestVisible = false,
-                Preview = InteractionPreview
+                Preview = InteractionPreview,
+                Width = _weekDayColumnWidth
             };
             Canvas.SetLeft(overlay, 0);
             Canvas.SetTop(overlay, 0);
             lane.Children.Add(overlay);
+            // Keep the overlay (drag/resize ghost) the same width as the day column so its
+            // ratio-based geometry resolves to the chip's actual pixel size.
+            lane.SizeChanged += (_, e) => overlay.Width = e.NewSize.Width;
 
             // Tap on empty slot
             lane.Tapped += OnLaneTapped;

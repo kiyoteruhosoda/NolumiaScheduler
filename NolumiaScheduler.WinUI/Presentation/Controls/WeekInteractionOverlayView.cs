@@ -37,8 +37,14 @@ public partial class WeekInteractionOverlayView : UserControl
         var bottom = Math.Max(Preview.EndMinute, Preview.StartMinute + 15);
         var height = bottom - top;
         var width = ActualWidth > 0 ? ActualWidth : 120;
-        var left = width * Preview.LeftRatio;
-        var blockWidth = Math.Max(24, width * Preview.WidthRatio);
+
+        // Mirror the event chip's horizontal sizing (see
+        // WeekCalendarView.ApplyChipHorizontalBounds) so the drag/resize ghost is the
+        // same size as the chip being manipulated.
+        const double chipMargin = 4;
+        var left = width * Preview.LeftRatio + chipMargin;
+        var rawWidth = width * Preview.WidthRatio;
+        var blockWidth = Math.Max(24, Math.Min(rawWidth - chipMargin, width * 0.8 - chipMargin));
 
         // Filled rectangle with semi-transparent blue
         var rect = new Rectangle
