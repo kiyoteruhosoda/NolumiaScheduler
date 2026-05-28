@@ -175,6 +175,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (count == 0) return;
         _weekDayColumnWidth = (WeekBodyGrid.ActualWidth - 1.0 * (count - 1)) / count;
         UpdateEventBlockLayoutBounds();
+        RebuildAllDayLanes();
     }
 
     private void OnWeekDayColumnsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -345,6 +346,21 @@ public sealed partial class WeekCalendarView : UserControl
         {
             var chip = CreateEventBlockChip(block);
             lane.Children.Add(chip);
+        }
+    }
+
+    private void RebuildAllDayLanes()
+    {
+        if (WeekDayColumns is not IEnumerable cols) return;
+        var days = cols.OfType<WeekDayColumn>().Take(7).ToList();
+        if (days.Count == 0 || WeekAllDayGrid.ColumnDefinitions.Count != days.Count) return;
+
+        WeekAllDayGrid.Children.Clear();
+        for (var i = 0; i < days.Count; i++)
+        {
+            var lane = BuildAllDayLane(days[i].Date);
+            Grid.SetColumn(lane, i);
+            WeekAllDayGrid.Children.Add(lane);
         }
     }
 
