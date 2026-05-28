@@ -85,7 +85,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                         move.Title ?? ev.Title,
                         move.Location ?? ev.Location,
                         move.Visibility ?? ev.Visibility,
-                        isMoved: true));
+                        isMoved: true,
+                        seriesKey: key));
                 }
                 continue;
             }
@@ -102,14 +103,16 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     ov.Title ?? ev.Title,
                     ov.Location ?? ev.Location,
                     ov.Visibility ?? ev.Visibility,
-                    isOverridden: true));
+                    isOverridden: true,
+                    seriesKey: key));
                 continue;
             }
 
             results.Add(new EventOccurrence(
                 ev.Id, adjustedDate,
                 schedule.StartTime, schedule.EndTime,
-                ev.AllDay, ev.Title, ev.Location, ev.Visibility));
+                ev.AllDay, ev.Title, ev.Location, ev.Visibility,
+                seriesKey: key));
         }
 
         return results;

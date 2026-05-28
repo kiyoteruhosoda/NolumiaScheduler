@@ -8,6 +8,9 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
 {
     public required string EventId { get; init; }
     public OccurrenceLocalKey? OccurrenceKey { get; init; }
+
+    // Original recurrence key used to target this occurrence when moving/resizing.
+    public OccurrenceLocalKey? MoveKey { get; init; }
     public required DateTime Date { get; init; }
     public required int StartMinute { get; init; }
     public required int EndMinute { get; init; }

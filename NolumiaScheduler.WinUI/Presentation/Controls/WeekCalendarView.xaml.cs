@@ -561,6 +561,10 @@ public sealed partial class WeekCalendarView : UserControl
     private void OnLanePointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (sender is not Canvas canvas || canvas.Tag is not WeekDayColumn dayColumn) return;
+        // A press that starts on an existing event chip is a move/resize gesture handled
+        // by the chip's manipulation events. Do not also start the empty-slot drag-create,
+        // otherwise its preview overlay would render on top of the moving event.
+        if (IsWithinEventChip(e.OriginalSource)) return;
         var pos = e.GetCurrentPoint(canvas).Position;
         _dragCreateLane = canvas;
         _dragCreateDay = dayColumn;
@@ -568,6 +572,20 @@ public sealed partial class WeekCalendarView : UserControl
         _dragCreateCurrentMinute = _dragCreateStartMinute;
         _pressStartPoint = pos;
         canvas.CapturePointer(e.Pointer);
+    }
+
+    // Walks up the visual tree from the press source; true if the press landed inside an
+    // event chip (a Border tagged with a WeekEventBlock) before reaching the lane Canvas.
+    private static bool IsWithinEventChip(object? originalSource)
+    {
+        var node = originalSource as DependencyObject;
+        while (node != null)
+        {
+            if (node is Border border && border.Tag is WeekEventBlock) return true;
+            if (node is Canvas) return false;
+            node = VisualTreeHelper.GetParent(node);
+        }
+        return false;
     }
 
     private void OnLanePointerMoved(object sender, PointerRoutedEventArgs e)
@@ -815,6 +833,7 @@ public sealed partial class WeekCalendarView : UserControl
             EventResizeCompleted?.Invoke(this, new WeekEventResizeCompletedEventArgs
             {
                 EventId = block.EventId,
+                OccurrenceKey = block.MoveKey,
                 Date = block.Date,
                 StartMinute = startMin,
                 EndMinute = endMin
@@ -831,8 +850,10 @@ public sealed partial class WeekCalendarView : UserControl
             EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
             {
                 EventId = block.EventId,
+                OccurrenceKey = block.MoveKey,
                 TargetDateTime = dt.Date,
-                TargetStartMinute = startMinute
+                TargetStartMinute = startMinute,
+                DurationMinutes = block.EndMinute - block.StartMinute
             });
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
         }

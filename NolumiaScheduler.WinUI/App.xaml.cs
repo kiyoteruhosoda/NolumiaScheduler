@@ -153,7 +153,6 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IWeekGestureArbitrationService, WeekGestureArbitrationService>();
         services.AddSingleton<IWeekAutoScrollService, WeekAutoScrollService>();
         services.AddSingleton<IWeekDragInteractionService, NoOpWeekDragInteractionService>();
-        services.AddSingleton<IWeekInteractionCompletionService, NavigateWeekInteractionCompletionService>();
 
         // ViewModels
         services.AddTransient<CalendarViewModel>();

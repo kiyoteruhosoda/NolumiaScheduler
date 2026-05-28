@@ -4,9 +4,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Presentation.Controls;
-using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.WinUI.Presentation.Controls;
-using NolumiaScheduler.WinUI.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.WinUI.Helpers;
 using NolumiaScheduler.WinUI.Presentation.Pages;
@@ -17,17 +15,11 @@ namespace NolumiaScheduler.WinUI.Presentation.Pages;
 public sealed partial class CalendarPage : Page
 {
     private CalendarViewModel? _vm;
-    private readonly IWeekInteractionCompletionService _interactionCompletionService;
     private readonly List<EventEditWindow> _openEditWindows = [];
 
     public CalendarPage()
     {
         InitializeComponent();
-        _interactionCompletionService = NolumiaScheduler.WinUI.App.Services.GetRequiredService<IWeekInteractionCompletionService>();
-
-        // Wire callback so resize/drag completions open EventEditWindow (not ContentFrame navigation)
-        if (_interactionCompletionService is NavigateWeekInteractionCompletionService svc)
-            svc.OpenEditWindowCallback = OpenEditWindow;
 
         // Static strings
         BtnToday.Content     = AppResources.TodayButton;
@@ -301,9 +293,13 @@ public sealed partial class CalendarPage : Page
         window.Activate();
     }
 
-    private async void OnWeekEventDragCompleted(object sender, WeekEventDragCompletedEventArgs e)
-        => await _interactionCompletionService.HandleDragCompletedAsync(e);
+    private void OnWeekEventDragCompleted(object sender, WeekEventDragCompletedEventArgs e)
+        => _vm?.MoveEventOccurrence(
+            e.EventId, e.OccurrenceKey,
+            DateOnly.FromDateTime(e.TargetDateTime), e.TargetStartMinute, e.DurationMinutes);
 
-    private async void OnWeekEventResizeCompleted(object sender, WeekEventResizeCompletedEventArgs e)
-        => await _interactionCompletionService.HandleResizeCompletedAsync(e);
+    private void OnWeekEventResizeCompleted(object sender, WeekEventResizeCompletedEventArgs e)
+        => _vm?.ResizeEventOccurrence(
+            e.EventId, e.OccurrenceKey,
+            DateOnly.FromDateTime(e.Date), e.StartMinute, e.EndMinute);
 }
