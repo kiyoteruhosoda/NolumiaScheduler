@@ -179,7 +179,26 @@ public sealed partial class WeekCalendarView : UserControl
         if (count == 0) return;
         _weekDayColumnWidth = (WeekBodyGrid.ActualWidth - 1.0 * (count - 1)) / count;
         UpdateEventBlockLayoutBounds();
+        RepositionEventChips();
         RebuildAllDayLanes();
+    }
+
+    // Reposition/resize the timed event chips horizontally to the current column width.
+    // Vertical placement is minute-based and unaffected by width, so it is left untouched.
+    private void RepositionEventChips()
+    {
+        foreach (var lane in WeekBodyGrid.Children.OfType<Canvas>())
+            foreach (var border in lane.Children.OfType<Border>())
+                if (border.Tag is WeekEventBlock block)
+                    ApplyChipHorizontalBounds(border, block);
+    }
+
+    private void ApplyChipHorizontalBounds(Border border, WeekEventBlock block)
+    {
+        var left = (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + ChipMarginLeft;
+        Canvas.SetLeft(border, left);
+        var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
+        border.Width = Math.Min(rawWidth - ChipMarginLeft, _weekDayColumnWidth * 0.8 - ChipMarginLeft);
     }
 
     private void OnWeekDayColumnsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -414,10 +433,8 @@ public sealed partial class WeekCalendarView : UserControl
             Tag = block
         };
 
-        Canvas.SetLeft(border, (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + ChipMarginLeft);
+        ApplyChipHorizontalBounds(border, block);
         Canvas.SetTop(border, block.Top);
-        var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
-        border.Width = Math.Min(rawWidth - ChipMarginLeft, _weekDayColumnWidth * 0.8 - ChipMarginLeft);
         var chipHeight = Math.Max(16, block.Height);
         border.Height = chipHeight;
 
