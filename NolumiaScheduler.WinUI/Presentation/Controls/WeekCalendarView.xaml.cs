@@ -47,8 +47,6 @@ public sealed partial class WeekCalendarView : UserControl
     private static readonly IntPtr CursorSizeNS  = LoadCursor(IntPtr.Zero, 32645); // IDC_SIZENS
     private static readonly IntPtr CursorSizeAll = LoadCursor(IntPtr.Zero, 32646); // IDC_SIZEALL
 
-    private const double MoveHandlePx = 22;
-    private bool _isMoveOperation;
     private Border? _activeMoveChip;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
@@ -177,6 +175,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (count == 0) return;
         _weekDayColumnWidth = (WeekBodyGrid.ActualWidth - 1.0 * (count - 1)) / count;
         UpdateEventBlockLayoutBounds();
+        RebuildAllDayLanes();
     }
 
     private void OnWeekDayColumnsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -330,6 +329,11 @@ public sealed partial class WeekCalendarView : UserControl
 
         // Rebuild time slots
         BuildTimeSlots();
+
+        // Compute all-day lane height from current blocks
+        var allDayBlocks = (WeekAllDayEventBlocks as IEnumerable)?.OfType<WeekAllDayEventBlock>().ToList() ?? [];
+        var maxRow = allDayBlocks.Count == 0 ? 0 : allDayBlocks.Max(b => b.Row);
+        WeekAllDayGrid.Height = Math.Max(28d, (maxRow + 1) * 24d);
     }
 
     private void RefreshLaneEvents(Canvas lane, WeekDayColumn day)
@@ -345,6 +349,21 @@ public sealed partial class WeekCalendarView : UserControl
         }
     }
 
+    private void RebuildAllDayLanes()
+    {
+        if (WeekDayColumns is not IEnumerable cols) return;
+        var days = cols.OfType<WeekDayColumn>().Take(7).ToList();
+        if (days.Count == 0 || WeekAllDayGrid.ColumnDefinitions.Count != days.Count) return;
+
+        WeekAllDayGrid.Children.Clear();
+        for (var i = 0; i < days.Count; i++)
+        {
+            var lane = BuildAllDayLane(days[i].Date);
+            Grid.SetColumn(lane, i);
+            WeekAllDayGrid.Children.Add(lane);
+        }
+    }
+
     private Canvas BuildAllDayLane(DateTime day)
     {
         var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
@@ -355,6 +374,7 @@ public sealed partial class WeekCalendarView : UserControl
 
         foreach (var block in blocks)
         {
+            var chipColWidth = _weekDayColumnWidth > 0 ? _weekDayColumnWidth : BASE_COLUMN_SIZE;
             var chip = new Border
             {
                 Background = new SolidColorBrush(block.BackgroundColor),
@@ -363,7 +383,7 @@ public sealed partial class WeekCalendarView : UserControl
                 Height = 20,
                 Opacity = 0.82,
                 Tag = block,
-                Width = BASE_COLUMN_SIZE * 0.8
+                Width = chipColWidth - 4
             };
             var label = new TextBlock
             {
@@ -398,35 +418,16 @@ public sealed partial class WeekCalendarView : UserControl
         var chipHeight = Math.Max(16, block.Height);
         border.Height = chipHeight;
 
-        if (chipHeight >= ResizeHandlePx * 2 + MoveHandlePx + 8)
+        if (chipHeight > ResizeHandlePx * 2.5)
         {
             var grid = new Grid();
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(MoveHandlePx) });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
 
-            var topStrip = new Border
-            {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(50, 255, 255, 255)),
-                BorderThickness = new Thickness(0, 0, 0, 1),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(70, 255, 255, 255))
-            };
+            var topStrip = BuildResizeStrip();
             Grid.SetRow(topStrip, 0);
             grid.Children.Add(topStrip);
-
-            var moveRow = new Border { Background = new SolidColorBrush(Windows.UI.Color.FromArgb(0, 0, 0, 0)) };
-            var gripIcon = new TextBlock
-            {
-                Text = "≡",
-                FontSize = 9,
-                Foreground = new SolidColorBrush(Windows.UI.Color.FromArgb(160, 255, 255, 255)),
-                HorizontalAlignment = HorizontalAlignment.Center,
-                VerticalAlignment = VerticalAlignment.Center
-            };
-            moveRow.Child = gripIcon;
-            Grid.SetRow(moveRow, 1);
-            grid.Children.Add(moveRow);
 
             var title = new TextBlock
             {
@@ -436,18 +437,13 @@ public sealed partial class WeekCalendarView : UserControl
                 VerticalAlignment = VerticalAlignment.Top,
                 TextWrapping = TextWrapping.NoWrap,
                 TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(2, 0, 2, 0)
+                Margin = new Thickness(3, 0, 3, 0)
             };
-            Grid.SetRow(title, 2);
+            Grid.SetRow(title, 1);
             grid.Children.Add(title);
 
-            var bottomStrip = new Border
-            {
-                Background = new SolidColorBrush(Windows.UI.Color.FromArgb(50, 255, 255, 255)),
-                BorderThickness = new Thickness(0, 1, 0, 0),
-                BorderBrush = new SolidColorBrush(Windows.UI.Color.FromArgb(70, 255, 255, 255))
-            };
-            Grid.SetRow(bottomStrip, 3);
+            var bottomStrip = BuildResizeStrip();
+            Grid.SetRow(bottomStrip, 2);
             grid.Children.Add(bottomStrip);
 
             border.Child = grid;
@@ -475,6 +471,29 @@ public sealed partial class WeekCalendarView : UserControl
         border.PointerExited += OnChipPointerExited;
 
         return border;
+    }
+
+    // Thin grip strip rendered at the top/bottom of an event chip to signal
+    // that the edge can be dragged to change the time.
+    private static Border BuildResizeStrip()
+    {
+        var strip = new Border
+        {
+            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(45, 255, 255, 255)),
+            HorizontalAlignment = HorizontalAlignment.Stretch,
+            VerticalAlignment = VerticalAlignment.Stretch
+        };
+        strip.Child = new Microsoft.UI.Xaml.Shapes.Rectangle
+        {
+            Width = 18,
+            Height = 2,
+            RadiusX = 1,
+            RadiusY = 1,
+            Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(210, 255, 255, 255)),
+            HorizontalAlignment = HorizontalAlignment.Center,
+            VerticalAlignment = VerticalAlignment.Center
+        };
+        return strip;
     }
 
     private WeekInteractionPreview _interactionPreview = new() { IsVisible = false };
@@ -689,23 +708,15 @@ public sealed partial class WeekCalendarView : UserControl
         if (relY <= ResizeHandlePx && height > ResizeHandlePx * 2.5)
         {
             _activeResizeEdge = ResizeEdge.Top;
-            _isMoveOperation = false;
         }
         else if (relY >= height - ResizeHandlePx && height > ResizeHandlePx * 2.5)
         {
             _activeResizeEdge = ResizeEdge.Bottom;
-            _isMoveOperation = false;
-        }
-        else if (height >= ResizeHandlePx * 2 + MoveHandlePx + 8 &&
-                 relY >= ResizeHandlePx && relY < ResizeHandlePx + MoveHandlePx)
-        {
-            _activeResizeEdge = ResizeEdge.None;
-            _isMoveOperation = true;
         }
         else
         {
+            // The whole body (between the resize edges) drags the event.
             _activeResizeEdge = ResizeEdge.None;
-            _isMoveOperation = false;
         }
 
         _resizeOriginalStartMinute = block.StartMinute;
@@ -742,22 +753,37 @@ public sealed partial class WeekCalendarView : UserControl
         }
         else
         {
-            // Fade the original chip when performing a move operation
-            if (_isMoveOperation && _activeMoveChip == null)
+            // Move: the chip itself follows the cursor, semi-transparent, so the
+            // user sees the actual object move (no separate preview overlay, which
+            // is what previously caused the block to flash at the column's far left).
+            if (_activeMoveChip == null)
             {
                 _activeMoveChip = b;
-                b.Opacity = 0.35;
+                b.Opacity = 0.5;
+                b.RenderTransform = new TranslateTransform();
+                Canvas.SetZIndex(b, 100);
             }
+            if (b.RenderTransform is TranslateTransform tt)
+            {
+                tt.X = e.Cumulative.Translation.X;
+                tt.Y = e.Cumulative.Translation.Y;
+            }
+            SetCursor(CursorSizeAll);
 
             var newPoint = new Point(
-                block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
+                BlockAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
-            var dt = _mapper.MapToDateTime(newPoint, WeekStartDate, _weekDayColumnWidth);
-            UpdatePreview(block.EventId, dt.Date, dt.Hour * 60 + dt.Minute,
-                dt.Hour * 60 + dt.Minute + Math.Max(15, block.EndMinute - block.StartMinute));
-            UpdateLaneOverlay(dt.Date);
             TransitionTo(WeekInteractionState.DraggingMove, block, newPoint);
         }
+    }
+
+    // X of the block relative to the whole week grid origin (Sunday column),
+    // so MapToDate resolves the correct day. block.LeftRatio is only the offset
+    // within the block's own day column.
+    private double BlockAbsoluteX(WeekEventBlock block, double translationX)
+    {
+        var dayIndex = Math.Clamp((int)Math.Round((block.Date.Date - WeekStartDate.Date).TotalDays), 0, 6);
+        return (dayIndex + block.LeftRatio) * _weekDayColumnWidth + translationX;
     }
 
     private void OnEventBlockManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
@@ -796,31 +822,18 @@ public sealed partial class WeekCalendarView : UserControl
         }
         else if (_activeResizeEdge == ResizeEdge.None && _activeBlock != null && totalMovement >= 8)
         {
-            RestoreMoveChipOpacity();
             var finalPoint = new Point(
-                block.LeftRatio * _weekDayColumnWidth + e.Cumulative.Translation.X,
+                BlockAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
+            RestoreMoveChipOpacity();
             var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
             var startMinute = dt.Hour * 60 + dt.Minute;
-            if (_isMoveOperation)
+            EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
             {
-                EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
-                {
-                    EventId = block.EventId,
-                    TargetDateTime = dt.Date,
-                    TargetStartMinute = startMinute
-                });
-            }
-            else
-            {
-                var duration = Math.Max(15, block.EndMinute - block.StartMinute);
-                SlotDragCreated?.Invoke(this, new WeekSlotDragCreatedEventArgs
-                {
-                    Date = dt.Date,
-                    StartMinute = startMinute,
-                    EndMinute = startMinute + duration
-                });
-            }
+                EventId = block.EventId,
+                TargetDateTime = dt.Date,
+                TargetStartMinute = startMinute
+            });
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
         }
         else
@@ -839,7 +852,6 @@ public sealed partial class WeekCalendarView : UserControl
         }
 
         _activeResizeEdge = ResizeEdge.None;
-        _isMoveOperation = false;
         TransitionTo(WeekInteractionState.Idle);
         ClearPreview();
         UpdateLaneOverlay(block.Date);
@@ -851,6 +863,8 @@ public sealed partial class WeekCalendarView : UserControl
         if (_activeMoveChip != null)
         {
             _activeMoveChip.Opacity = 1.0;
+            _activeMoveChip.RenderTransform = null;
+            Canvas.SetZIndex(_activeMoveChip, 0);
             _activeMoveChip = null;
         }
     }
@@ -861,21 +875,15 @@ public sealed partial class WeekCalendarView : UserControl
         var pos = e.GetCurrentPoint(b).Position;
         var height = b.ActualHeight;
 
-        if (height > ResizeHandlePx * 2.5)
+        // Top/bottom edges resize (up-down arrows); the rest of the body moves
+        // the event (4-way move cursor).
+        if (height > ResizeHandlePx * 2.5 &&
+            (pos.Y < ResizeHandlePx || pos.Y >= height - ResizeHandlePx))
         {
-            if (pos.Y < ResizeHandlePx || pos.Y >= height - ResizeHandlePx)
-            {
-                SetCursor(CursorSizeNS);
-                return;
-            }
-            if (height >= ResizeHandlePx * 2 + MoveHandlePx + 8 &&
-                pos.Y >= ResizeHandlePx && pos.Y < ResizeHandlePx + MoveHandlePx)
-            {
-                SetCursor(CursorSizeAll);
-                return;
-            }
+            SetCursor(CursorSizeNS);
+            return;
         }
-        SetCursor(CursorArrow);
+        SetCursor(CursorSizeAll);
     }
 
     private void OnChipPointerExited(object sender, PointerRoutedEventArgs e)
@@ -886,7 +894,6 @@ public sealed partial class WeekCalendarView : UserControl
     public void CancelCurrentInteraction()
     {
         RestoreMoveChipOpacity();
-        _isMoveOperation = false;
         TransitionTo(WeekInteractionState.Canceled);
         ClearPreview();
         TransitionTo(WeekInteractionState.Idle);
