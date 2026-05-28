@@ -16,17 +16,17 @@
             </Border>
 
             <!-- Title -->
-            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2">
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2" MinHeight="52">
                 <TextBox x:Name="TitleBox" BorderThickness="0" FontSize="16" FontWeight="SemiBold"
-                         MinHeight="52" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
-                         VerticalContentAlignment="Center"/>
+                         Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center"/>
             </Border>
 
             <!-- Location -->
-            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,16">
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,16" MinHeight="48">
                 <TextBox x:Name="LocationBox" BorderThickness="0" FontSize="14"
-                         MinHeight="48" Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
-                         VerticalContentAlignment="Center"/>
+                         Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
+                         VerticalAlignment="Center" VerticalContentAlignment="Center"/>
             </Border>
 
             <!-- Date / Time section -->
