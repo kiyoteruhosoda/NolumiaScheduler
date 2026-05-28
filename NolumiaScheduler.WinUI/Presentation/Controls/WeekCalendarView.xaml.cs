@@ -48,6 +48,10 @@ public sealed partial class WeekCalendarView : UserControl
     private static readonly IntPtr CursorSizeAll = LoadCursor(IntPtr.Zero, 32646); // IDC_SIZEALL
 
     private Border? _activeMoveChip;
+    // Horizontal offset of the grab point from the chip's left edge, captured when a move
+    // begins, so the landing day follows the cursor rather than the chip's left edge.
+    private double _moveGrabOffsetX;
+    private const double ChipMarginLeft = 4;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
@@ -410,11 +414,10 @@ public sealed partial class WeekCalendarView : UserControl
             Tag = block
         };
 
-        const double chipMarginLeft = 4;
-        Canvas.SetLeft(border, (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + chipMarginLeft);
+        Canvas.SetLeft(border, (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + ChipMarginLeft);
         Canvas.SetTop(border, block.Top);
         var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
-        border.Width = Math.Min(rawWidth - chipMarginLeft, _weekDayColumnWidth * 0.8 - chipMarginLeft);
+        border.Width = Math.Min(rawWidth - ChipMarginLeft, _weekDayColumnWidth * 0.8 - ChipMarginLeft);
         var chipHeight = Math.Max(16, block.Height);
         border.Height = chipHeight;
 
@@ -739,6 +742,7 @@ public sealed partial class WeekCalendarView : UserControl
 
         _resizeOriginalStartMinute = block.StartMinute;
         _resizeOriginalEndMinute = block.EndMinute;
+        _moveGrabOffsetX = e.Position.X;
     }
 
     private void OnEventBlockManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
@@ -789,7 +793,7 @@ public sealed partial class WeekCalendarView : UserControl
             SetCursor(CursorSizeAll);
 
             var newPoint = new Point(
-                BlockAbsoluteX(block, e.Cumulative.Translation.X),
+                CursorAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
             TransitionTo(WeekInteractionState.DraggingMove, block, newPoint);
 
@@ -802,13 +806,14 @@ public sealed partial class WeekCalendarView : UserControl
         }
     }
 
-    // X of the block relative to the whole week grid origin (Sunday column),
-    // so MapToDate resolves the correct day. block.LeftRatio is only the offset
-    // within the block's own day column.
-    private double BlockAbsoluteX(WeekEventBlock block, double translationX)
+    // Cursor X relative to the whole week grid origin (Sunday column), so MapToDate
+    // resolves the day under the pointer (not the chip's left edge). Built from the chip's
+    // original absolute left, the grab offset within the chip, and the drag translation.
+    private double CursorAbsoluteX(WeekEventBlock block, double translationX)
     {
         var dayIndex = Math.Clamp((int)Math.Round((block.Date.Date - WeekStartDate.Date).TotalDays), 0, 6);
-        return (dayIndex + block.LeftRatio) * _weekDayColumnWidth + translationX;
+        var chipLeft = (dayIndex + block.LeftRatio) * _weekDayColumnWidth + ChipMarginLeft;
+        return chipLeft + _moveGrabOffsetX + translationX;
     }
 
     private void OnEventBlockManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
@@ -849,7 +854,7 @@ public sealed partial class WeekCalendarView : UserControl
         else if (_activeResizeEdge == ResizeEdge.None && _activeBlock != null && totalMovement >= 8)
         {
             var finalPoint = new Point(
-                BlockAbsoluteX(block, e.Cumulative.Translation.X),
+                CursorAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
             RestoreMoveChipOpacity();
             var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
