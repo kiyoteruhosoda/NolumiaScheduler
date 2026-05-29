@@ -398,6 +398,8 @@ public sealed partial class WeekCalendarView : UserControl
             var chip = new Border
             {
                 Background = new SolidColorBrush(block.BackgroundColor),
+                BorderBrush = new SolidColorBrush(DarkenColor(block.BackgroundColor, 0.72)),
+                BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(6, 2, 6, 2),
                 Height = 20,
@@ -422,11 +424,16 @@ public sealed partial class WeekCalendarView : UserControl
         return canvas;
     }
 
+    private static Windows.UI.Color DarkenColor(Windows.UI.Color color, double factor)
+        => Windows.UI.Color.FromArgb(color.A, (byte)(color.R * factor), (byte)(color.G * factor), (byte)(color.B * factor));
+
     private Border CreateEventBlockChip(WeekEventBlock block)
     {
         var border = new Border
         {
             Background = new SolidColorBrush(block.BackgroundColor),
+            BorderBrush = new SolidColorBrush(DarkenColor(block.BackgroundColor, 0.72)),
+            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(2),
             Tag = block
         };
