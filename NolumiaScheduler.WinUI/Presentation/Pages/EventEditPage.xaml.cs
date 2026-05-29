@@ -276,14 +276,15 @@ public sealed partial class EventEditPage : Page
             _ = CenterComboBoxSelectionAsync(picker);
     }
 
-    // The popup's ScrollViewer isn't measured the instant the dropdown opens, so retry a few
-    // times until it reports an extent, then center the selected item in the viewport (falling
-    // back to the top for items near the start of the list).
+    // The dropdown's ScrollViewer lives inside a Popup, which is NOT reachable by walking the
+    // visual tree down from the ComboBox. It also isn't measured the instant the dropdown opens,
+    // so retry a few times until the open popup exposes a ScrollViewer with an extent, then
+    // center the selected item in the viewport (clamped to the top for items near the start).
     private static async System.Threading.Tasks.Task CenterComboBoxSelectionAsync(ComboBox comboBox)
     {
         for (var attempt = 0; attempt < 12; attempt++)
         {
-            var sv = FindDescendant<ScrollViewer>(comboBox);
+            var sv = FindOpenDropDownScrollViewer(comboBox);
             if (sv is { ExtentHeight: > 0 } && comboBox.Items.Count > 0)
             {
                 var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
@@ -295,16 +296,26 @@ public sealed partial class EventEditPage : Page
         }
     }
 
+    private static ScrollViewer? FindOpenDropDownScrollViewer(ComboBox comboBox)
+    {
+        if (comboBox.XamlRoot is not { } xamlRoot) return null;
+        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(xamlRoot))
+        {
+            if (popup.Child is DependencyObject child && FindDescendant<ScrollViewer>(child) is { } sv)
+                return sv;
+        }
+        return null;
+    }
+
     private static T? FindDescendant<T>(DependencyObject? parent) where T : DependencyObject
     {
         if (parent == null) return null;
+        if (parent is T self) return self;
         int count = VisualTreeHelper.GetChildrenCount(parent);
         for (int i = 0; i < count; i++)
         {
             var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is T match) return match;
-            var result = FindDescendant<T>(child);
-            if (result != null) return result;
+            if (FindDescendant<T>(child) is { } result) return result;
         }
         return null;
     }
