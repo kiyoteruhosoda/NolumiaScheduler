@@ -1,6 +1,6 @@
 using System.Collections;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -38,17 +38,7 @@ public sealed partial class WeekCalendarView : UserControl
     private int _dragCreateStartMinute;
     private int _dragCreateCurrentMinute;
 
-    // Win32 cursor control
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
-    [DllImport("user32.dll")]
-    private static extern IntPtr SetCursor(IntPtr hCursor);
-    private static readonly IntPtr CursorArrow  = LoadCursor(IntPtr.Zero, 32512); // IDC_ARROW
-    private static readonly IntPtr CursorSizeNS  = LoadCursor(IntPtr.Zero, 32645); // IDC_SIZENS
-    private static readonly IntPtr CursorSizeAll = LoadCursor(IntPtr.Zero, 32646); // IDC_SIZEALL
-    private static readonly IntPtr CursorCross   = LoadCursor(IntPtr.Zero, 32515); // IDC_CROSS
-
-    private Border? _activeMoveChip;
+    private EventChipBorder? _activeMoveChip;
     // Horizontal offset of the grab point from the chip's left edge, captured when a move
     // begins, so the landing day follows the cursor rather than the chip's left edge.
     private double _moveGrabOffsetX;
@@ -423,6 +413,7 @@ public sealed partial class WeekCalendarView : UserControl
             };
             chip.Child = label;
             chip.Tapped += OnAllDayBlockTapped;
+            chip.DoubleTapped += OnAllDayBlockDoubleTapped;
             Canvas.SetLeft(chip, 0);
             Canvas.SetTop(chip, block.Top + 1);
             canvas.Children.Add(chip);
@@ -433,12 +424,13 @@ public sealed partial class WeekCalendarView : UserControl
 
     private Border CreateEventBlockChip(WeekEventBlock block)
     {
-        var border = new Border
+        var border = new EventChipBorder
         {
             Background = new SolidColorBrush(block.BackgroundColor),
             CornerRadius = new CornerRadius(2),
             Tag = block
         };
+        border.ShowMoveCursor();
 
         ApplyChipHorizontalBounds(border, block);
         Canvas.SetTop(border, block.Top);
@@ -459,12 +451,12 @@ public sealed partial class WeekCalendarView : UserControl
         };
 
         border.Tapped += OnEventBlockTapped;
+        border.DoubleTapped += OnEventBlockDoubleTapped;
         border.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
         border.ManipulationStarted += OnEventBlockManipulationStarted;
         border.ManipulationDelta += OnEventBlockManipulationDelta;
         border.ManipulationCompleted += OnEventBlockManipulationCompleted;
         border.PointerMoved += OnChipPointerMoved;
-        border.PointerExited += OnChipPointerExited;
 
         return border;
     }
@@ -648,8 +640,18 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockTapped(object sender, TappedRoutedEventArgs e)
     {
+        // Single click selects only; opening the editor requires a double click.
         e.Handled = true;
         if (DateTime.UtcNow < _suppressTapUntilUtc) return;
+        if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
+
+        _selectedEventId = block.EventId;
+        UpdateSelectionState();
+    }
+
+    private void OnEventBlockDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        e.Handled = true;
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
         _selectedEventId = block.EventId;
@@ -665,7 +667,15 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnAllDayBlockTapped(object sender, TappedRoutedEventArgs e)
     {
-        // Handled so the tap does not also bubble to the lane and start a new-event create.
+        // Handled so the tap does not bubble to the lane and start a new-event create.
+        // Single click selects only; opening the editor requires a double click.
+        e.Handled = true;
+        if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
+            _selectedEventId = block.EventId;
+    }
+
+    private void OnAllDayBlockDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
         e.Handled = true;
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
         {
@@ -725,7 +735,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
-        if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
+        if (sender is not EventChipBorder b || b.Tag is not WeekEventBlock block) return;
         var now = DateTime.UtcNow;
         if ((now - _lastInteractionFrameUtc).TotalMilliseconds < InteractionFrameThrottleMs) return;
         _lastInteractionFrameUtc = now;
@@ -749,7 +759,7 @@ public sealed partial class WeekCalendarView : UserControl
             }
             UpdatePreview(block.EventId, block.Date, previewStart, previewEnd);
             UpdateLaneOverlay(block.Date);
-            SetCursor(CursorSizeNS);
+            b.ShowResizeCursor();
             TransitionTo(WeekInteractionState.DraggingResize, block);
         }
         else
@@ -769,7 +779,7 @@ public sealed partial class WeekCalendarView : UserControl
                 tt.X = e.Cumulative.Translation.X;
                 tt.Y = e.Cumulative.Translation.Y;
             }
-            SetCursor(CursorCross);
+            b.ShowDragCursor();
 
             var newPoint = new Point(
                 CursorAbsoluteX(block, e.Cumulative.Translation.X),
@@ -850,17 +860,11 @@ public sealed partial class WeekCalendarView : UserControl
         }
         else
         {
+            // No real drag: treat as a select. The editor is opened by the DoubleTapped
+            // handler, so don't suppress taps here or the double click would be swallowed.
             RestoreMoveChipOpacity();
             _selectedEventId = block.EventId;
             UpdateSelectionState();
-            _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
-            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
-            {
-                EventId = block.EventId,
-                Date = block.Date,
-                StartMinute = block.StartMinute,
-                OccurrenceKey = block.OccurrenceKey
-            });
         }
 
         _activeResizeEdge = ResizeEdge.None;
@@ -887,16 +891,14 @@ public sealed partial class WeekCalendarView : UserControl
         // (crosshair for move, up/down for resize); don't fight it here.
         if (_interactionState is WeekInteractionState.DraggingMove or WeekInteractionState.DraggingResize)
             return;
-        if (sender is not Border b) return;
+        if (sender is not EventChipBorder b) return;
         var pos = e.GetCurrentPoint(b).Position;
 
         // Top/bottom edges resize (up-down arrows); the rest of the body moves the event.
-        SetCursor(EdgeAt(pos.Y, b.ActualHeight) != ResizeEdge.None ? CursorSizeNS : CursorSizeAll);
-    }
-
-    private void OnChipPointerExited(object sender, PointerRoutedEventArgs e)
-    {
-        SetCursor(CursorArrow);
+        if (EdgeAt(pos.Y, b.ActualHeight) != ResizeEdge.None)
+            b.ShowResizeCursor();
+        else
+            b.ShowMoveCursor();
     }
 
     public void CancelCurrentInteraction()
@@ -915,4 +917,17 @@ internal static class Vector2Extensions
 {
     public static TimeSpan ToTimeSpan(this System.Numerics.Vector2 _)
         => TimeSpan.FromMilliseconds(350);
+}
+
+// Border subclass that exposes ProtectedCursor. WinUI 3 ignores Win32 SetCursor for its
+// own surfaces, so the cursor must be set via UIElement.ProtectedCursor instead.
+internal sealed class EventChipBorder : Microsoft.UI.Xaml.Controls.Border
+{
+    private static readonly InputCursor MoveCursor   = InputSystemCursor.Create(InputSystemCursorShape.SizeAll);
+    private static readonly InputCursor ResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeNorthSouth);
+    private static readonly InputCursor DragCursor   = InputSystemCursor.Create(InputSystemCursorShape.Cross);
+
+    public void ShowMoveCursor()   => ProtectedCursor = MoveCursor;
+    public void ShowResizeCursor() => ProtectedCursor = ResizeCursor;
+    public void ShowDragCursor()   => ProtectedCursor = DragCursor;
 }
