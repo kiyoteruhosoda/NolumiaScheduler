@@ -69,10 +69,6 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
         }
     }
 
-    public EventOccurrence? FirstEvent => Events.Count > 0 ? Events[0] : null;
-    public EventOccurrence? SecondEvent => Events.Count > 1 ? Events[1] : null;
-    public int ExtraCount => Events.Count > 2 ? Events.Count - 2 : 0;
-
     private double _cellHeight = 88;
     public double CellHeight
     {
@@ -97,36 +93,24 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
             OnPropertyChanged(nameof(VisibleEvents));
             OnPropertyChanged(nameof(VisibleExtraCount));
             OnPropertyChanged(nameof(HasMoreEvents));
-            OnPropertyChanged(nameof(ShowSecondChip));
             OnPropertyChanged(nameof(MoreText));
         }
     }
 
+    // How many event chips to actually draw. If every event fits in the available rows,
+    // show them all; otherwise reserve the last row for the "+N more" label so the visible
+    // chip count matches the space and we don't show "+N" while rows are still empty.
+    private int VisibleChipCount =>
+        Events.Count <= _availableChipCount
+            ? Events.Count
+            : Math.Max(1, _availableChipCount - 1);
+
     public IReadOnlyList<CalendarEventChip> VisibleEvents =>
-        [.. Events.Take(_availableChipCount).Select(e => new CalendarEventChip(e))];
+        [.. Events.Take(VisibleChipCount).Select(e => new CalendarEventChip(e))];
 
-    // When overflow exists, ShowSecondChip is false (chip 2 hidden), so only 1 chip is visible.
-    // The hidden count is therefore Events.Count - 1, not Events.Count - _availableChipCount.
-    public int VisibleExtraCount =>
-        Events.Count > _availableChipCount ? Events.Count - 1 : 0;
-    public bool HasSecondEvent => SecondEvent != null;
+    public int VisibleExtraCount => Events.Count - VisibleChipCount;
     public bool HasMoreEvents => VisibleExtraCount > 0;
-    public bool ShowSecondChip => HasSecondEvent && !HasMoreEvents;
-
-    public string? FirstEventTitle => FirstEvent?.Title.Value;
-    public string? SecondEventTitle => SecondEvent?.Title.Value;
     public string MoreText => $"+{VisibleExtraCount}";
-
-    public Color FirstEventColor => EventChipColor(FirstEvent);
-    public Color SecondEventColor => EventChipColor(SecondEvent);
-
-    private static Color EventChipColor(EventOccurrence? occ)
-    {
-        if (occ == null) return Microsoft.UI.Colors.Transparent;
-        if (occ.IsMoved) return WinColors.GCalEventMoved;
-        if (occ.IsOverridden) return WinColors.GCalGreen;
-        return WinColors.GCalBlue;
-    }
 
     public event PropertyChangedEventHandler? PropertyChanged;
 

@@ -441,7 +441,8 @@ public sealed partial class WeekCalendarView : UserControl
 
         ApplyChipHorizontalBounds(border, block);
         Canvas.SetTop(border, block.Top);
-        var chipHeight = Math.Max(16, block.Height);
+        // 15-minute events are 15px tall (1px == 1 minute); don't inflate them.
+        var chipHeight = Math.Max(15, block.Height);
         border.Height = chipHeight;
 
         // No visible resize bars: the top/bottom edges are grab zones detected via the
@@ -786,7 +787,9 @@ public sealed partial class WeekCalendarView : UserControl
                 tt.X = e.Cumulative.Translation.X;
                 tt.Y = e.Cumulative.Translation.Y;
             }
-            ChipCursor.Drag(b);
+            // Keep the four-arrow move cursor during the drag (same as hovering before the
+            // drag); a crosshair here was confusing.
+            ChipCursor.Move(b);
 
             var newPoint = new Point(
                 CursorAbsoluteX(block, e.Cumulative.Translation.X),
@@ -934,7 +937,6 @@ internal static class ChipCursor
 {
     private static readonly InputCursor MoveCursor   = InputSystemCursor.Create(InputSystemCursorShape.SizeAll);
     private static readonly InputCursor ResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeNorthSouth);
-    private static readonly InputCursor DragCursor   = InputSystemCursor.Create(InputSystemCursorShape.Cross);
 
     private static readonly System.Reflection.PropertyInfo? CursorProperty = ResolveCursorProperty();
 
@@ -962,5 +964,4 @@ internal static class ChipCursor
 
     public static void Move(Microsoft.UI.Xaml.UIElement element)   => Set(element, MoveCursor);
     public static void Resize(Microsoft.UI.Xaml.UIElement element) => Set(element, ResizeCursor);
-    public static void Drag(Microsoft.UI.Xaml.UIElement element)   => Set(element, DragCursor);
 }
