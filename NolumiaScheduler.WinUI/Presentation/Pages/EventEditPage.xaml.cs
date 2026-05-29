@@ -154,15 +154,15 @@ public sealed partial class EventEditPage : Page
 
         _suppressStartTimeChanged = true;
         _suppressStartTimePickerChanged = true;
+        SyncTimePickerToValue(StartTimePicker, _vm.StartTime);
         StartTimePicker.Text = _vm.StartTime.ToString(@"hh\:mm");
-        SyncTimePickerToValue(StartTimePicker, _vm.StartTime, ref _suppressStartTimePickerChanged);
         _suppressStartTimeChanged = false;
         _suppressStartTimePickerChanged = false;
 
         _suppressEndTimeChanged = true;
         _suppressEndTimePickerChanged = true;
+        SyncTimePickerToValue(EndTimePicker, _vm.EndTime);
         EndTimePicker.Text = _vm.EndTime.ToString(@"hh\:mm");
-        SyncTimePickerToValue(EndTimePicker, _vm.EndTime, ref _suppressEndTimePickerChanged);
         _suppressEndTimeChanged = false;
         _suppressEndTimePickerChanged = false;
 
@@ -272,15 +272,28 @@ public sealed partial class EventEditPage : Page
 
     private void OnTimePickerDropDownOpened(object sender, object e)
     {
-        if (sender is ComboBox picker && picker.SelectedIndex >= 0)
-            _ = CenterComboBoxSelectionAsync(picker);
+        if (sender is not ComboBox picker || picker.Items.Count == 0) return;
+        // When the value is on a 15-minute slot SelectedIndex points at it; for a 1-minute
+        // value (no exact item, SelectedIndex == -1) center on the nearest slot instead.
+        var index = picker.SelectedIndex >= 0
+            ? picker.SelectedIndex
+            : NearestTimeSlotIndex(picker.Text);
+        _ = CenterComboBoxSelectionAsync(picker, index);
+    }
+
+    private static int NearestTimeSlotIndex(string? text)
+    {
+        if (FormatTimeInput(text ?? "") is { } formatted &&
+            TimeSpan.TryParseExact(formatted, @"hh\:mm", null, out var ts))
+            return Math.Clamp((int)Math.Round(ts.TotalMinutes / 15.0), 0, 95);
+        return 0;
     }
 
     // The dropdown's ScrollViewer lives inside a Popup, which is NOT reachable by walking the
     // visual tree down from the ComboBox. It also isn't measured the instant the dropdown opens,
-    // so retry a few times until the open popup exposes a ScrollViewer with an extent, then
-    // center the selected item in the viewport (clamped to the top for items near the start).
-    private static async System.Threading.Tasks.Task CenterComboBoxSelectionAsync(ComboBox comboBox)
+    // so retry a few times until the popup exposes a ScrollViewer with an extent, then center
+    // the target item in the viewport (clamped to the top for items near the start).
+    private static async System.Threading.Tasks.Task CenterComboBoxSelectionAsync(ComboBox comboBox, int index)
     {
         for (var attempt = 0; attempt < 12; attempt++)
         {
@@ -288,7 +301,7 @@ public sealed partial class EventEditPage : Page
             if (sv is { ExtentHeight: > 0 } && comboBox.Items.Count > 0)
             {
                 var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
-                var target = comboBox.SelectedIndex * itemHeight - (sv.ViewportHeight - itemHeight) / 2;
+                var target = index * itemHeight - (sv.ViewportHeight - itemHeight) / 2;
                 sv.ChangeView(null, Math.Max(0, target), null, true);
                 return;
             }
@@ -298,12 +311,12 @@ public sealed partial class EventEditPage : Page
 
     private static ScrollViewer? FindOpenDropDownScrollViewer(ComboBox comboBox)
     {
-        if (comboBox.XamlRoot is not { } xamlRoot) return null;
-        foreach (var popup in VisualTreeHelper.GetOpenPopupsForXamlRoot(xamlRoot))
-        {
-            if (popup.Child is DependencyObject child && FindDescendant<ScrollViewer>(child) is { } sv)
-                return sv;
-        }
+        // Use the ComboBox's OWN dropdown popup (part of its control template) so we always
+        // scroll the right list. Searching all open popups for the XamlRoot can return another
+        // ComboBox's popup (e.g. Start vs End), which left the End picker uncentered.
+        var popup = FindDescendant<Microsoft.UI.Xaml.Controls.Primitives.Popup>(comboBox);
+        if (popup?.Child is DependencyObject child)
+            return FindDescendant<ScrollViewer>(child);
         return null;
     }
 
@@ -384,8 +397,8 @@ public sealed partial class EventEditPage : Page
                 {
                     _suppressStartTimeChanged = true;
                     _suppressStartTimePickerChanged = true;
+                    SyncTimePickerToValue(StartTimePicker, _vm.StartTime);
                     StartTimePicker.Text = _vm.StartTime.ToString(@"hh\:mm");
-                    SyncTimePickerToValue(StartTimePicker, _vm.StartTime, ref _suppressStartTimePickerChanged);
                     _suppressStartTimeChanged = false;
                     _suppressStartTimePickerChanged = false;
                 }
@@ -396,8 +409,8 @@ public sealed partial class EventEditPage : Page
                 {
                     _suppressEndTimeChanged = true;
                     _suppressEndTimePickerChanged = true;
+                    SyncTimePickerToValue(EndTimePicker, _vm.EndTime);
                     EndTimePicker.Text = _vm.EndTime.ToString(@"hh\:mm");
-                    SyncTimePickerToValue(EndTimePicker, _vm.EndTime, ref _suppressEndTimePickerChanged);
                     _suppressEndTimeChanged = false;
                     _suppressEndTimePickerChanged = false;
                 }
@@ -473,43 +486,41 @@ public sealed partial class EventEditPage : Page
     private void OnStartTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
     {
         if (_suppressStartTimeChanged || _vm == null) return;
+        args.Handled = true;
         var formatted = FormatTimeInput(args.Text);
-        if (formatted != null)
+        if (formatted == null)
         {
-            args.Handled = true;
-            _suppressStartTimePickerChanged = true;
-            sender.Text = formatted;
-            _suppressStartTimePickerChanged = false;
-            var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
-            _vm.StartTime = ts;
-            SyncTimePickerToValue(StartTimePicker, ts, ref _suppressStartTimePickerChanged);
-        }
-        else
-        {
-            args.Handled = true;
             sender.Text = _vm.StartTime.ToString(@"hh\:mm");
+            return;
         }
+        var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
+        _suppressStartTimeChanged = true;
+        _suppressStartTimePickerChanged = true;
+        _vm.StartTime = ts;
+        SyncTimePickerToValue(StartTimePicker, ts);
+        sender.Text = formatted;
+        _suppressStartTimeChanged = false;
+        _suppressStartTimePickerChanged = false;
     }
 
     private void OnEndTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
     {
         if (_suppressEndTimeChanged || _vm == null) return;
+        args.Handled = true;
         var formatted = FormatTimeInput(args.Text);
-        if (formatted != null)
+        if (formatted == null)
         {
-            args.Handled = true;
-            _suppressEndTimePickerChanged = true;
-            sender.Text = formatted;
-            _suppressEndTimePickerChanged = false;
-            var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
-            _vm.EndTime = ts;
-            SyncTimePickerToValue(EndTimePicker, ts, ref _suppressEndTimePickerChanged);
-        }
-        else
-        {
-            args.Handled = true;
             sender.Text = _vm.EndTime.ToString(@"hh\:mm");
+            return;
         }
+        var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
+        _suppressEndTimeChanged = true;
+        _suppressEndTimePickerChanged = true;
+        _vm.EndTime = ts;
+        SyncTimePickerToValue(EndTimePicker, ts);
+        sender.Text = formatted;
+        _suppressEndTimeChanged = false;
+        _suppressEndTimePickerChanged = false;
     }
 
     /// <summary>
@@ -549,15 +560,15 @@ public sealed partial class EventEditPage : Page
         return null;
     }
 
-    private static void SyncTimePickerToValue(ComboBox picker, TimeSpan value, ref bool suppress)
+    private static void SyncTimePickerToValue(ComboBox picker, TimeSpan value)
     {
-        // Snap to nearest 15-minute slot
+        // Highlight the matching dropdown item only when the time lands exactly on a 15-minute
+        // slot. Otherwise clear the selection so the editable text keeps the exact (1-minute)
+        // value instead of snapping it to the nearest quarter hour.
         var totalMinutes = (int)value.TotalMinutes;
-        var snapped = (int)Math.Round(totalMinutes / 15.0) * 15;
-        if (snapped >= 1440) snapped = 1425;
-        var index = snapped / 15;
-        picker.SelectedIndex = index;
-        suppress = false;
+        picker.SelectedIndex = totalMinutes is >= 0 and < 1440 && totalMinutes % 15 == 0
+            ? totalMinutes / 15
+            : -1;
     }
 
     private void OnRepeatTypeChanged(object sender, SelectionChangedEventArgs e)
