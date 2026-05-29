@@ -262,7 +262,7 @@ public sealed partial class EventEditPage : Page
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
         ValidationText.Text = _vm.ValidationError;
 
-        // Scroll time pickers so the selected item appears at the top when the dropdown opens
+        // Center the selected item in the time picker dropdowns when they open
         StartTimePicker.DropDownOpened += OnTimePickerDropDownOpened;
         EndTimePicker.DropDownOpened   += OnTimePickerDropDownOpened;
 
@@ -272,18 +272,27 @@ public sealed partial class EventEditPage : Page
 
     private void OnTimePickerDropDownOpened(object sender, object e)
     {
-        if (sender is not ComboBox picker || picker.SelectedIndex < 0) return;
-        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal,
-            () => ScrollComboBoxSelectionToTop(picker));
+        if (sender is ComboBox picker && picker.SelectedIndex >= 0)
+            _ = CenterComboBoxSelectionAsync(picker);
     }
 
-    private static void ScrollComboBoxSelectionToTop(ComboBox comboBox)
+    // The popup's ScrollViewer isn't measured the instant the dropdown opens, so retry a few
+    // times until it reports an extent, then center the selected item in the viewport (falling
+    // back to the top for items near the start of the list).
+    private static async System.Threading.Tasks.Task CenterComboBoxSelectionAsync(ComboBox comboBox)
     {
-        if (comboBox.Items.Count == 0) return;
-        var sv = FindDescendant<ScrollViewer>(comboBox);
-        if (sv == null || sv.ExtentHeight <= 0) return;
-        var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
-        sv.ChangeView(null, comboBox.SelectedIndex * itemHeight, null, true);
+        for (var attempt = 0; attempt < 12; attempt++)
+        {
+            var sv = FindDescendant<ScrollViewer>(comboBox);
+            if (sv is { ExtentHeight: > 0 } && comboBox.Items.Count > 0)
+            {
+                var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
+                var target = comboBox.SelectedIndex * itemHeight - (sv.ViewportHeight - itemHeight) / 2;
+                sv.ChangeView(null, Math.Max(0, target), null, true);
+                return;
+            }
+            await System.Threading.Tasks.Task.Delay(16);
+        }
     }
 
     private static T? FindDescendant<T>(DependencyObject? parent) where T : DependencyObject
