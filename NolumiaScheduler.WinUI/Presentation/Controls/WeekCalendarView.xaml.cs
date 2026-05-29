@@ -919,15 +919,41 @@ internal static class Vector2Extensions
         => TimeSpan.FromMilliseconds(350);
 }
 
-// Border subclass that exposes ProtectedCursor. WinUI 3 ignores Win32 SetCursor for its
-// own surfaces, so the cursor must be set via UIElement.ProtectedCursor instead.
+// Border subclass that drives the pointer cursor. WinUI 3 ignores Win32 SetCursor for its
+// own surfaces; the cursor is controlled by the protected UIElement cursor property. Its
+// name has varied across Windows App SDK versions (e.g. ProtectedCursor), so it is resolved
+// by reflection to keep this version-independent and avoid hard compile dependencies.
 internal sealed class EventChipBorder : Microsoft.UI.Xaml.Controls.Border
 {
     private static readonly InputCursor MoveCursor   = InputSystemCursor.Create(InputSystemCursorShape.SizeAll);
     private static readonly InputCursor ResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeNorthSouth);
     private static readonly InputCursor DragCursor   = InputSystemCursor.Create(InputSystemCursorShape.Cross);
 
-    public void ShowMoveCursor()   => ProtectedCursor = MoveCursor;
-    public void ShowResizeCursor() => ProtectedCursor = ResizeCursor;
-    public void ShowDragCursor()   => ProtectedCursor = DragCursor;
+    private static readonly System.Reflection.PropertyInfo? CursorProperty = ResolveCursorProperty();
+
+    private static System.Reflection.PropertyInfo? ResolveCursorProperty()
+    {
+        const System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Public;
+
+        foreach (var name in new[] { "ProtectedCursor", "Cursor" })
+        {
+            var prop = typeof(Microsoft.UI.Xaml.UIElement).GetProperty(name, flags);
+            if (prop is { CanWrite: true } && typeof(InputCursor).IsAssignableFrom(prop.PropertyType))
+                return prop;
+        }
+        return null;
+    }
+
+    private void SetCursor(InputCursor cursor)
+    {
+        try { CursorProperty?.SetValue(this, cursor); }
+        catch { /* cursor is cosmetic; never let it break pointer handling */ }
+    }
+
+    public void ShowMoveCursor()   => SetCursor(MoveCursor);
+    public void ShowResizeCursor() => SetCursor(ResizeCursor);
+    public void ShowDragCursor()   => SetCursor(DragCursor);
 }
