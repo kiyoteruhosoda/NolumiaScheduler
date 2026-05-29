@@ -46,6 +46,7 @@ public sealed partial class WeekCalendarView : UserControl
     private static readonly IntPtr CursorArrow  = LoadCursor(IntPtr.Zero, 32512); // IDC_ARROW
     private static readonly IntPtr CursorSizeNS  = LoadCursor(IntPtr.Zero, 32645); // IDC_SIZENS
     private static readonly IntPtr CursorSizeAll = LoadCursor(IntPtr.Zero, 32646); // IDC_SIZEALL
+    private static readonly IntPtr CursorCross   = LoadCursor(IntPtr.Zero, 32515); // IDC_CROSS
 
     private Border? _activeMoveChip;
     // Horizontal offset of the grab point from the chip's left edge, captured when a move
@@ -444,49 +445,18 @@ public sealed partial class WeekCalendarView : UserControl
         var chipHeight = Math.Max(16, block.Height);
         border.Height = chipHeight;
 
-        if (chipHeight > ResizeHandlePx * 2.5)
+        // No visible resize bars: the top/bottom edges are grab zones detected via the
+        // cursor + manipulation hit-testing (see OnChipPointerMoved / EdgeAt).
+        border.Padding = new Thickness(4, 0, 4, 0);
+        border.Child = new TextBlock
         {
-            var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
-
-            var topStrip = BuildResizeStrip();
-            Grid.SetRow(topStrip, 0);
-            grid.Children.Add(topStrip);
-
-            var title = new TextBlock
-            {
-                Text = block.Title,
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                VerticalAlignment = VerticalAlignment.Top,
-                TextWrapping = TextWrapping.NoWrap,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(3, 0, 3, 0)
-            };
-            Grid.SetRow(title, 1);
-            grid.Children.Add(title);
-
-            var bottomStrip = BuildResizeStrip();
-            Grid.SetRow(bottomStrip, 2);
-            grid.Children.Add(bottomStrip);
-
-            border.Child = grid;
-        }
-        else
-        {
-            border.Padding = new Thickness(2, 0, 2, 0);
-            border.Child = new TextBlock
-            {
-                Text = block.Title,
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                VerticalAlignment = VerticalAlignment.Top,
-                TextWrapping = TextWrapping.NoWrap,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-        }
+            Text = block.Title,
+            FontSize = 10,
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
 
         border.Tapped += OnEventBlockTapped;
         border.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
@@ -497,29 +467,6 @@ public sealed partial class WeekCalendarView : UserControl
         border.PointerExited += OnChipPointerExited;
 
         return border;
-    }
-
-    // Thin grip strip rendered at the top/bottom of an event chip to signal
-    // that the edge can be dragged to change the time.
-    private static Border BuildResizeStrip()
-    {
-        var strip = new Border
-        {
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(45, 255, 255, 255)),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch
-        };
-        strip.Child = new Microsoft.UI.Xaml.Shapes.Rectangle
-        {
-            Width = 18,
-            Height = 2,
-            RadiusX = 1,
-            RadiusY = 1,
-            Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(210, 255, 255, 255)),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        return strip;
     }
 
     private WeekInteractionPreview _interactionPreview = new() { IsVisible = false };
@@ -752,25 +699,24 @@ public sealed partial class WeekCalendarView : UserControl
 
     private const double ResizeHandlePx = 10;
 
+    // Size of the top/bottom grab zone for resizing. Capped at a third of the chip height
+    // so even short (15-minute) chips keep a usable middle zone for moving.
+    private static double ResizeEdgeZone(double height) => Math.Min(ResizeHandlePx, height / 3);
+
+    private static ResizeEdge EdgeAt(double relY, double height)
+    {
+        var zone = ResizeEdgeZone(height);
+        if (relY <= zone) return ResizeEdge.Top;
+        if (relY >= height - zone) return ResizeEdge.Bottom;
+        return ResizeEdge.None;
+    }
+
     private void OnEventBlockManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
     {
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
-        var relY = e.Position.Y;
-        var height = b.ActualHeight;
 
-        if (relY <= ResizeHandlePx && height > ResizeHandlePx * 2.5)
-        {
-            _activeResizeEdge = ResizeEdge.Top;
-        }
-        else if (relY >= height - ResizeHandlePx && height > ResizeHandlePx * 2.5)
-        {
-            _activeResizeEdge = ResizeEdge.Bottom;
-        }
-        else
-        {
-            // The whole body (between the resize edges) drags the event.
-            _activeResizeEdge = ResizeEdge.None;
-        }
+        // Top/bottom edge => resize the time; the middle => move the event.
+        _activeResizeEdge = EdgeAt(e.Position.Y, b.ActualHeight);
 
         _resizeOriginalStartMinute = block.StartMinute;
         _resizeOriginalEndMinute = block.EndMinute;
@@ -803,6 +749,7 @@ public sealed partial class WeekCalendarView : UserControl
             }
             UpdatePreview(block.EventId, block.Date, previewStart, previewEnd);
             UpdateLaneOverlay(block.Date);
+            SetCursor(CursorSizeNS);
             TransitionTo(WeekInteractionState.DraggingResize, block);
         }
         else
@@ -822,7 +769,7 @@ public sealed partial class WeekCalendarView : UserControl
                 tt.X = e.Cumulative.Translation.X;
                 tt.Y = e.Cumulative.Translation.Y;
             }
-            SetCursor(CursorSizeAll);
+            SetCursor(CursorCross);
 
             var newPoint = new Point(
                 CursorAbsoluteX(block, e.Cumulative.Translation.X),
@@ -936,19 +883,15 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnChipPointerMoved(object sender, PointerRoutedEventArgs e)
     {
+        // While a drag is in progress the manipulation handler owns the cursor
+        // (crosshair for move, up/down for resize); don't fight it here.
+        if (_interactionState is WeekInteractionState.DraggingMove or WeekInteractionState.DraggingResize)
+            return;
         if (sender is not Border b) return;
         var pos = e.GetCurrentPoint(b).Position;
-        var height = b.ActualHeight;
 
-        // Top/bottom edges resize (up-down arrows); the rest of the body moves
-        // the event (4-way move cursor).
-        if (height > ResizeHandlePx * 2.5 &&
-            (pos.Y < ResizeHandlePx || pos.Y >= height - ResizeHandlePx))
-        {
-            SetCursor(CursorSizeNS);
-            return;
-        }
-        SetCursor(CursorSizeAll);
+        // Top/bottom edges resize (up-down arrows); the rest of the body moves the event.
+        SetCursor(EdgeAt(pos.Y, b.ActualHeight) != ResizeEdge.None ? CursorSizeNS : CursorSizeAll);
     }
 
     private void OnChipPointerExited(object sender, PointerRoutedEventArgs e)

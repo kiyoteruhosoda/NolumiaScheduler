@@ -5,7 +5,9 @@ namespace NolumiaScheduler.Presentation.Services;
 
 public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
 {
-    private const int MinimumEventHeight = 24;
+    // Short events (e.g. 15-minute) are drawn a little taller than their true duration so
+    // the top/bottom resize grab zones and the middle move zone all stay usable.
+    private const int MinimumEventHeight = 30;
     private const double ColumnGapRatio = 0.015;
 
     public IReadOnlyList<WeekEventBlock> Layout(IReadOnlyList<CalendarEventItem> events)
