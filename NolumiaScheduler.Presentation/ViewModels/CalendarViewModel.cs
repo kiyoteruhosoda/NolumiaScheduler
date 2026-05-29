@@ -300,6 +300,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         var previousDate = _selectedCell?.Date;
         LoadMonth();
         LoadWeek();
+        // LoadMonth always writes the month-format title; restore the week title when in week mode.
+        if (IsWeekMode)
+            MonthYearTitle = FormatWeekRangeTitle(_weekStartDate);
         if (previousDate != null)
         {
             var newCell = DayCells.FirstOrDefault(c => c.Date.Equals(previousDate));
