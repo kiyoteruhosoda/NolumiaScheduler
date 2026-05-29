@@ -266,8 +266,61 @@ public sealed partial class EventEditPage : Page
         StartTimePicker.DropDownOpened += OnTimePickerDropDownOpened;
         EndTimePicker.DropDownOpened   += OnTimePickerDropDownOpened;
 
+        // An editable ComboBox blanks its text when no item is selected (which happens for
+        // off-grid 1-minute values). Commit on focus loss (so Enter isn't required) and
+        // re-assert the text when the dropdown closes so the typed value is never lost.
+        StartTimePicker.LostFocus      += OnStartTimeLostFocus;
+        EndTimePicker.LostFocus        += OnEndTimeLostFocus;
+        StartTimePicker.DropDownClosed += (_, _) => ReassertPickerText(StartTimePicker, _vm?.StartTime, ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
+        EndTimePicker.DropDownClosed   += (_, _) => ReassertPickerText(EndTimePicker, _vm?.EndTime, ref _suppressEndTimeChanged, ref _suppressEndTimePickerChanged);
+
         // Apply initial section visibility
         ApplySectionVisibility();
+    }
+
+    private void OnStartTimeLostFocus(object sender, RoutedEventArgs e)
+        => CommitTypedTime((ComboBox)sender, t => { if (_vm != null) _vm.StartTime = t; }, () => _vm?.StartTime,
+            ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
+
+    private void OnEndTimeLostFocus(object sender, RoutedEventArgs e)
+        => CommitTypedTime((ComboBox)sender, t => { if (_vm != null) _vm.EndTime = t; }, () => _vm?.EndTime,
+            ref _suppressEndTimeChanged, ref _suppressEndTimePickerChanged);
+
+    // Parse the editable text and push it into the VM, then normalize the displayed text.
+    // Invalid input reverts to the VM's current value.
+    private void CommitTypedTime(ComboBox picker, Action<TimeSpan> setTime, Func<TimeSpan?> getTime,
+        ref bool suppressTime, ref bool suppressPicker)
+    {
+        if (_vm == null || suppressTime) return;
+        var current = getTime();
+        var formatted = FormatTimeInput(picker.Text);
+        suppressTime = true;
+        suppressPicker = true;
+        if (formatted != null)
+        {
+            var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
+            setTime(ts);
+            SyncTimePickerToValue(picker, ts);
+            picker.Text = formatted;
+        }
+        else if (current is { } cur)
+        {
+            picker.Text = cur.ToString(@"hh\:mm");
+        }
+        suppressTime = false;
+        suppressPicker = false;
+    }
+
+    // Force the editable text back to the VM value (used after the dropdown closes, since the
+    // control clears the text for off-grid values that have no matching list item).
+    private void ReassertPickerText(ComboBox picker, TimeSpan? time, ref bool suppressTime, ref bool suppressPicker)
+    {
+        if (time is not { } t) return;
+        suppressTime = true;
+        suppressPicker = true;
+        picker.Text = t.ToString(@"hh\:mm");
+        suppressTime = false;
+        suppressPicker = false;
     }
 
     private void OnTimePickerDropDownOpened(object sender, object e)
