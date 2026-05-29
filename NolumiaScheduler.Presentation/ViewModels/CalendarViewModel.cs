@@ -94,8 +94,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
 
     private void UpdateDayCellChipCount()
     {
-        // dayLabel=30, holiday=14, topPadding=2 => remaining for chips
-        var chipCount = Math.Max(1, (int)((_dayCellHeight - 46) / 19));
+        // Header (day-number circle + margins + grid padding) ~= 36px; each chip row is
+        // 14px tall with 2px spacing => 16px. Max chips that fit without the "+N" label.
+        var chipCount = Math.Max(1, (int)((_dayCellHeight - 36) / 16));
         foreach (var cell in DayCells)
         {
             cell.AvailableChipCount = chipCount;
