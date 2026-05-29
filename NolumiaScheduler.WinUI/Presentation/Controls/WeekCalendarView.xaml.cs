@@ -38,7 +38,7 @@ public sealed partial class WeekCalendarView : UserControl
     private int _dragCreateStartMinute;
     private int _dragCreateCurrentMinute;
 
-    private EventChipBorder? _activeMoveChip;
+    private Border? _activeMoveChip;
     // Horizontal offset of the grab point from the chip's left edge, captured when a move
     // begins, so the landing day follows the cursor rather than the chip's left edge.
     private double _moveGrabOffsetX;
@@ -424,13 +424,13 @@ public sealed partial class WeekCalendarView : UserControl
 
     private Border CreateEventBlockChip(WeekEventBlock block)
     {
-        var border = new EventChipBorder
+        var border = new Border
         {
             Background = new SolidColorBrush(block.BackgroundColor),
             CornerRadius = new CornerRadius(2),
             Tag = block
         };
-        border.ShowMoveCursor();
+        ChipCursor.Move(border);
 
         ApplyChipHorizontalBounds(border, block);
         Canvas.SetTop(border, block.Top);
@@ -735,7 +735,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
-        if (sender is not EventChipBorder b || b.Tag is not WeekEventBlock block) return;
+        if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
         var now = DateTime.UtcNow;
         if ((now - _lastInteractionFrameUtc).TotalMilliseconds < InteractionFrameThrottleMs) return;
         _lastInteractionFrameUtc = now;
@@ -759,7 +759,7 @@ public sealed partial class WeekCalendarView : UserControl
             }
             UpdatePreview(block.EventId, block.Date, previewStart, previewEnd);
             UpdateLaneOverlay(block.Date);
-            b.ShowResizeCursor();
+            ChipCursor.Resize(b);
             TransitionTo(WeekInteractionState.DraggingResize, block);
         }
         else
@@ -779,7 +779,7 @@ public sealed partial class WeekCalendarView : UserControl
                 tt.X = e.Cumulative.Translation.X;
                 tt.Y = e.Cumulative.Translation.Y;
             }
-            b.ShowDragCursor();
+            ChipCursor.Drag(b);
 
             var newPoint = new Point(
                 CursorAbsoluteX(block, e.Cumulative.Translation.X),
@@ -891,14 +891,14 @@ public sealed partial class WeekCalendarView : UserControl
         // (crosshair for move, up/down for resize); don't fight it here.
         if (_interactionState is WeekInteractionState.DraggingMove or WeekInteractionState.DraggingResize)
             return;
-        if (sender is not EventChipBorder b) return;
+        if (sender is not Border b) return;
         var pos = e.GetCurrentPoint(b).Position;
 
         // Top/bottom edges resize (up-down arrows); the rest of the body moves the event.
         if (EdgeAt(pos.Y, b.ActualHeight) != ResizeEdge.None)
-            b.ShowResizeCursor();
+            ChipCursor.Resize(b);
         else
-            b.ShowMoveCursor();
+            ChipCursor.Move(b);
     }
 
     public void CancelCurrentInteraction()
@@ -919,11 +919,11 @@ internal static class Vector2Extensions
         => TimeSpan.FromMilliseconds(350);
 }
 
-// Border subclass that drives the pointer cursor. WinUI 3 ignores Win32 SetCursor for its
-// own surfaces; the cursor is controlled by the protected UIElement cursor property. Its
-// name has varied across Windows App SDK versions (e.g. ProtectedCursor), so it is resolved
-// by reflection to keep this version-independent and avoid hard compile dependencies.
-internal sealed class EventChipBorder : Microsoft.UI.Xaml.Controls.Border
+// Sets the pointer cursor for week event chips. WinUI 3 ignores Win32 SetCursor for its own
+// surfaces, and Border is sealed (so it can't be subclassed to set ProtectedCursor). The
+// cursor lives on a protected UIElement property whose name has varied across Windows App
+// SDK versions, so it is resolved and assigned by reflection on the chip instance.
+internal static class ChipCursor
 {
     private static readonly InputCursor MoveCursor   = InputSystemCursor.Create(InputSystemCursorShape.SizeAll);
     private static readonly InputCursor ResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeNorthSouth);
@@ -947,13 +947,13 @@ internal sealed class EventChipBorder : Microsoft.UI.Xaml.Controls.Border
         return null;
     }
 
-    private void SetCursor(InputCursor cursor)
+    private static void Set(Microsoft.UI.Xaml.UIElement element, InputCursor cursor)
     {
-        try { CursorProperty?.SetValue(this, cursor); }
+        try { CursorProperty?.SetValue(element, cursor); }
         catch { /* cursor is cosmetic; never let it break pointer handling */ }
     }
 
-    public void ShowMoveCursor()   => SetCursor(MoveCursor);
-    public void ShowResizeCursor() => SetCursor(ResizeCursor);
-    public void ShowDragCursor()   => SetCursor(DragCursor);
+    public static void Move(Microsoft.UI.Xaml.UIElement element)   => Set(element, MoveCursor);
+    public static void Resize(Microsoft.UI.Xaml.UIElement element) => Set(element, ResizeCursor);
+    public static void Drag(Microsoft.UI.Xaml.UIElement element)   => Set(element, DragCursor);
 }
