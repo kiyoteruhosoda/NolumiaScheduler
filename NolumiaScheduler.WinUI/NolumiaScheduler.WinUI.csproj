@@ -56,8 +56,13 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
+    <!-- ReadyToRun is disabled: with a self-contained WinUI publish, crossgen2
+         pre-compiles the WindowsAppSDK auto-initializer against reference
+         assemblies whose patch version can differ from the bundled runtime,
+         producing a bogus MissingMethodException (e.g. for
+         Environment.SetEnvironmentVariable) inside UndockedRegFreeWinRT at
+         startup. R2R is only a startup optimization, so keep it off. -->
+    <PublishReadyToRun>false</PublishReadyToRun>
     <!-- WinUI 3 / WinRT types are resolved via COM activation and get incorrectly
          removed by the IL trimmer, which causes REGDB_E_CLASSNOTREG at startup.
          Keep trimming disabled for WinUI publish. -->
