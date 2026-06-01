@@ -77,14 +77,18 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
             {
                 if (move.NewDate >= fromDate && move.NewDate <= toDate)
                 {
+                    // A move may coexist with a content override (editing then relocating the
+                    // same occurrence). Fall back to the override's content/time before the
+                    // series defaults so the customization survives the move.
+                    var movedOverride = exception is { Type: ExceptionType.Override } ? exception.Override : null;
                     results.Add(new EventOccurrence(
                         ev.Id, move.NewDate,
-                        move.NewStartTime ?? schedule.StartTime,
-                        move.NewEndTime ?? schedule.EndTime,
+                        move.NewStartTime ?? movedOverride?.StartTime ?? schedule.StartTime,
+                        move.NewEndTime ?? movedOverride?.EndTime ?? schedule.EndTime,
                         ev.AllDay,
-                        move.Title ?? ev.Title,
-                        move.Location ?? ev.Location,
-                        move.Visibility ?? ev.Visibility,
+                        move.Title ?? movedOverride?.Title ?? ev.Title,
+                        move.Location ?? movedOverride?.Location ?? ev.Location,
+                        move.Visibility ?? movedOverride?.Visibility ?? ev.Visibility,
                         isMoved: true,
                         seriesKey: key));
                 }

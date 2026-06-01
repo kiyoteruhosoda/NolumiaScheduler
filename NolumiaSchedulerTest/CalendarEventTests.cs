@@ -128,6 +128,23 @@ public class CalendarEventTests
     }
 
     [TestMethod]
+    public void MoveOccurrence_AlreadyOverridden_ShouldSucceed()
+    {
+        // Editing a single occurrence (override) then relocating it (move) must be allowed,
+        // otherwise the time of a detached occurrence can never be changed again.
+        var ev = CreateWeeklyRecurring();
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
+        ev.OverrideOccurrence(key, new ExceptionOverride(title: new EventTitle("短縮会議")), Now);
+
+        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
+            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+        ev.MoveOccurrence(move, Now);
+
+        Assert.IsTrue(ev.HasMoveFor(key));
+        Assert.IsTrue(ev.HasExceptionFor(key));
+    }
+
+    [TestMethod]
     public void MoveOccurrence_AlreadyExcepted_ShouldThrow()
     {
         var ev = CreateWeeklyRecurring();

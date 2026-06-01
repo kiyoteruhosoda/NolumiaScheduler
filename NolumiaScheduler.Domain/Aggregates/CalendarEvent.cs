@@ -237,7 +237,7 @@ public class CalendarEvent
         DateTimeOffset updatedAt)
     {
         EnsureRecurringEvent();
-        EnsureOccurrenceKeyNotExcepted(move.OccurrenceKey);
+        EnsureOccurrenceKeyNotSkipped(move.OccurrenceKey);
         EnsureMoveCompatible(move);
 
         RemoveMoveInternal(move.OccurrenceKey);
@@ -297,10 +297,13 @@ public class CalendarEvent
             throw new DomainException("The occurrence is already moved.");
     }
 
-    private void EnsureOccurrenceKeyNotExcepted(OccurrenceLocalKey occurrenceKey)
+    // A skipped (cancelled) occurrence cannot be moved, but a content override may coexist with
+    // a move: editing a single occurrence (override) and then relocating it (move) are
+    // orthogonal customizations, so moving an overridden occurrence is allowed.
+    private void EnsureOccurrenceKeyNotSkipped(OccurrenceLocalKey occurrenceKey)
     {
-        if (_exceptions.Any(x => x.OccurrenceKey.Equals(occurrenceKey)))
-            throw new DomainException("The occurrence already has an exception.");
+        if (_exceptions.Any(x => x.OccurrenceKey.Equals(occurrenceKey) && x.Type == ExceptionType.Skip))
+            throw new DomainException("A skipped occurrence cannot be moved.");
     }
 
     private void EnsureOverrideCompatible(ExceptionOverride exceptionOverride)

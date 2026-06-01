@@ -118,6 +118,27 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
+    public void Expand_WeeklyRecurring_OverriddenThenMoved_KeepsOverrideContentAtMovedDate()
+    {
+        // Edit a single occurrence (override its title), then relocate it (move). The moved
+        // occurrence must keep the overridden title and the new date/time.
+        var ev = CreateWeeklyMonday();
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
+        ev.OverrideOccurrence(key, new ExceptionOverride(title: new EventTitle("変更済み")), Now);
+        ev.MoveOccurrence(new EventMove(key, new LocalDateValue(2026, 4, 28),
+            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0)), Now);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 4, 20),
+            new LocalDateValue(2026, 4, 30), null);
+
+        var moved = results.First(r => r.IsMoved);
+        Assert.AreEqual(new LocalDateValue(2026, 4, 28), moved.Date);
+        Assert.AreEqual(14, moved.StartTime!.Hour);
+        Assert.AreEqual("変更済み", moved.Title.Value);
+    }
+
+    [TestMethod]
     public void Expand_MonthlyRecurring_NthWeekday()
     {
         // 2nd Monday of each month, starting April 2026
