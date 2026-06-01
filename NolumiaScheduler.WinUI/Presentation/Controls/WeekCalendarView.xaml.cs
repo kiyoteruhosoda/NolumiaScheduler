@@ -1,6 +1,6 @@
 using System.Collections;
-using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Input;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -38,18 +38,14 @@ public sealed partial class WeekCalendarView : UserControl
     private int _dragCreateStartMinute;
     private int _dragCreateCurrentMinute;
 
-    // Win32 cursor control
-    [DllImport("user32.dll", CharSet = CharSet.Auto)]
-    private static extern IntPtr LoadCursor(IntPtr hInstance, int lpCursorName);
-    [DllImport("user32.dll")]
-    private static extern IntPtr SetCursor(IntPtr hCursor);
-    private static readonly IntPtr CursorArrow  = LoadCursor(IntPtr.Zero, 32512); // IDC_ARROW
-    private static readonly IntPtr CursorSizeNS  = LoadCursor(IntPtr.Zero, 32645); // IDC_SIZENS
-    private static readonly IntPtr CursorSizeAll = LoadCursor(IntPtr.Zero, 32646); // IDC_SIZEALL
-
     private Border? _activeMoveChip;
+    // Horizontal offset of the grab point from the chip's left edge, captured when a move
+    // begins, so the landing day follows the cursor rather than the chip's left edge.
+    private double _moveGrabOffsetX;
+    private const double ChipMarginLeft = 4;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
+    public event EventHandler<WeekEmptySlotTappedEventArgs>? AllDaySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
     public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
     public event EventHandler<WeekEventResizeCompletedEventArgs>? EventResizeCompleted;
@@ -175,7 +171,26 @@ public sealed partial class WeekCalendarView : UserControl
         if (count == 0) return;
         _weekDayColumnWidth = (WeekBodyGrid.ActualWidth - 1.0 * (count - 1)) / count;
         UpdateEventBlockLayoutBounds();
+        RepositionEventChips();
         RebuildAllDayLanes();
+    }
+
+    // Reposition/resize the timed event chips horizontally to the current column width.
+    // Vertical placement is minute-based and unaffected by width, so it is left untouched.
+    private void RepositionEventChips()
+    {
+        foreach (var lane in WeekBodyGrid.Children.OfType<Canvas>())
+            foreach (var border in lane.Children.OfType<Border>())
+                if (border.Tag is WeekEventBlock block)
+                    ApplyChipHorizontalBounds(border, block);
+    }
+
+    private void ApplyChipHorizontalBounds(Border border, WeekEventBlock block)
+    {
+        var left = (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + ChipMarginLeft;
+        Canvas.SetLeft(border, left);
+        var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
+        border.Width = Math.Min(rawWidth - ChipMarginLeft, _weekDayColumnWidth * 0.8 - ChipMarginLeft);
     }
 
     private void OnWeekDayColumnsChanged(object? sender, System.Collections.Specialized.NotifyCollectionChangedEventArgs e)
@@ -310,11 +325,15 @@ public sealed partial class WeekCalendarView : UserControl
             {
                 Height = WeekCanvasHeight,
                 IsHitTestVisible = false,
-                Preview = InteractionPreview
+                Preview = InteractionPreview,
+                Width = _weekDayColumnWidth
             };
             Canvas.SetLeft(overlay, 0);
             Canvas.SetTop(overlay, 0);
             lane.Children.Add(overlay);
+            // Keep the overlay (drag/resize ghost) the same width as the day column so its
+            // ratio-based geometry resolves to the chip's actual pixel size.
+            lane.SizeChanged += (_, e) => overlay.Width = e.NewSize.Width;
 
             // Tap on empty slot
             lane.Tapped += OnLaneTapped;
@@ -366,7 +385,8 @@ public sealed partial class WeekCalendarView : UserControl
 
     private Canvas BuildAllDayLane(DateTime day)
     {
-        var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent) };
+        var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), Tag = day };
+        canvas.Tapped += OnAllDayLaneTapped;
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
             .Where(b => b.StartDate.Date <= day.Date && b.EndDate.Date >= day.Date)
@@ -378,6 +398,8 @@ public sealed partial class WeekCalendarView : UserControl
             var chip = new Border
             {
                 Background = new SolidColorBrush(block.BackgroundColor),
+                BorderBrush = new SolidColorBrush(DarkenColor(block.BackgroundColor, 0.72)),
+                BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(6, 2, 6, 2),
                 Height = 20,
@@ -393,6 +415,7 @@ public sealed partial class WeekCalendarView : UserControl
             };
             chip.Child = label;
             chip.Tapped += OnAllDayBlockTapped;
+            chip.DoubleTapped += OnAllDayBlockDoubleTapped;
             Canvas.SetLeft(chip, 0);
             Canvas.SetTop(chip, block.Top + 1);
             canvas.Children.Add(chip);
@@ -401,99 +424,49 @@ public sealed partial class WeekCalendarView : UserControl
         return canvas;
     }
 
+    private static Windows.UI.Color DarkenColor(Windows.UI.Color color, double factor)
+        => Windows.UI.Color.FromArgb(color.A, (byte)(color.R * factor), (byte)(color.G * factor), (byte)(color.B * factor));
+
     private Border CreateEventBlockChip(WeekEventBlock block)
     {
         var border = new Border
         {
             Background = new SolidColorBrush(block.BackgroundColor),
+            BorderBrush = new SolidColorBrush(DarkenColor(block.BackgroundColor, 0.72)),
+            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(2),
             Tag = block
         };
+        ChipCursor.Move(border);
 
-        const double chipMarginLeft = 4;
-        Canvas.SetLeft(border, (block.LayoutBounds.X > 0 ? block.LayoutBounds.X : block.LeftRatio * _weekDayColumnWidth) + chipMarginLeft);
+        ApplyChipHorizontalBounds(border, block);
         Canvas.SetTop(border, block.Top);
-        var rawWidth = block.LayoutBounds.Width > 0 ? block.LayoutBounds.Width : block.WidthRatio * _weekDayColumnWidth;
-        border.Width = Math.Min(rawWidth - chipMarginLeft, _weekDayColumnWidth * 0.8 - chipMarginLeft);
-        var chipHeight = Math.Max(16, block.Height);
+        // 15-minute events are 15px tall (1px == 1 minute); don't inflate them.
+        var chipHeight = Math.Max(15, block.Height);
         border.Height = chipHeight;
 
-        if (chipHeight > ResizeHandlePx * 2.5)
+        // No visible resize bars: the top/bottom edges are grab zones detected via the
+        // cursor + manipulation hit-testing (see OnChipPointerMoved / EdgeAt).
+        border.Padding = new Thickness(4, 0, 4, 0);
+        border.Child = new TextBlock
         {
-            var grid = new Grid();
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(ResizeHandlePx) });
-
-            var topStrip = BuildResizeStrip();
-            Grid.SetRow(topStrip, 0);
-            grid.Children.Add(topStrip);
-
-            var title = new TextBlock
-            {
-                Text = block.Title,
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                VerticalAlignment = VerticalAlignment.Top,
-                TextWrapping = TextWrapping.NoWrap,
-                TextTrimming = TextTrimming.CharacterEllipsis,
-                Margin = new Thickness(3, 0, 3, 0)
-            };
-            Grid.SetRow(title, 1);
-            grid.Children.Add(title);
-
-            var bottomStrip = BuildResizeStrip();
-            Grid.SetRow(bottomStrip, 2);
-            grid.Children.Add(bottomStrip);
-
-            border.Child = grid;
-        }
-        else
-        {
-            border.Padding = new Thickness(2, 0, 2, 0);
-            border.Child = new TextBlock
-            {
-                Text = block.Title,
-                FontSize = 10,
-                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
-                VerticalAlignment = VerticalAlignment.Top,
-                TextWrapping = TextWrapping.NoWrap,
-                TextTrimming = TextTrimming.CharacterEllipsis
-            };
-        }
+            Text = block.Title,
+            FontSize = 10,
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+            VerticalAlignment = VerticalAlignment.Center,
+            TextWrapping = TextWrapping.NoWrap,
+            TextTrimming = TextTrimming.CharacterEllipsis
+        };
 
         border.Tapped += OnEventBlockTapped;
+        border.DoubleTapped += OnEventBlockDoubleTapped;
         border.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
         border.ManipulationStarted += OnEventBlockManipulationStarted;
         border.ManipulationDelta += OnEventBlockManipulationDelta;
         border.ManipulationCompleted += OnEventBlockManipulationCompleted;
         border.PointerMoved += OnChipPointerMoved;
-        border.PointerExited += OnChipPointerExited;
 
         return border;
-    }
-
-    // Thin grip strip rendered at the top/bottom of an event chip to signal
-    // that the edge can be dragged to change the time.
-    private static Border BuildResizeStrip()
-    {
-        var strip = new Border
-        {
-            Background = new SolidColorBrush(Windows.UI.Color.FromArgb(45, 255, 255, 255)),
-            HorizontalAlignment = HorizontalAlignment.Stretch,
-            VerticalAlignment = VerticalAlignment.Stretch
-        };
-        strip.Child = new Microsoft.UI.Xaml.Shapes.Rectangle
-        {
-            Width = 18,
-            Height = 2,
-            RadiusX = 1,
-            RadiusY = 1,
-            Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(210, 255, 255, 255)),
-            HorizontalAlignment = HorizontalAlignment.Center,
-            VerticalAlignment = VerticalAlignment.Center
-        };
-        return strip;
     }
 
     private WeekInteractionPreview _interactionPreview = new() { IsVisible = false };
@@ -561,6 +534,10 @@ public sealed partial class WeekCalendarView : UserControl
     private void OnLanePointerPressed(object sender, PointerRoutedEventArgs e)
     {
         if (sender is not Canvas canvas || canvas.Tag is not WeekDayColumn dayColumn) return;
+        // A press that starts on an existing event chip is a move/resize gesture handled
+        // by the chip's manipulation events. Do not also start the empty-slot drag-create,
+        // otherwise its preview overlay would render on top of the moving event.
+        if (IsWithinEventChip(e.OriginalSource)) return;
         var pos = e.GetCurrentPoint(canvas).Position;
         _dragCreateLane = canvas;
         _dragCreateDay = dayColumn;
@@ -568,6 +545,20 @@ public sealed partial class WeekCalendarView : UserControl
         _dragCreateCurrentMinute = _dragCreateStartMinute;
         _pressStartPoint = pos;
         canvas.CapturePointer(e.Pointer);
+    }
+
+    // Walks up the visual tree from the press source; true if the press landed inside an
+    // event chip (a Border tagged with a WeekEventBlock) before reaching the lane Canvas.
+    private static bool IsWithinEventChip(object? originalSource)
+    {
+        var node = originalSource as DependencyObject;
+        while (node != null)
+        {
+            if (node is Border border && border.Tag is WeekEventBlock) return true;
+            if (node is Canvas) return false;
+            node = VisualTreeHelper.GetParent(node);
+        }
+        return false;
     }
 
     private void OnLanePointerMoved(object sender, PointerRoutedEventArgs e)
@@ -657,8 +648,18 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockTapped(object sender, TappedRoutedEventArgs e)
     {
+        // Single click selects only; opening the editor requires a double click.
         e.Handled = true;
         if (DateTime.UtcNow < _suppressTapUntilUtc) return;
+        if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
+
+        _selectedEventId = block.EventId;
+        UpdateSelectionState();
+    }
+
+    private void OnEventBlockDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        e.Handled = true;
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
         _selectedEventId = block.EventId;
@@ -674,6 +675,16 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnAllDayBlockTapped(object sender, TappedRoutedEventArgs e)
     {
+        // Handled so the tap does not bubble to the lane and start a new-event create.
+        // Single click selects only; opening the editor requires a double click.
+        e.Handled = true;
+        if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
+            _selectedEventId = block.EventId;
+    }
+
+    private void OnAllDayBlockDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
+    {
+        e.Handled = true;
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
         {
             _selectedEventId = block.EventId;
@@ -685,6 +696,13 @@ public sealed partial class WeekCalendarView : UserControl
                 OccurrenceKey = block.OccurrenceKey
             });
         }
+    }
+
+    private void OnAllDayLaneTapped(object sender, TappedRoutedEventArgs e)
+    {
+        if (DateTime.UtcNow < _suppressTapUntilUtc) return;
+        if (sender is not Canvas canvas || canvas.Tag is not DateTime day) return;
+        AllDaySlotTapped?.Invoke(this, new WeekEmptySlotTappedEventArgs { Date = day, StartMinute = 0 });
     }
 
     private void UpdateLaneOverlay(DateTime date)
@@ -699,28 +717,28 @@ public sealed partial class WeekCalendarView : UserControl
 
     private const double ResizeHandlePx = 10;
 
+    // Size of the top/bottom grab zone for resizing. Capped at a third of the chip height
+    // so even short (15-minute) chips keep a usable middle zone for moving.
+    private static double ResizeEdgeZone(double height) => Math.Min(ResizeHandlePx, height / 3);
+
+    private static ResizeEdge EdgeAt(double relY, double height)
+    {
+        var zone = ResizeEdgeZone(height);
+        if (relY <= zone) return ResizeEdge.Top;
+        if (relY >= height - zone) return ResizeEdge.Bottom;
+        return ResizeEdge.None;
+    }
+
     private void OnEventBlockManipulationStarted(object sender, ManipulationStartedRoutedEventArgs e)
     {
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
-        var relY = e.Position.Y;
-        var height = b.ActualHeight;
 
-        if (relY <= ResizeHandlePx && height > ResizeHandlePx * 2.5)
-        {
-            _activeResizeEdge = ResizeEdge.Top;
-        }
-        else if (relY >= height - ResizeHandlePx && height > ResizeHandlePx * 2.5)
-        {
-            _activeResizeEdge = ResizeEdge.Bottom;
-        }
-        else
-        {
-            // The whole body (between the resize edges) drags the event.
-            _activeResizeEdge = ResizeEdge.None;
-        }
+        // Top/bottom edge => resize the time; the middle => move the event.
+        _activeResizeEdge = EdgeAt(e.Position.Y, b.ActualHeight);
 
         _resizeOriginalStartMinute = block.StartMinute;
         _resizeOriginalEndMinute = block.EndMinute;
+        _moveGrabOffsetX = e.Position.X;
     }
 
     private void OnEventBlockManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
@@ -749,13 +767,14 @@ public sealed partial class WeekCalendarView : UserControl
             }
             UpdatePreview(block.EventId, block.Date, previewStart, previewEnd);
             UpdateLaneOverlay(block.Date);
+            ChipCursor.Resize(b);
             TransitionTo(WeekInteractionState.DraggingResize, block);
         }
         else
         {
-            // Move: the chip itself follows the cursor, semi-transparent, so the
-            // user sees the actual object move (no separate preview overlay, which
-            // is what previously caused the block to flash at the column's far left).
+            // Move: the chip itself follows the cursor (semi-transparent) while a faint
+            // ghost is painted on the day/time slot where the event will snap, so the
+            // user can see the landing spot before releasing.
             if (_activeMoveChip == null)
             {
                 _activeMoveChip = b;
@@ -768,22 +787,32 @@ public sealed partial class WeekCalendarView : UserControl
                 tt.X = e.Cumulative.Translation.X;
                 tt.Y = e.Cumulative.Translation.Y;
             }
-            SetCursor(CursorSizeAll);
+            // Keep the four-arrow move cursor during the drag (same as hovering before the
+            // drag); a crosshair here was confusing.
+            ChipCursor.Move(b);
 
             var newPoint = new Point(
-                BlockAbsoluteX(block, e.Cumulative.Translation.X),
+                CursorAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
             TransitionTo(WeekInteractionState.DraggingMove, block, newPoint);
+
+            var target = _mapper.MapToDateTime(newPoint, WeekStartDate, _weekDayColumnWidth);
+            var targetStart = target.Hour * 60 + target.Minute;
+            var duration = Math.Max(15, block.EndMinute - block.StartMinute);
+            var targetEnd = Math.Min(targetStart + duration, 24 * 60);
+            UpdatePreview(block.EventId, target.Date, targetStart, targetEnd);
+            UpdateLaneOverlay(target.Date);
         }
     }
 
-    // X of the block relative to the whole week grid origin (Sunday column),
-    // so MapToDate resolves the correct day. block.LeftRatio is only the offset
-    // within the block's own day column.
-    private double BlockAbsoluteX(WeekEventBlock block, double translationX)
+    // Cursor X relative to the whole week grid origin (Sunday column), so MapToDate
+    // resolves the day under the pointer (not the chip's left edge). Built from the chip's
+    // original absolute left, the grab offset within the chip, and the drag translation.
+    private double CursorAbsoluteX(WeekEventBlock block, double translationX)
     {
         var dayIndex = Math.Clamp((int)Math.Round((block.Date.Date - WeekStartDate.Date).TotalDays), 0, 6);
-        return (dayIndex + block.LeftRatio) * _weekDayColumnWidth + translationX;
+        var chipLeft = (dayIndex + block.LeftRatio) * _weekDayColumnWidth + ChipMarginLeft;
+        return chipLeft + _moveGrabOffsetX + translationX;
     }
 
     private void OnEventBlockManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
@@ -815,6 +844,7 @@ public sealed partial class WeekCalendarView : UserControl
             EventResizeCompleted?.Invoke(this, new WeekEventResizeCompletedEventArgs
             {
                 EventId = block.EventId,
+                OccurrenceKey = block.MoveKey,
                 Date = block.Date,
                 StartMinute = startMin,
                 EndMinute = endMin
@@ -823,7 +853,7 @@ public sealed partial class WeekCalendarView : UserControl
         else if (_activeResizeEdge == ResizeEdge.None && _activeBlock != null && totalMovement >= 8)
         {
             var finalPoint = new Point(
-                BlockAbsoluteX(block, e.Cumulative.Translation.X),
+                CursorAbsoluteX(block, e.Cumulative.Translation.X),
                 block.Top + e.Cumulative.Translation.Y);
             RestoreMoveChipOpacity();
             var dt = _mapper.MapToDateTime(finalPoint, WeekStartDate, _weekDayColumnWidth);
@@ -831,24 +861,20 @@ public sealed partial class WeekCalendarView : UserControl
             EventDragCompleted?.Invoke(this, new WeekEventDragCompletedEventArgs
             {
                 EventId = block.EventId,
+                OccurrenceKey = block.MoveKey,
                 TargetDateTime = dt.Date,
-                TargetStartMinute = startMinute
+                TargetStartMinute = startMinute,
+                DurationMinutes = block.EndMinute - block.StartMinute
             });
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
         }
         else
         {
+            // No real drag: treat as a select. The editor is opened by the DoubleTapped
+            // handler, so don't suppress taps here or the double click would be swallowed.
             RestoreMoveChipOpacity();
             _selectedEventId = block.EventId;
             UpdateSelectionState();
-            _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
-            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
-            {
-                EventId = block.EventId,
-                Date = block.Date,
-                StartMinute = block.StartMinute,
-                OccurrenceKey = block.OccurrenceKey
-            });
         }
 
         _activeResizeEdge = ResizeEdge.None;
@@ -871,24 +897,18 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnChipPointerMoved(object sender, PointerRoutedEventArgs e)
     {
+        // While a drag is in progress the manipulation handler owns the cursor
+        // (crosshair for move, up/down for resize); don't fight it here.
+        if (_interactionState is WeekInteractionState.DraggingMove or WeekInteractionState.DraggingResize)
+            return;
         if (sender is not Border b) return;
         var pos = e.GetCurrentPoint(b).Position;
-        var height = b.ActualHeight;
 
-        // Top/bottom edges resize (up-down arrows); the rest of the body moves
-        // the event (4-way move cursor).
-        if (height > ResizeHandlePx * 2.5 &&
-            (pos.Y < ResizeHandlePx || pos.Y >= height - ResizeHandlePx))
-        {
-            SetCursor(CursorSizeNS);
-            return;
-        }
-        SetCursor(CursorSizeAll);
-    }
-
-    private void OnChipPointerExited(object sender, PointerRoutedEventArgs e)
-    {
-        SetCursor(CursorArrow);
+        // Top/bottom edges resize (up-down arrows); the rest of the body moves the event.
+        if (EdgeAt(pos.Y, b.ActualHeight) != ResizeEdge.None)
+            ChipCursor.Resize(b);
+        else
+            ChipCursor.Move(b);
     }
 
     public void CancelCurrentInteraction()
@@ -907,4 +927,41 @@ internal static class Vector2Extensions
 {
     public static TimeSpan ToTimeSpan(this System.Numerics.Vector2 _)
         => TimeSpan.FromMilliseconds(350);
+}
+
+// Sets the pointer cursor for week event chips. WinUI 3 ignores Win32 SetCursor for its own
+// surfaces, and Border is sealed (so it can't be subclassed to set ProtectedCursor). The
+// cursor lives on a protected UIElement property whose name has varied across Windows App
+// SDK versions, so it is resolved and assigned by reflection on the chip instance.
+internal static class ChipCursor
+{
+    private static readonly InputCursor MoveCursor   = InputSystemCursor.Create(InputSystemCursorShape.SizeAll);
+    private static readonly InputCursor ResizeCursor = InputSystemCursor.Create(InputSystemCursorShape.SizeNorthSouth);
+
+    private static readonly System.Reflection.PropertyInfo? CursorProperty = ResolveCursorProperty();
+
+    private static System.Reflection.PropertyInfo? ResolveCursorProperty()
+    {
+        const System.Reflection.BindingFlags flags =
+            System.Reflection.BindingFlags.Instance |
+            System.Reflection.BindingFlags.NonPublic |
+            System.Reflection.BindingFlags.Public;
+
+        foreach (var name in new[] { "ProtectedCursor", "Cursor" })
+        {
+            var prop = typeof(Microsoft.UI.Xaml.UIElement).GetProperty(name, flags);
+            if (prop is { CanWrite: true } && typeof(InputCursor).IsAssignableFrom(prop.PropertyType))
+                return prop;
+        }
+        return null;
+    }
+
+    private static void Set(Microsoft.UI.Xaml.UIElement element, InputCursor cursor)
+    {
+        try { CursorProperty?.SetValue(element, cursor); }
+        catch { /* cursor is cosmetic; never let it break pointer handling */ }
+    }
+
+    public static void Move(Microsoft.UI.Xaml.UIElement element)   => Set(element, MoveCursor);
+    public static void Resize(Microsoft.UI.Xaml.UIElement element) => Set(element, ResizeCursor);
 }

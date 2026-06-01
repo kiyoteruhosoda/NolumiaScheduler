@@ -94,8 +94,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
 
     private void UpdateDayCellChipCount()
     {
-        // dayLabel=30, holiday=14, topPadding=2 => remaining for chips
-        var chipCount = Math.Max(1, (int)((_dayCellHeight - 46) / 19));
+        // Header (day-number circle + margins + grid padding) ~= 36px; each chip row is
+        // 14px tall with 2px spacing => 16px. Max chips that fit without the "+N" label.
+        var chipCount = Math.Max(1, (int)((_dayCellHeight - 36) / 16));
         foreach (var cell in DayCells)
         {
             cell.AvailableChipCount = chipCount;
@@ -226,11 +227,83 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         RefreshAfterChange();
     }
 
+    // Confirms a week-view drag (move): keeps the event duration and applies the new
+    // day + start time directly. Recurring events detach only the dragged occurrence.
+    public void MoveEventOccurrence(
+        string eventId, OccurrenceLocalKey? occurrenceKey,
+        DateOnly newDate, int newStartMinute, int durationMinutes)
+    {
+        var duration = Math.Clamp(durationMinutes, 15, MinutesPerDay - 15);
+        var startMinute = Math.Clamp(newStartMinute, 0, MinutesPerDay - 15);
+        var endMinute = Math.Min(startMinute + duration, MinutesPerDay - 1);
+        ApplyOccurrenceReschedule(eventId, occurrenceKey, newDate, startMinute, endMinute);
+    }
+
+    // Confirms a week-view resize: applies the new start/end time directly on the same day.
+    public void ResizeEventOccurrence(
+        string eventId, OccurrenceLocalKey? occurrenceKey,
+        DateOnly date, int startMinute, int endMinute)
+    {
+        var start = Math.Clamp(startMinute, 0, MinutesPerDay - 15);
+        var end = Math.Clamp(endMinute, start + 15, MinutesPerDay - 1);
+        ApplyOccurrenceReschedule(eventId, occurrenceKey, date, start, end);
+    }
+
+    private const int MinutesPerDay = 24 * 60;
+
+    private void ApplyOccurrenceReschedule(
+        string eventId, OccurrenceLocalKey? occurrenceKey,
+        DateOnly date, int startMinute, int endMinute)
+    {
+        var ev = _eventService.FindById(eventId);
+        if (ev == null) return;
+
+        try
+        {
+            if (ev.IsRecurring())
+            {
+                if (occurrenceKey == null) return;
+                _eventService.MoveOccurrence(new MoveOccurrenceCommand(
+                    eventId,
+                    occurrenceKey,
+                    LocalDateValue.FromDateOnly(date),
+                    ToLocalTime(startMinute),
+                    ToLocalTime(endMinute),
+                    null, null, null));
+            }
+            else
+            {
+                _eventService.UpdateEvent(new UpdateEventCommand(
+                    eventId,
+                    ev.Title.Value,
+                    ev.Location?.Value,
+                    ev.Visibility,
+                    false,
+                    date,
+                    TimeSpan.FromMinutes(startMinute),
+                    TimeSpan.FromMinutes(endMinute),
+                    ev.Alarm));
+            }
+            RefreshAfterChange();
+        }
+        catch (Exception)
+        {
+            // Invalid reschedule (e.g. dragging an already-overridden occurrence): leave the
+            // event unchanged so the chip snaps back to its original position.
+        }
+    }
+
+    private static LocalTimeValue ToLocalTime(int minuteOfDay)
+        => new(minuteOfDay / 60, minuteOfDay % 60, 0);
+
     private void RefreshAfterChange()
     {
         var previousDate = _selectedCell?.Date;
         LoadMonth();
         LoadWeek();
+        // LoadMonth always writes the month-format title; restore the week title when in week mode.
+        if (IsWeekMode)
+            MonthYearTitle = FormatWeekRangeTitle(_weekStartDate);
         if (previousDate != null)
         {
             var newCell = DayCells.FirstOrDefault(c => c.Date.Equals(previousDate));
@@ -345,7 +418,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                         occ.Location,
                         occ.Visibility,
                         occ.IsMoved,
-                        occ.IsOverridden);
+                        occ.IsOverridden,
+                        occ.SeriesKey);
                     weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence));
 
                     var secondOccurrence = new EventOccurrence(
@@ -358,7 +432,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                         occ.Location,
                         occ.Visibility,
                         occ.IsMoved,
-                        occ.IsOverridden);
+                        occ.IsOverridden,
+                        occ.SeriesKey);
                     weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence));
                 }
                 else

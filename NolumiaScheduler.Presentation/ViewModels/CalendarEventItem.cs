@@ -12,6 +12,7 @@ public sealed class CalendarEventItem
         Date = occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue);
         EventId = occ.EventId.Value;
         OccurrenceKey = new OccurrenceLocalKey(occ.Date, occ.AllDay ? null : occ.StartTime);
+        SeriesKey = occ.SeriesKey;
         Title = occ.Title.Value;
         Location = occ.Location?.Value;
         IsAllDay = occ.AllDay;
@@ -54,6 +55,10 @@ public sealed class CalendarEventItem
     public string EventId { get; }
     public DateTime Date { get; }
     public OccurrenceLocalKey OccurrenceKey { get; }
+
+    // Original recurrence key for moves/resizes; falls back to the displayed key.
+    public OccurrenceLocalKey? SeriesKey { get; }
+    public OccurrenceLocalKey MoveKey => SeriesKey ?? OccurrenceKey;
     public string Title { get; }
     public string? Location { get; }
     public string TimeRange { get; }

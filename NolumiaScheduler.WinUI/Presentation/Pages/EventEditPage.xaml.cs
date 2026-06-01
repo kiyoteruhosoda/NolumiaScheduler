@@ -45,8 +45,12 @@ public sealed partial class EventEditPage : Page
     private bool _suppressCalendarPickerChanged;
 
 
-    // 15-minute interval time items ("00:00" to "23:45")
-    private static readonly List<string> TimeItems = [.. Enumerable.Range(0, 96).Select(i => $"{i / 4:D2}:{(i % 4) * 15:D2}")];
+    // 15-minute interval time items ("00:00" to "23:45"). Each picker has its own observable
+    // copy so an off-grid (1-minute) value can be injected as a temporary sorted item to keep
+    // SelectedIndex >= 0 — an editable ComboBox blanks its text whenever no item is selected.
+    private static readonly string[] BaseTimeItems = [.. Enumerable.Range(0, 96).Select(i => $"{i / 4:D2}:{(i % 4) * 15:D2}")];
+    private readonly System.Collections.ObjectModel.ObservableCollection<string> _startTimeItems = [.. BaseTimeItems];
+    private readonly System.Collections.ObjectModel.ObservableCollection<string> _endTimeItems   = [.. BaseTimeItems];
 
     public EventEditPage()
     {
@@ -112,6 +116,7 @@ public sealed partial class EventEditPage : Page
             {
                 var dateOnly = DateOnly.FromDateTime(startDt);
                 _vm.InitializeNewEvent(dateOnly, p.StartMinute ?? (9 * 60), p.EndMinute);
+                if (p.AllDay) _vm.AllDay = true;
             }
         }
 
@@ -148,22 +153,13 @@ public sealed partial class EventEditPage : Page
         _suppressStartDateChanged = false;
 
         // Time pickers (editable ComboBox)
-        StartTimePicker.ItemsSource = TimeItems;
-        EndTimePicker.ItemsSource = TimeItems;
+        StartTimePicker.ItemsSource = _startTimeItems;
+        EndTimePicker.ItemsSource = _endTimeItems;
 
-        _suppressStartTimeChanged = true;
-        _suppressStartTimePickerChanged = true;
-        StartTimePicker.Text = _vm.StartTime.ToString(@"hh\:mm");
-        SyncTimePickerToValue(StartTimePicker, _vm.StartTime, ref _suppressStartTimePickerChanged);
-        _suppressStartTimeChanged = false;
-        _suppressStartTimePickerChanged = false;
-
-        _suppressEndTimeChanged = true;
-        _suppressEndTimePickerChanged = true;
-        EndTimePicker.Text = _vm.EndTime.ToString(@"hh\:mm");
-        SyncTimePickerToValue(EndTimePicker, _vm.EndTime, ref _suppressEndTimePickerChanged);
-        _suppressEndTimeChanged = false;
-        _suppressEndTimePickerChanged = false;
+        ApplyTimeToPicker(StartTimePicker, _startTimeItems, _vm.StartTime,
+            ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
+        ApplyTimeToPicker(EndTimePicker, _endTimeItems, _vm.EndTime,
+            ref _suppressEndTimeChanged, ref _suppressEndTimePickerChanged);
 
         // Recurrence pickers
         RepeatTypePicker.ItemsSource   = EventEditViewModel.RepeatTypeItems;
@@ -261,7 +257,7 @@ public sealed partial class EventEditPage : Page
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
         ValidationText.Text = _vm.ValidationError;
 
-        // Scroll time pickers so the selected item appears at the top when the dropdown opens
+        // Center the selected item in the time picker dropdowns when they open
         StartTimePicker.DropDownOpened += OnTimePickerDropDownOpened;
         EndTimePicker.DropDownOpened   += OnTimePickerDropDownOpened;
 
@@ -271,30 +267,50 @@ public sealed partial class EventEditPage : Page
 
     private void OnTimePickerDropDownOpened(object sender, object e)
     {
-        if (sender is not ComboBox picker || picker.SelectedIndex < 0) return;
-        DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Normal,
-            () => ScrollComboBoxSelectionToTop(picker));
+        if (sender is ComboBox picker && picker.SelectedIndex >= 0 && picker.Items.Count > 0)
+            _ = CenterComboBoxSelectionAsync(picker, picker.SelectedIndex);
     }
 
-    private static void ScrollComboBoxSelectionToTop(ComboBox comboBox)
+    // The dropdown's ScrollViewer lives inside a Popup, which is NOT reachable by walking the
+    // visual tree down from the ComboBox. It also isn't measured the instant the dropdown opens,
+    // so retry a few times until the popup exposes a ScrollViewer with an extent, then center
+    // the target item in the viewport (clamped to the top for items near the start).
+    private static async System.Threading.Tasks.Task CenterComboBoxSelectionAsync(ComboBox comboBox, int index)
     {
-        if (comboBox.Items.Count == 0) return;
-        var sv = FindDescendant<ScrollViewer>(comboBox);
-        if (sv == null || sv.ExtentHeight <= 0) return;
-        var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
-        sv.ChangeView(null, comboBox.SelectedIndex * itemHeight, null, true);
+        for (var attempt = 0; attempt < 12; attempt++)
+        {
+            var sv = FindOpenDropDownScrollViewer(comboBox);
+            if (sv is { ExtentHeight: > 0 } && comboBox.Items.Count > 0)
+            {
+                var itemHeight = sv.ExtentHeight / comboBox.Items.Count;
+                var target = index * itemHeight - (sv.ViewportHeight - itemHeight) / 2;
+                sv.ChangeView(null, Math.Max(0, target), null, true);
+                return;
+            }
+            await System.Threading.Tasks.Task.Delay(16);
+        }
+    }
+
+    private static ScrollViewer? FindOpenDropDownScrollViewer(ComboBox comboBox)
+    {
+        // Use the ComboBox's OWN dropdown popup (part of its control template) so we always
+        // scroll the right list. Searching all open popups for the XamlRoot can return another
+        // ComboBox's popup (e.g. Start vs End), which left the End picker uncentered.
+        var popup = FindDescendant<Microsoft.UI.Xaml.Controls.Primitives.Popup>(comboBox);
+        if (popup?.Child is DependencyObject child)
+            return FindDescendant<ScrollViewer>(child);
+        return null;
     }
 
     private static T? FindDescendant<T>(DependencyObject? parent) where T : DependencyObject
     {
         if (parent == null) return null;
+        if (parent is T self) return self;
         int count = VisualTreeHelper.GetChildrenCount(parent);
         for (int i = 0; i < count; i++)
         {
             var child = VisualTreeHelper.GetChild(parent, i);
-            if (child is T match) return match;
-            var result = FindDescendant<T>(child);
-            if (result != null) return result;
+            if (FindDescendant<T>(child) is { } result) return result;
         }
         return null;
     }
@@ -360,26 +376,14 @@ public sealed partial class EventEditPage : Page
 
             case nameof(EventEditViewModel.StartTime):
                 if (!_suppressStartTimeChanged)
-                {
-                    _suppressStartTimeChanged = true;
-                    _suppressStartTimePickerChanged = true;
-                    StartTimePicker.Text = _vm.StartTime.ToString(@"hh\:mm");
-                    SyncTimePickerToValue(StartTimePicker, _vm.StartTime, ref _suppressStartTimePickerChanged);
-                    _suppressStartTimeChanged = false;
-                    _suppressStartTimePickerChanged = false;
-                }
+                    ApplyTimeToPicker(StartTimePicker, _startTimeItems, _vm.StartTime,
+                        ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
                 break;
 
             case nameof(EventEditViewModel.EndTime):
                 if (!_suppressEndTimeChanged)
-                {
-                    _suppressEndTimeChanged = true;
-                    _suppressEndTimePickerChanged = true;
-                    EndTimePicker.Text = _vm.EndTime.ToString(@"hh\:mm");
-                    SyncTimePickerToValue(EndTimePicker, _vm.EndTime, ref _suppressEndTimePickerChanged);
-                    _suppressEndTimeChanged = false;
-                    _suppressEndTimePickerChanged = false;
-                }
+                    ApplyTimeToPicker(EndTimePicker, _endTimeItems, _vm.EndTime,
+                        ref _suppressEndTimeChanged, ref _suppressEndTimePickerChanged);
                 break;
         }
     }
@@ -450,44 +454,33 @@ public sealed partial class EventEditPage : Page
     }
 
     private void OnStartTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
-    {
-        if (_suppressStartTimeChanged || _vm == null) return;
-        var formatted = FormatTimeInput(args.Text);
-        if (formatted != null)
-        {
-            args.Handled = true;
-            _suppressStartTimePickerChanged = true;
-            sender.Text = formatted;
-            _suppressStartTimePickerChanged = false;
-            var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
-            _vm.StartTime = ts;
-            SyncTimePickerToValue(StartTimePicker, ts, ref _suppressStartTimePickerChanged);
-        }
-        else
-        {
-            args.Handled = true;
-            sender.Text = _vm.StartTime.ToString(@"hh\:mm");
-        }
-    }
+        => HandleTimeTextSubmitted(sender, args, _startTimeItems,
+            t => { if (_vm != null) _vm.StartTime = t; }, () => _vm?.StartTime,
+            ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
 
     private void OnEndTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
+        => HandleTimeTextSubmitted(sender, args, _endTimeItems,
+            t => { if (_vm != null) _vm.EndTime = t; }, () => _vm?.EndTime,
+            ref _suppressEndTimeChanged, ref _suppressEndTimePickerChanged);
+
+    private void HandleTimeTextSubmitted(ComboBox picker, ComboBoxTextSubmittedEventArgs args,
+        System.Collections.ObjectModel.ObservableCollection<string> items,
+        Action<TimeSpan> setTime, Func<TimeSpan?> getTime,
+        ref bool suppressTime, ref bool suppressPicker)
     {
-        if (_suppressEndTimeChanged || _vm == null) return;
-        var formatted = FormatTimeInput(args.Text);
-        if (formatted != null)
+        if (_vm == null || suppressTime) return;
+        // Always mark the submission Handled so the ComboBox doesn't try to re-select / blank
+        // the editable text after we apply the value.
+        args.Handled = true;
+        if (FormatTimeInput(args.Text) is { } formatted &&
+            TimeSpan.TryParseExact(formatted, @"hh\:mm", null, out var ts))
         {
-            args.Handled = true;
-            _suppressEndTimePickerChanged = true;
-            sender.Text = formatted;
-            _suppressEndTimePickerChanged = false;
-            var ts = TimeSpan.ParseExact(formatted, @"hh\:mm", null);
-            _vm.EndTime = ts;
-            SyncTimePickerToValue(EndTimePicker, ts, ref _suppressEndTimePickerChanged);
+            setTime(ts);
+            ApplyTimeToPicker(picker, items, ts, ref suppressTime, ref suppressPicker);
         }
-        else
+        else if (getTime() is { } cur)
         {
-            args.Handled = true;
-            sender.Text = _vm.EndTime.ToString(@"hh\:mm");
+            ApplyTimeToPicker(picker, items, cur, ref suppressTime, ref suppressPicker);
         }
     }
 
@@ -528,16 +521,54 @@ public sealed partial class EventEditPage : Page
         return null;
     }
 
-    private static void SyncTimePickerToValue(ComboBox picker, TimeSpan value, ref bool suppress)
+    // Make the picker display `value`. Keeping SelectedIndex valid at all times is essential —
+    // an editable ComboBox blanks its editable text whenever SelectedItem is null, which made
+    // off-grid (1-minute) values disappear on Enter, focus loss, or re-open. For off-grid
+    // values, splice the time string into the sorted item list as a temporary entry and select
+    // it; remove any previously-inserted off-grid entry so only one extra item lingers.
+    private static void ApplyTimeToPicker(ComboBox picker,
+        System.Collections.ObjectModel.ObservableCollection<string> items, TimeSpan value,
+        ref bool suppressTime, ref bool suppressPicker)
     {
-        // Snap to nearest 15-minute slot
-        var totalMinutes = (int)value.TotalMinutes;
-        var snapped = (int)Math.Round(totalMinutes / 15.0) * 15;
-        if (snapped >= 1440) snapped = 1425;
-        var index = snapped / 15;
-        picker.SelectedIndex = index;
-        suppress = false;
+        suppressTime = true;
+        suppressPicker = true;
+        try
+        {
+            var clamped = Math.Clamp((int)value.TotalMinutes, 0, 1439);
+            var label = $"{clamped / 60:D2}:{clamped % 60:D2}";
+
+            // Drop any prior off-grid placeholder so the list shape stays predictable.
+            for (var i = items.Count - 1; i >= 0; i--)
+            {
+                if (!IsOnGridSlot(items[i]))
+                    items.RemoveAt(i);
+            }
+
+            int index;
+            if (clamped % 15 == 0)
+            {
+                index = clamped / 15;
+            }
+            else
+            {
+                // Insert sorted so the user sees the off-grid time in the right position when
+                // they scroll the dropdown.
+                index = 0;
+                while (index < items.Count && string.CompareOrdinal(items[index], label) < 0) index++;
+                items.Insert(index, label);
+            }
+            picker.SelectedIndex = index;
+            picker.Text = label;
+        }
+        finally
+        {
+            suppressTime = false;
+            suppressPicker = false;
+        }
     }
+
+    private static bool IsOnGridSlot(string label)
+        => TimeSpan.TryParseExact(label, @"hh\:mm", null, out var ts) && (int)ts.TotalMinutes % 15 == 0;
 
     private void OnRepeatTypeChanged(object sender, SelectionChangedEventArgs e)
     {
