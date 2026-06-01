@@ -304,6 +304,27 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set { _startTime = value; OnPropertyChanged(); }
     }
 
+    /// <summary>
+    /// Apply a user-initiated start-time edit while preserving the current
+    /// duration: the end time shifts by the same amount, clamped to the day.
+    /// Use this for UI edits so the displayed end time tracks the start.
+    /// </summary>
+    public void SetStartTimePreservingDuration(TimeSpan newStart)
+    {
+        var duration = _endTime - _startTime;
+        if (duration <= TimeSpan.Zero)
+            duration = TimeSpan.FromMinutes(EventEditDefaults.MinEventDurationMinutes);
+
+        StartTime = newStart;
+
+        if (AllDay) return;
+
+        var newEnd = newStart + duration;
+        if (newEnd >= TimeSpan.FromDays(1))
+            newEnd = new TimeSpan(23, 59, 0);
+        EndTime = newEnd;
+    }
+
     public TimeSpan EndTime
     {
         get => _endTime;

@@ -277,7 +277,7 @@ public sealed partial class EventEditPage : Page
     // the target item in the viewport (clamped to the top for items near the start).
     private static async System.Threading.Tasks.Task CenterComboBoxSelectionAsync(ComboBox comboBox, int index)
     {
-        for (var attempt = 0; attempt < 12; attempt++)
+        for (var attempt = 0; attempt < 30; attempt++)
         {
             var sv = FindOpenDropDownScrollViewer(comboBox);
             if (sv is { ExtentHeight: > 0 } && comboBox.Items.Count > 0)
@@ -434,7 +434,7 @@ public sealed partial class EventEditPage : Page
         if (_suppressStartTimePickerChanged || _vm == null) return;
         if (StartTimePicker.SelectedItem is string s && TimeSpan.TryParseExact(s, @"hh\:mm", null, out var ts))
         {
-            _vm.StartTime = ts;
+            _vm.SetStartTimePreservingDuration(ts);
             _suppressStartTimeChanged = true;
             StartTimePicker.Text = s;
             _suppressStartTimeChanged = false;
@@ -455,7 +455,7 @@ public sealed partial class EventEditPage : Page
 
     private void OnStartTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
         => HandleTimeTextSubmitted(sender, args, _startTimeItems,
-            t => { if (_vm != null) _vm.StartTime = t; }, () => _vm?.StartTime,
+            t => { if (_vm != null) _vm.SetStartTimePreservingDuration(t); }, () => _vm?.StartTime,
             ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
 
     private void OnEndTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
