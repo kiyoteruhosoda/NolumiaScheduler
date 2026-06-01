@@ -16,7 +16,11 @@
     <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
     <WinUISDKReferences>false</WinUISDKReferences>
-    <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- This project ships as an unpackaged (WindowsPackageType=None) app, so
+         MSIX tooling is disabled. Leaving it on makes Visual Studio treat the
+         project as deployable and try to deploy a non-existent appxrecipe on
+         F5, failing with DEP1700. -->
+    <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
