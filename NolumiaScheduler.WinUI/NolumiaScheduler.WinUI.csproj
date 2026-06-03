@@ -8,8 +8,19 @@
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
     <PublishProfile>win-$(Platform).pubxml</PublishProfile>
     <UseWinUI>true</UseWinUI>
+    <WindowsPackageType>None</WindowsPackageType>
+    <!-- Self-contained switches are gated on a non-empty RuntimeIdentifier so
+         a plain `dotnet build` from the solution (which passes no RID) does
+         not fail with NETSDK1031. They activate during publish, which always
+         supplies a RID via the publish profile or -r argument. -->
+    <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
+    <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
     <WinUISDKReferences>false</WinUISDKReferences>
-    <EnableMsixTooling>true</EnableMsixTooling>
+    <!-- This project ships as an unpackaged (WindowsPackageType=None) app, so
+         MSIX tooling is disabled. Leaving it on makes Visual Studio treat the
+         project as deployable and try to deploy a non-existent appxrecipe on
+         F5, failing with DEP1700. -->
+    <EnableMsixTooling>false</EnableMsixTooling>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
@@ -53,15 +64,19 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
-    <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <!--
-      IL trimming is disabled. The Windows App SDK / WinUI XAML parser resolves
-      types and members via reflection at runtime, which the trimmer strips out.
-      With PublishTrimmed=True the Release build throws XamlParseException from
-      MainWindow.InitializeComponent() and the app fails to launch.
-    -->
-    <PublishTrimmed>False</PublishTrimmed>
+    <!-- ReadyToRun is disabled: with a self-contained WinUI publish, crossgen2
+         pre-compiles the WindowsAppSDK auto-initializer against reference
+         assemblies whose patch version can differ from the bundled runtime,
+         producing a bogus MissingMethodException (e.g. for
+         Environment.SetEnvironmentVariable) inside UndockedRegFreeWinRT at
+         startup. R2R is only a startup optimization, so keep it off. -->
+    <PublishReadyToRun>false</PublishReadyToRun>
+    <!-- IL trimming is disabled. WinUI 3 / WinRT types are resolved via COM
+         activation and the WinUI XAML parser resolves types and members via
+         reflection at runtime; the trimmer strips both, which leads to
+         REGDB_E_CLASSNOTREG at startup and XamlParseException from
+         MainWindow.InitializeComponent() in Release. -->
+    <PublishTrimmed>false</PublishTrimmed>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
 </Project>

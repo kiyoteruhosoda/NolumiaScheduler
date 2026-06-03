@@ -7,7 +7,6 @@
   </Project>
   <Project Path="NolumiaScheduler.WinUI/NolumiaScheduler.WinUI.csproj" Id="76f63ad5-cbe8-4549-a9de-177c12e8c174">
     <Platform Project="x64" />
-    <Deploy />
   </Project>
   <Project Path="NolumiaSchedulerTest/NolumiaSchedulerTest.csproj" Id="6ab5b4b8-2580-4e1c-b668-ae1eada89f40">
     <Platform Project="x64" />

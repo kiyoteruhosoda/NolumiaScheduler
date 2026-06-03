@@ -62,6 +62,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     private string _validationError = "";
     private string? _editingEventId;
+    private bool _wasRecurringAtLoad;
     private string _timeZoneId = EventEditDefaults.DefaultTimeZone;
 
     // ── Alarm ────────────────────────────────────────────────
@@ -90,7 +91,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public string? EditingEventId => _editingEventId;
     public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
-    public bool RequiresRecurringEditScopeSelection => IsEditing && IsRecurring && IsOccurrenceEditing;
+    // Scope selection (this / following / entire) only makes sense when the
+    // event was already recurring at load time. Adding recurrence to a single
+    // event is a kind conversion handled separately in Save().
+    public bool RequiresRecurringEditScopeSelection =>
+        IsEditing && _wasRecurringAtLoad && IsRecurring && IsOccurrenceEditing;
 
     public void InitializeNewEvent(DateOnly date, int startMinute, int? endMinute = null)
     {
@@ -127,6 +132,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
         AllDay = ev.AllDay;
+
+        _wasRecurringAtLoad = ev.IsRecurring();
 
         if (ev.IsSingle() && ev.SingleSchedule != null)
         {
@@ -304,6 +311,27 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set { _startTime = value; OnPropertyChanged(); }
     }
 
+    /// <summary>
+    /// Apply a user-initiated start-time edit while preserving the current
+    /// duration: the end time shifts by the same amount, clamped to the day.
+    /// Use this for UI edits so the displayed end time tracks the start.
+    /// </summary>
+    public void SetStartTimePreservingDuration(TimeSpan newStart)
+    {
+        var duration = _endTime - _startTime;
+        if (duration <= TimeSpan.Zero)
+            duration = TimeSpan.FromMinutes(EventEditDefaults.MinEventDurationMinutes);
+
+        StartTime = newStart;
+
+        if (AllDay) return;
+
+        var newEnd = newStart + duration;
+        if (newEnd >= TimeSpan.FromDays(1))
+            newEnd = new TimeSpan(23, 59, 0);
+        EndTime = newEnd;
+    }
+
     public TimeSpan EndTime
     {
         get => _endTime;
@@ -324,6 +352,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IsMonthly));
             OnPropertyChanged(nameof(IsYearly));
             OnPropertyChanged(nameof(IntervalUnitLabel));
+            OnPropertyChanged(nameof(RequiresRecurringEditScopeSelection));
         }
     }
 
@@ -532,6 +561,27 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         {
             if (_editingEventId != null)
             {
+                // Changing the event kind (single <-> recurring) cannot be done
+                // through UpdateEvent / OverrideOccurrence / ChangeFollowing,
+                // which all assume the original kind. Replace by delete + create
+                // so the saved event has the correct schedule shape.
+                if (_wasRecurringAtLoad != IsRecurring)
+                {
+                    if (IsRecurring)
+                    {
+                        var selectedDays = CollectWeekdays();
+                        if (IsWeekly && selectedDays.Count == 0)
+                        {
+                            ValidationError = AppResources.ErrorWeekdayRequired;
+                            return;
+                        }
+                    }
+                    _eventService.DeleteEvent(_editingEventId);
+                    if (IsRecurring) SaveRecurring(); else SaveSingle();
+                    CompleteSaveIfValid();
+                    return;
+                }
+
                 if (RequiresRecurringEditScopeSelection)
                 {
                     if (scope == null)
