@@ -55,8 +55,13 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <!--
+      IL trimming is disabled. The Windows App SDK / WinUI XAML parser resolves
+      types and members via reflection at runtime, which the trimmer strips out.
+      With PublishTrimmed=True the Release build throws XamlParseException from
+      MainWindow.InitializeComponent() and the app fails to launch.
+    -->
+    <PublishTrimmed>False</PublishTrimmed>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
 </Project>
