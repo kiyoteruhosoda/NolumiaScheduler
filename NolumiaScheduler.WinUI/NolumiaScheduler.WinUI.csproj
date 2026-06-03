@@ -71,9 +71,11 @@
          Environment.SetEnvironmentVariable) inside UndockedRegFreeWinRT at
          startup. R2R is only a startup optimization, so keep it off. -->
     <PublishReadyToRun>false</PublishReadyToRun>
-    <!-- WinUI 3 / WinRT types are resolved via COM activation and get incorrectly
-         removed by the IL trimmer, which causes REGDB_E_CLASSNOTREG at startup.
-         Keep trimming disabled for WinUI publish. -->
+    <!-- IL trimming is disabled. WinUI 3 / WinRT types are resolved via COM
+         activation and the WinUI XAML parser resolves types and members via
+         reflection at runtime; the trimmer strips both, which leads to
+         REGDB_E_CLASSNOTREG at startup and XamlParseException from
+         MainWindow.InitializeComponent() in Release. -->
     <PublishTrimmed>false</PublishTrimmed>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
