@@ -6,10 +6,6 @@
     xmlns:local="using:NolumiaScheduler.WinUI"
     Title="NolumiaScheduler">
 
-    <Window.SystemBackdrop>
-        <MicaBackdrop/>
-    </Window.SystemBackdrop>
-
     <NavigationView x:Name="NavView"
                     PaneDisplayMode="Left"
                     IsBackButtonVisible="Visible"
