@@ -206,6 +206,22 @@ public class CalendarEvent
         Touch(updatedAt);
     }
 
+    public void ChangeRecurrenceSchedule(
+        RecurringEventSchedule newSchedule,
+        DateTimeOffset updatedAt)
+    {
+        EnsureRecurringEvent();
+
+        if (newSchedule == null)
+            throw new DomainException("Recurring schedule is required.");
+
+        if (newSchedule.AllDay != AllDay)
+            throw new DomainException("All-day status cannot be changed for an existing series.");
+
+        RecurringSchedule = newSchedule;
+        Touch(updatedAt);
+    }
+
     public void SkipOccurrence(
         OccurrenceLocalKey occurrenceKey,
         DateTimeOffset updatedAt)

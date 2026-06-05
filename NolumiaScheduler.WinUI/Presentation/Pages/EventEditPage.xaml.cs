@@ -43,6 +43,7 @@ public sealed partial class EventEditPage : Page
     private bool _suppressYearlyWeekdayChanged;
     private bool _suppressAdjustmentChanged;
     private bool _suppressCalendarPickerChanged;
+    private bool _suppressWeekdayChanged;
 
 
     // 15-minute interval time items ("00:00" to "23:45"). Each picker has its own observable
@@ -183,7 +184,11 @@ public sealed partial class EventEditPage : Page
         YearlyRulePicker.SelectedIndex = _vm.YearlyRuleIndex;
         _suppressYearlyRuleChanged = false;
 
-        // Weekday checkboxes for weekly recurrence
+        // Weekday checkboxes for weekly recurrence.
+        // Suppress the change handler while populating: it reads every checkbox back into the
+        // VM, so an unsuppressed mid-population assignment would clobber weekday flags that have
+        // not been applied to their checkbox yet (leaving only the first selected day checked).
+        _suppressWeekdayChanged = true;
         WChkSun.IsChecked = _vm.WeekSun;
         WChkMon.IsChecked = _vm.WeekMon;
         WChkTue.IsChecked = _vm.WeekTue;
@@ -191,6 +196,7 @@ public sealed partial class EventEditPage : Page
         WChkThu.IsChecked = _vm.WeekThu;
         WChkFri.IsChecked = _vm.WeekFri;
         WChkSat.IsChecked = _vm.WeekSat;
+        _suppressWeekdayChanged = false;
 
         // Monthly
         _suppressDomChanged = true;
@@ -578,7 +584,7 @@ public sealed partial class EventEditPage : Page
 
     private void OnWeekdayChecked(object sender, RoutedEventArgs e)
     {
-        if (_vm == null) return;
+        if (_suppressWeekdayChanged || _vm == null) return;
         _vm.WeekSun = WChkSun.IsChecked == true;
         _vm.WeekMon = WChkMon.IsChecked == true;
         _vm.WeekTue = WChkTue.IsChecked == true;

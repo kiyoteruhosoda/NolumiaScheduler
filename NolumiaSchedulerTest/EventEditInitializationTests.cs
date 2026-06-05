@@ -159,6 +159,33 @@ public class EventEditInitializationTests
         Assert.IsFalse(vm.HasValidationError);
     }
 
+    [TestMethod]
+    public void 系列全体を選ぶと繰り返しの曜日が更新される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-series"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-series", key);
+
+        // The loaded series recurs on Wednesday only; redefine it to Monday + Friday.
+        vm.WeekWed = false;
+        vm.WeekMon = true;
+        vm.WeekFri = true;
+
+        vm.Save(RecurringEditScope.EntireSeries);
+        Assert.IsFalse(vm.HasValidationError);
+
+        // No split occurs: the series keeps its identity.
+        Assert.HasCount(1, repo.FindAll());
+
+        var saved = repo.FindById(new EventId("rec-series"))!;
+        CollectionAssert.AreEquivalent(
+            new[] { Weekday.Monday, Weekday.Friday },
+            saved.RecurringSchedule!.RecurrenceRule.Weekly!.Weekdays.ToList());
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1), saved.RecurringSchedule.StartDate);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();

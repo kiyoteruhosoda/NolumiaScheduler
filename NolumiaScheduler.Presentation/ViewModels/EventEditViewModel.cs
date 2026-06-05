@@ -605,6 +605,19 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                         CompleteSaveIfValid();
                         return;
                     }
+
+                    // RecurringEditScope.EntireSeries falls through to the series update below.
+                }
+
+                // Editing a recurring event (entire series, or a recurring event opened without
+                // an occurrence context) must redefine the recurrence rule and times, not just
+                // the details. UpdateExisting only handles single events.
+                if (_wasRecurringAtLoad && IsRecurring)
+                {
+                    SaveEntireSeries(_editingEventId);
+                    if (!string.IsNullOrEmpty(ValidationError)) return;
+                    CompleteSaveIfValid();
+                    return;
                 }
 
                 UpdateExisting(_editingEventId);
@@ -653,6 +666,33 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newStart,
             newEnd,
             newRule,
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+    }
+
+    private void SaveEntireSeries(string eventId)
+    {
+        if (IsWeekly)
+        {
+            var selectedDays = CollectWeekdays();
+            if (selectedDays.Count == 0)
+            {
+                ValidationError = AppResources.ErrorWeekdayRequired;
+                return;
+            }
+        }
+
+        var rule = BuildRecurrenceRule();
+        var startTime = new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        var endTime   = new LocalTimeValue(EndTime.Hours,   EndTime.Minutes,   0);
+
+        _eventService.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
+            eventId,
+            Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            startTime,
+            endTime,
+            rule,
             Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
     }
 
