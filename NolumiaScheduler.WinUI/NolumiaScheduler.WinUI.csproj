@@ -1,6 +1,10 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
+    <!-- Icon embedded into NolumiaScheduler.WinUI.exe itself, shown by Explorer and
+         the EXE file. This is separate from the runtime AppWindow.SetIcon call that
+         controls the window/taskbar icon. -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
     <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <ApplicationManifest>app.manifest</ApplicationManifest>
