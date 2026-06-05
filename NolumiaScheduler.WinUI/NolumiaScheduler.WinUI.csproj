@@ -27,6 +27,12 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <!-- Window/taskbar icon loaded at runtime via AppWindow.SetIcon(Assets\app.ico).
+         Without an explicit Content entry it is not copied to the publish output, so
+         the published app falls back to the default icon (VS run works because the
+         build output happens to contain it). CopyToOutputDirectory ensures it lands in
+         both the build output and the publish folder. -->
+    <Content Include="Assets\app.ico" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Assets\SplashScreen.scale-200.png" />
     <Content Include="Assets\LockScreenLogo.scale-200.png" />
     <Content Include="Assets\Square150x150Logo.scale-200.png" />
