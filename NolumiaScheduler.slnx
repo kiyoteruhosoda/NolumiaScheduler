@@ -6,6 +6,9 @@
   <Project Path="NolumiaScheduler.Application/NolumiaScheduler.Application.csproj" Id="a1b2c3d4-e5f6-7890-abcd-ef1234567890">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
+  <Project Path="NolumiaScheduler.CoreTests/NolumiaScheduler.CoreTests.csproj">
+    <Build Solution="Debug|*" Project="false" />
+  </Project>
   <Project Path="NolumiaScheduler.Domain/NolumiaScheduler.Domain.csproj" Id="5c9f6847-9808-4653-8666-912980f2e922">
     <Platform Solution="*|x64" Project="x64" />
   </Project>
@@ -21,5 +24,4 @@
   <Project Path="NolumiaSchedulerTest/NolumiaSchedulerTest.csproj" Id="6ab5b4b8-2580-4e1c-b668-ae1eada89f40">
     <Platform Project="x64" />
   </Project>
-  <Project Path="NolumiaScheduler.CoreTests/NolumiaScheduler.CoreTests.csproj" />
 </Solution>
