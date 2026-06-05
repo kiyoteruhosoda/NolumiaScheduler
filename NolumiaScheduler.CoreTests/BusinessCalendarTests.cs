@@ -1,7 +1,7 @@
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.ValueObjects;
 
-namespace NolumiaSchedulerTest;
+namespace NolumiaScheduler.CoreTests;
 
 [TestClass]
 public class BusinessCalendarTests

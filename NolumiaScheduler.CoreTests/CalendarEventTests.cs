@@ -6,7 +6,7 @@ using NolumiaScheduler.Domain.ValueObjects;
 using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
 using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
-namespace NolumiaSchedulerTest;
+namespace NolumiaScheduler.CoreTests;
 
 [TestClass]
 public class CalendarEventTests
