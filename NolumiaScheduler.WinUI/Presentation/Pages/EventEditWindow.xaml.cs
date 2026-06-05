@@ -16,6 +16,14 @@ public sealed partial class EventEditWindow : Window
     {
         InitializeComponent();
 
+        // Apply the Mica backdrop from code-behind rather than XAML. Setting
+        // Window.SystemBackdrop via XAML mirrors MainWindow and keeps the backdrop
+        // initialization consistent and guarded for systems without Mica support.
+        if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+        {
+            SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+        }
+
         Title = p.EventId != null ? AppResources.EditEventTitle : AppResources.NewEventTitle;
 
         const int w = 500, h = 760;

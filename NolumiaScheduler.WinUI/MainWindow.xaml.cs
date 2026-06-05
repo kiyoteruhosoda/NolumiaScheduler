@@ -33,6 +33,16 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     {
         InitializeComponent();
 
+        // Apply the Mica backdrop from code-behind. Setting Window.SystemBackdrop
+        // via XAML throws a generic XamlParseException at InitializeComponent in
+        // self-contained / unpackaged Release builds, so configure it here where
+        // the type is activated through the normal CLR path. Guarded so machines
+        // without Mica support simply keep the default window background.
+        if (Microsoft.UI.Composition.SystemBackdrops.MicaController.IsSupported())
+        {
+            SystemBackdrop = new Microsoft.UI.Xaml.Media.MicaBackdrop();
+        }
+
         // Localized nav item labels
         MonthNavItem.Content = AppResources.MonthViewLabel;
         WeekNavItem.Content  = AppResources.WeekViewLabel;
