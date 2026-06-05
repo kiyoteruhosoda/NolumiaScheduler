@@ -77,6 +77,15 @@
          REGDB_E_CLASSNOTREG at startup and XamlParseException from
          MainWindow.InitializeComponent() in Release. -->
     <PublishTrimmed>false</PublishTrimmed>
+    <!-- Force the app's compiled-resource index to be named resources.pri. By
+         default the SDK emits a module-specific index ($(TargetName).pri, i.e.
+         NolumiaScheduler.WinUI.pri). For an unpackaged + self-contained app the
+         WinUI runtime only auto-loads resources.pri, so the module-named index is
+         never read and the XAML loader cannot find the compiled XBF — surfacing as
+         a generic XamlParseException at MainWindow.InitializeComponent() only after
+         publish (F5/build works because VS deploys differently). See
+         microsoft/microsoft-ui-xaml#10856. Safe here as this is a single app. -->
+    <ProjectPriFileName>resources.pri</ProjectPriFileName>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
 
