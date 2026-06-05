@@ -99,4 +99,17 @@
           Condition="'$(Platform)' == 'AnyCPU' or '$(Platform)' == 'Any CPU'">
     <Error Text="WinUI 3 cannot be published with Platform 'Any CPU'. Edit the publish profile (.pubxml) and set &lt;Platform&gt; to x64, x86, or ARM64 to match the RuntimeIdentifier." />
   </Target>
+
+  <!-- The publish pipeline computes its file list without the WinUI app index
+       (resources.pri), so it is generated into the build output but never copied to
+       the publish folder. A published unpackaged app then has every framework PRI but
+       not its own compiled-XAML index, and crashes at MainWindow.InitializeComponent()
+       with XamlParseException (build/F5 works because resources.pri is present there).
+       Copy the generated index into the publish output explicitly. -->
+  <Target Name="CopyResourcesPriToPublishDir" AfterTargets="Publish"
+          Condition="Exists('$(OutDir)resources.pri')">
+    <Copy SourceFiles="$(OutDir)resources.pri"
+          DestinationFolder="$(PublishDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
