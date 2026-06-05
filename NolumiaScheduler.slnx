@@ -7,7 +7,7 @@
     <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="NolumiaScheduler.CoreTests/NolumiaScheduler.CoreTests.csproj">
-    <Build Solution="Debug|*" Project="false" />
+    <Platform Solution="*|x64" Project="x64" />
   </Project>
   <Project Path="NolumiaScheduler.Domain/NolumiaScheduler.Domain.csproj" Id="5c9f6847-9808-4653-8666-912980f2e922">
     <Platform Solution="*|x64" Project="x64" />
