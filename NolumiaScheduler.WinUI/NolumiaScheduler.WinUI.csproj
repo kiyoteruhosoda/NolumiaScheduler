@@ -79,4 +79,15 @@
     <PublishTrimmed>false</PublishTrimmed>
     <RootNamespace>$(MSBuildProjectName.Replace(" ", "_"))</RootNamespace>
   </PropertyGroup>
+
+  <!-- WinUI 3 / Windows App SDK apps are architecture-specific and do NOT support
+       "Any CPU". A Visual Studio publish profile left at Platform=Any CPU produces a
+       mismatched self-contained layout whose WinUI resources fail to activate at
+       runtime, surfacing as a generic XamlParseException ("XAML parsing failed") at
+       MainWindow.InitializeComponent(). Fail fast at publish time with a clear message
+       instead of shipping a build that only crashes on launch. -->
+  <Target Name="GuardAgainstAnyCpuPublish" BeforeTargets="Publish"
+          Condition="'$(Platform)' == 'AnyCPU' or '$(Platform)' == 'Any CPU'">
+    <Error Text="WinUI 3 cannot be published with Platform 'Any CPU'. Edit the publish profile (.pubxml) and set &lt;Platform&gt; to x64, x86, or ARM64 to match the RuntimeIdentifier." />
+  </Target>
 </Project>
