@@ -63,6 +63,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private string _validationError = "";
     private string? _editingEventId;
     private bool _wasRecurringAtLoad;
+    // Start date of the loaded recurring series. The editable StartDate tracks the occurrence
+    // being edited, so the end-date validation for an entire-series edit must compare against
+    // the original series start, not the occurrence date.
+    private DateTime _seriesStartDate = DateTime.Today;
     private string _timeZoneId = EventEditDefaults.DefaultTimeZone;
 
     // ── Alarm ────────────────────────────────────────────────
@@ -151,6 +155,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             var effectiveDate = occurrenceKey?.Date ?? sched.StartDate;
             var effectiveStart = occurrenceKey?.Time ?? sched.StartTime;
 
+            _seriesStartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
             StartDate = new DateTime(effectiveDate.Year, effectiveDate.Month, effectiveDate.Day);
             StartTime = effectiveStart != null ? new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0) : new TimeSpan(9, 0, 0);
 
@@ -170,8 +175,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     private void LoadRecurrenceRule(RecurrenceRule rule)
     {
-        EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
+        // Set HasEndDate before EndDate: the HasEndDate setter bumps a stale default forward,
+        // which would clobber an already-ended series' real end date if EndDate were set first.
         HasEndDate = rule.EndDate.Year < 9999;
+        EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
         Interval = rule.Interval;
 
         switch (rule.RuleType)
@@ -651,6 +658,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             return;
         }
 
+        // The new (following) series starts at the split occurrence date, so the end date must
+        // be on or after that date — not the original series start.
+        var followingStart = new DateTime(
+            EditingOccurrenceKey.Date.Year, EditingOccurrenceKey.Date.Month, EditingOccurrenceKey.Date.Day);
+        if (!EndDateIsValid(followingStart))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
+        }
+
         var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
 
@@ -679,6 +696,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 ValidationError = AppResources.ErrorWeekdayRequired;
                 return;
             }
+        }
+
+        if (!EndDateIsValid(_seriesStartDate))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
         }
 
         var rule = BuildRecurrenceRule();
@@ -772,6 +795,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             }
         }
 
+        if (!EndDateIsValid(StartDate))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
+        }
+
         var rule = BuildRecurrenceRule();
         var startDate = new LocalDateValue(StartDate.Year, StartDate.Month, StartDate.Day);
         LocalTimeValue? startTime = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
@@ -853,6 +882,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             direction == AdjustmentDirection.Forward ? 1 : -1,
             calId);
     }
+
+    // Reject a recurrence end date that falls before the series start. Without this the domain
+    // throws a raw (unlocalized) exception, or the series silently expands to zero occurrences.
+    private bool EndDateIsValid(DateTime seriesStart)
+        => !_hasEndDate || _endDate.Date >= seriesStart.Date;
 
     private List<Weekday> CollectWeekdays()
     {

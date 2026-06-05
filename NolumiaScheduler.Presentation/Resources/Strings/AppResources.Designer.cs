@@ -99,6 +99,7 @@ public static class AppResources
     public static string BusinessCalendarLabel    => Get(nameof(BusinessCalendarLabel));
     public static string ErrorTitleRequired       => Get(nameof(ErrorTitleRequired));
     public static string ErrorWeekdayRequired     => Get(nameof(ErrorWeekdayRequired));
+    public static string ErrorEndDateBeforeStart  => Get(nameof(ErrorEndDateBeforeStart));
 
     // Event actions
     public static string EditButton              => Get(nameof(EditButton));

@@ -196,9 +196,19 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         if (!ev.IsRecurring() || ev.RecurringSchedule == null)
             throw new DomainException("ChangeFollowingOccurrences is only valid for recurring events.");
 
+        // Splitting from the very first occurrence leaves the original series with no
+        // occurrences, and an end date before its start date is invalid. In that case the edit
+        // applies to the whole series, so drop the original rather than truncating it.
         var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
-        ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
-        _repository.Save(ev);
+        if (newEndDate.CompareTo(ev.RecurringSchedule.StartDate) < 0)
+        {
+            _repository.Delete(ev.Id);
+        }
+        else
+        {
+            ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
+            _repository.Save(ev);
+        }
 
         var newId = new EventId(Guid.NewGuid().ToString());
         var newSchedule = new RecurringEventSchedule(
