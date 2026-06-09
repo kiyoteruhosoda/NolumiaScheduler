@@ -271,6 +271,55 @@ public sealed partial class EventEditPage : Page
         ApplySectionVisibility();
     }
 
+    // Push the VM's recurrence selector values into the weekday checkboxes and the monthly/yearly
+    // inputs. Used when the recurrence type changes so start-date-based defaults appear in the UI.
+    private void SyncRecurrenceInputsFromVm()
+    {
+        if (_vm == null) return;
+
+        _suppressWeekdayChanged = true;
+        WChkSun.IsChecked = _vm.WeekSun;
+        WChkMon.IsChecked = _vm.WeekMon;
+        WChkTue.IsChecked = _vm.WeekTue;
+        WChkWed.IsChecked = _vm.WeekWed;
+        WChkThu.IsChecked = _vm.WeekThu;
+        WChkFri.IsChecked = _vm.WeekFri;
+        WChkSat.IsChecked = _vm.WeekSat;
+        _suppressWeekdayChanged = false;
+
+        _suppressDomChanged = true;
+        DomBox.Text = _vm.DayOfMonth.ToString();
+        _suppressDomChanged = false;
+
+        _suppressWeekIndexChanged = true;
+        WeekIndexPicker.SelectedIndex = _vm.WeekIndexPickerIndex;
+        _suppressWeekIndexChanged = false;
+
+        _suppressMonthlyWeekdayChanged = true;
+        MonthlyWeekdayPicker.SelectedIndex = _vm.MonthlyWeekdayIndex;
+        _suppressMonthlyWeekdayChanged = false;
+
+        _suppressYearlyMonthChanged = true;
+        YearlyMonthBox.Text = _vm.YearlyMonth.ToString();
+        _suppressYearlyMonthChanged = false;
+
+        _suppressYearlyDayChanged = true;
+        YearlyDayBox.Text = _vm.YearlyDay.ToString();
+        _suppressYearlyDayChanged = false;
+
+        _suppressYearlyMonth2Changed = true;
+        YearlyMonthBox2.Text = _vm.YearlyMonth.ToString();
+        _suppressYearlyMonth2Changed = false;
+
+        _suppressYearlyWeekIndexChanged = true;
+        YearlyWeekIndexPicker.SelectedIndex = _vm.YearlyWeekIndexPickerIndex;
+        _suppressYearlyWeekIndexChanged = false;
+
+        _suppressYearlyWeekdayChanged = true;
+        YearlyWeekdayPicker.SelectedIndex = _vm.YearlyWeekdayIndex;
+        _suppressYearlyWeekdayChanged = false;
+    }
+
     private void OnTimePickerDropDownOpened(object sender, object e)
     {
         if (sender is ComboBox picker && picker.SelectedIndex >= 0 && picker.Items.Count > 0)
@@ -359,6 +408,9 @@ public sealed partial class EventEditPage : Page
                     RepeatTypePicker.SelectedIndex = _vm.RepeatTypeIndex;
                     _suppressRepeatTypeChanged = false;
                 }
+                // Picking a recurrence type seeds the selectors from the start date in the VM;
+                // push those values into the weekday/day/month controls so the UI reflects them.
+                SyncRecurrenceInputsFromVm();
                 break;
 
             case nameof(EventEditViewModel.HasEndDate):

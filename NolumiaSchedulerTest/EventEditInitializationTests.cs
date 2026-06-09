@@ -244,6 +244,55 @@ public class EventEditInitializationTests
         Assert.AreEqual(new DateTime(2020, 3, 30), vm.EndDate.Date);
     }
 
+    [TestMethod]
+    public void 新規週次は開始日の曜日が初期選択される()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 3), 540); // Wednesday
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Weekly;
+
+        Assert.IsTrue(vm.WeekWed, "Wednesday should be the default");
+        Assert.IsFalse(vm.WeekMon);
+        Assert.IsFalse(vm.WeekSun);
+        Assert.IsFalse(vm.WeekTue);
+        Assert.IsFalse(vm.WeekThu);
+    }
+
+    [TestMethod]
+    public void 新規月次は開始日の日が初期値になる()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 18), 540);
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Monthly;
+
+        Assert.AreEqual(18, vm.DayOfMonth);
+    }
+
+    [TestMethod]
+    public void 新規年次は開始日の月日が初期値になる()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 15), 540);
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Yearly;
+
+        Assert.AreEqual(6, vm.YearlyMonth);
+        Assert.AreEqual(15, vm.YearlyDay);
+    }
+
+    [TestMethod]
+    public void 既存週次の読み込みは開始日デフォルトで上書きされない()
+    {
+        // Series starts 2026-05-01 (a Friday) but recurs Tue + Thu. Loading must keep Tue/Thu
+        // and must not force-select the start weekday (Friday).
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateWeeklyEvent("rec-load-def", Weekday.Tuesday, Weekday.Thursday));
+        vm.LoadEvent("rec-load-def", new OccurrenceLocalKey(new LocalDateValue(2026, 5, 5), new LocalTimeValue(9, 30, 0)));
+
+        Assert.IsTrue(vm.WeekTue);
+        Assert.IsTrue(vm.WeekThu);
+        Assert.IsFalse(vm.WeekFri);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();

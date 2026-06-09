@@ -63,6 +63,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private string _validationError = "";
     private string? _editingEventId;
     private bool _wasRecurringAtLoad;
+    // Set while loading a saved event so changing RepeatTypeIndex does not overwrite the saved
+    // recurrence selectors with start-date defaults.
+    private bool _suppressRecurrenceDefaults;
     // Start date of the loaded recurring series. The editable StartDate tracks the occurrence
     // being edited, so the end-date validation for an entire-series edit must compare against
     // the original series start, not the occurrence date.
@@ -174,6 +177,21 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     }
 
     private void LoadRecurrenceRule(RecurrenceRule rule)
+    {
+        // Loading assigns the saved recurrence selectors explicitly, so suppress the start-date
+        // defaulting that RepeatTypeIndex would otherwise trigger.
+        _suppressRecurrenceDefaults = true;
+        try
+        {
+            LoadRecurrenceRuleCore(rule);
+        }
+        finally
+        {
+            _suppressRecurrenceDefaults = false;
+        }
+    }
+
+    private void LoadRecurrenceRuleCore(RecurrenceRule rule)
     {
         // Set HasEndDate before EndDate: the HasEndDate setter bumps a stale default forward,
         // which would clobber an already-ended series' real end date if EndDate were set first.
@@ -352,7 +370,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         get => _repeatTypeIndex;
         set
         {
+            var becameRecurring = value != _repeatTypeIndex
+                && value != (int)ViewModels.RepeatTypeIndex.None;
             _repeatTypeIndex = value;
+
+            // Seed the weekday / day-of-month / month defaults from the start date when the user
+            // picks a recurrence type (not while loading an existing event, which assigns the
+            // saved values right after). Apply before notifying so the view reads fresh values.
+            if (becameRecurring && !_suppressRecurrenceDefaults)
+                ApplyStartDateRecurrenceDefaults();
+
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsRecurring));
             OnPropertyChanged(nameof(IsWeekly));
@@ -361,6 +388,33 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IntervalUnitLabel));
             OnPropertyChanged(nameof(RequiresRecurringEditScopeSelection));
         }
+    }
+
+    // Default the recurrence selectors to the start date: weekly selects the start weekday,
+    // monthly uses the start day-of-month (and the matching nth-weekday), yearly uses the start
+    // month/day.
+    private void ApplyStartDateRecurrenceDefaults()
+    {
+        var start = _startDate;
+        var dow = start.DayOfWeek;
+        var weekIndex = Math.Clamp((start.Day - 1) / 7, 0, 4); // 0=1st … 4=5th occurrence
+
+        WeekSun = dow == DayOfWeek.Sunday;
+        WeekMon = dow == DayOfWeek.Monday;
+        WeekTue = dow == DayOfWeek.Tuesday;
+        WeekWed = dow == DayOfWeek.Wednesday;
+        WeekThu = dow == DayOfWeek.Thursday;
+        WeekFri = dow == DayOfWeek.Friday;
+        WeekSat = dow == DayOfWeek.Saturday;
+
+        DayOfMonth = start.Day;
+        MonthlyWeekdayIndex = (int)dow;     // 0=Sun … 6=Sat (matches WeekdayItems / Weekday enum)
+        WeekIndexPickerIndex = weekIndex;
+
+        YearlyMonth = start.Month;
+        YearlyDay = start.Day;
+        YearlyWeekdayIndex = (int)dow;
+        YearlyWeekIndexPickerIndex = weekIndex;
     }
 
     public int Interval
