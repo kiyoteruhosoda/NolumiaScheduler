@@ -28,7 +28,6 @@ public sealed partial class WeekCalendarView : UserControl
     private DateTime _lastInteractionFrameUtc = DateTime.MinValue;
     const int BASE_COLUMN_SIZE = 120;
     private double _weekDayColumnWidth = BASE_COLUMN_SIZE;
-    private bool _initialScrollDone;
     private enum ResizeEdge { None, Top, Bottom }
     private ResizeEdge _activeResizeEdge = ResizeEdge.None;
     private int _resizeOriginalStartMinute;
@@ -98,7 +97,8 @@ public sealed partial class WeekCalendarView : UserControl
 
     public static readonly DependencyProperty WeekStartDateProperty =
         DependencyProperty.Register(nameof(WeekStartDate), typeof(DateTime), typeof(WeekCalendarView),
-            new PropertyMetadata(DateTime.Today));
+            new PropertyMetadata(DateTime.Today, (d, e) =>
+                ((WeekCalendarView)d).OnWeekStartDateChanged((DateTime)e.OldValue, (DateTime)e.NewValue)));
 
     public IEnumerable? WeekTimeSlots { get => (IEnumerable?)GetValue(WeekTimeSlotsProperty); set => SetValue(WeekTimeSlotsProperty, value); }
     public IEnumerable? WeekDayColumns { get => (IEnumerable?)GetValue(WeekDayColumnsProperty); set => SetValue(WeekDayColumnsProperty, value); }
@@ -126,31 +126,62 @@ public sealed partial class WeekCalendarView : UserControl
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
     {
-        await ScrollToCurrentTimeAsync();
+        await ApplyScrollAsync(ComputeDefaultAnchor());
     }
 
-    public async Task ScrollToCurrentTimeAsync()
+    // Remembered vertical scroll offset per week (keyed by week start date) so each week keeps
+    // the time-of-day the user left it at while paging through < / >.
+    private readonly Dictionary<DateTime, double> _weekScrollOffsets = new();
+
+    // Monotonic token: a newer scroll request supersedes any in-flight one so overlapping async
+    // scrolls (e.g. a week change immediately followed by Today) never fight each other.
+    private int _scrollGeneration;
+
+    // Default anchor for a week with no remembered position: the current time on the current
+    // week, otherwise 9:00.
+    private double ComputeDefaultAnchor()
     {
-        if (_initialScrollDone) return;
         const double nineAmPx = 9 * 60;
         var anchor = CurrentTimeLineTop > 0 && IsCurrentWeek ? CurrentTimeLineTop - 240 : nineAmPx;
-        var y = Math.Max(0, anchor);
-
-        // Wait until the ScrollViewer has been laid out and has a valid extent
-        for (var attempt = 0; attempt < 10; attempt++)
-        {
-            await Task.Delay(50);
-            if (WeekScroll.ExtentHeight > 0) break;
-        }
-
-        WeekScroll.ChangeView(null, y, null, disableAnimation: true);
-        _initialScrollDone = true;
+        return Math.Max(0, anchor);
     }
 
+    private async Task ApplyScrollAsync(double target)
+    {
+        var generation = ++_scrollGeneration;
+
+        // Wait until the ScrollViewer has been laid out and has a valid extent.
+        for (var attempt = 0; attempt < 10; attempt++)
+        {
+            if (WeekScroll.ExtentHeight > 0) break;
+            await Task.Delay(50);
+            if (generation != _scrollGeneration) return; // superseded by a newer request
+        }
+
+        if (generation != _scrollGeneration) return;
+        WeekScroll.ChangeView(null, Math.Max(0, target), null, disableAnimation: true);
+    }
+
+    private void OnWeekStartDateChanged(DateTime oldWeek, DateTime newWeek)
+    {
+        if (oldWeek.Date == newWeek.Date) return;
+
+        // The offset still reflects the outgoing week (rebuild preserves it via the pinned
+        // MinHeight), so capture it before moving to the new week.
+        _weekScrollOffsets[oldWeek.Date] = WeekScroll.VerticalOffset;
+
+        var target = _weekScrollOffsets.TryGetValue(newWeek.Date, out var saved)
+            ? saved
+            : ComputeDefaultAnchor();
+        _ = ApplyScrollAsync(target);
+    }
+
+    // Explicit "re-initialize" action (Today button / switching into the week view): forget every
+    // remembered week position so each week re-anchors to its default, and re-anchor the view now.
     public void RequestScroll()
     {
-        _initialScrollDone = false;
-        _ = ScrollToCurrentTimeAsync();
+        _weekScrollOffsets.Clear();
+        _ = ApplyScrollAsync(ComputeDefaultAnchor());
     }
 
     private void UpdateBackgroundViews()

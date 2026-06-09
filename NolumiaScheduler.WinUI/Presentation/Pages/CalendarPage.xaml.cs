@@ -56,10 +56,12 @@ public sealed partial class CalendarPage : Page
         WeekView.WeekTimeSlots     = _vm.WeekTimeSlots;
         WeekView.WeekDayColumns    = _vm.WeekDayColumns;
         WeekView.WeekAllDayEventBlocks = _vm.WeekAllDayEventBlocks;
-        WeekView.WeekStartDate     = _vm.WeekStartDate;
         WeekView.WeekCanvasHeight  = CalendarViewModel.WeekCanvasHeight;
+        // Set IsCurrentWeek / CurrentTimeLineTop before WeekStartDate so the per-week scroll
+        // anchor (now vs 9:00) is resolved correctly when the week-change handler runs.
         WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
         WeekView.IsCurrentWeek     = _vm.IsCurrentWeek;
+        WeekView.WeekStartDate     = _vm.WeekStartDate;
         UpdateViewMode();
         UpdateSelectedDayPanel();
 
