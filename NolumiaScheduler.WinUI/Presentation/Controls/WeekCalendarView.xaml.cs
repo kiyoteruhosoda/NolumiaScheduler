@@ -78,16 +78,18 @@ public sealed partial class WeekCalendarView : UserControl
 
     public static readonly DependencyProperty WeekCanvasHeightProperty =
         DependencyProperty.Register(nameof(WeekCanvasHeight), typeof(double), typeof(WeekCalendarView),
-            new PropertyMetadata(1440d));
+            new PropertyMetadata(1440d, (d, e) => ((WeekCalendarView)d).WeekBodyGrid.MinHeight = (double)e.NewValue));
 
     public static readonly DependencyProperty IsCurrentWeekProperty =
         DependencyProperty.Register(nameof(IsCurrentWeek), typeof(bool), typeof(WeekCalendarView),
             new PropertyMetadata(false, (d, e) =>
             {
+                // Only refresh the "now" indicator here. Auto-scrolling on a week change would
+                // fight the user: navigating with the < / > buttons must preserve the current
+                // vertical scroll position. Scrolling to the current time is an explicit action
+                // (Today button / switching into the week view), handled via RequestScroll().
                 var view = (WeekCalendarView)d;
-                view._initialScrollDone = false;
                 view.UpdateBackgroundViews();
-                _ = view.ScrollToCurrentTimeAsync();
             }));
 
     public static readonly DependencyProperty CurrentTimeLineTopProperty =
@@ -240,6 +242,11 @@ public sealed partial class WeekCalendarView : UserControl
         if (WeekDayColumns is not IEnumerable cols) return;
         var days = cols.OfType<WeekDayColumn>().Take(7).ToList();
         if (days.Count == 0) return;
+
+        // Pin the body's height before clearing its children. Without this the scroll content
+        // collapses to 0 height mid-rebuild and the ScrollViewer clamps the offset to the top,
+        // which is what made the time position jump back on every week navigation.
+        WeekBodyGrid.MinHeight = WeekCanvasHeight;
 
         WeekHeaderGrid.ColumnDefinitions.Clear();
         WeekHeaderGrid.Children.Clear();

@@ -173,9 +173,19 @@ public sealed partial class CalendarPage : Page
     }
 
     // Header buttons
+    // Week navigation (< / >) intentionally does NOT scroll: the user wants to keep the same
+    // time-of-day in view while comparing adjacent weeks.
     private void OnPrevClicked(object sender, RoutedEventArgs e)  => _vm?.PreviousMonthCommand.Execute(null);
     private void OnNextClicked(object sender, RoutedEventArgs e)  => _vm?.NextMonthCommand.Execute(null);
-    private void OnTodayClicked(object sender, RoutedEventArgs e) => _vm?.GoTodayCommand.Execute(null);
+
+    private void OnTodayClicked(object sender, RoutedEventArgs e)
+    {
+        _vm?.GoTodayCommand.Execute(null);
+        // Today is an explicit "take me back to now" action, so re-anchor the week view to the
+        // current time.
+        if (_vm is { IsMonthMode: false })
+            WeekView.RequestScroll();
+    }
 
     private void OnNewEventForSelectedDayClicked(object sender, RoutedEventArgs e)
     {
