@@ -16,7 +16,7 @@ public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
 
     private string? _calendarId;
     private string _name = "";
-    private DateTime _newHolidayDate = DateTime.Today;
+    private DateTime _newHolidayDate;
     private string _newHolidayName = "";
 
     public string? CalendarId
@@ -70,9 +70,10 @@ public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
 
     public string? ValidationError { get; private set; }
 
-    public BusinessCalendarEditViewModel(BusinessCalendarApplicationService service)
+    public BusinessCalendarEditViewModel(BusinessCalendarApplicationService service, TimeProvider clock)
     {
         _service = service;
+        _newHolidayDate = clock.GetLocalNow().Date;
         AddHolidayCommand = new RelayCommand(AddHoliday);
         SaveCommand = new RelayCommand(Save);
         DeleteCommand = new RelayCommand(Delete);

@@ -14,15 +14,17 @@ public sealed partial class AlarmNotificationWindow : Window
     private readonly string? _location;
     private bool _foregroundForced;
 
-    public AlarmNotificationWindow(string title, string message, string? location = null, DateTime? eventStartTime = null)
+    public AlarmNotificationWindow(string title, string message, string? location, DateTime? eventStartTime, TimeProvider clock)
     {
         InitializeComponent();
+
+        var now = clock.GetLocalNow().DateTime;
 
         // Set all text from resources
         Title = AppResources.AlarmWindowTitle;
         TitleLabel.Text = title;
         MessageLabel.Text = message;
-        TimeLabel.Text = DateTime.Now.ToString("yyyy/MM/dd HH:mm");
+        TimeLabel.Text = now.ToString("yyyy/MM/dd HH:mm");
         DismissBtn.Content = AppResources.AlarmDismiss;
         Snooze5Btn.Content = AppResources.AlarmSnooze5MinBtn;
         Snooze1Btn.Content = AppResources.AlarmSnooze1MinBtn;
@@ -40,7 +42,7 @@ public sealed partial class AlarmNotificationWindow : Window
         }
 
         // Show before-event snooze buttons if event start time is provided and in the future
-        if (eventStartTime.HasValue && eventStartTime.Value > DateTime.Now)
+        if (eventStartTime.HasValue && eventStartTime.Value > now)
         {
             BeforeEventGrid.Visibility = Visibility.Visible;
         }

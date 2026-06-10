@@ -120,15 +120,16 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Domain services
         services.AddSingleton<IBusinessDayShiftService, BusinessDayShiftService>();
         services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
+        services.AddSingleton<IEventExpirationService, EventExpirationService>();
 
         // Repositories
-        services.AddSingleton<JsonCalendarEventRepository>(_ =>
+        services.AddSingleton<JsonCalendarEventRepository>(sp =>
         {
             var dir = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
                 "NolumiaScheduler", "events");
             var repo = new JsonCalendarEventRepository(dir);
-            JsonEventSeeder.SeedIfEmpty(repo);
+            JsonEventSeeder.SeedIfEmpty(repo, sp.GetRequiredService<TimeProvider>());
             return repo;
         });
         services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
@@ -145,8 +146,10 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Application services
         services.AddSingleton<CalendarEventApplicationService>();
         services.AddSingleton<BusinessCalendarApplicationService>();
+        services.AddSingleton<PurgeExpiredEventsService>();
 
         // Alarm
+        services.AddSingleton<AlarmApplicationService>();
         services.AddSingleton<IAlarmService, AlarmService>();
 
         // Presentation services

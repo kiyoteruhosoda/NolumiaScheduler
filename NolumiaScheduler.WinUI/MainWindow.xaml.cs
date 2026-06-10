@@ -150,7 +150,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
             _debugWindow = new AlarmDebugWindow(
                 services.GetRequiredService<IAlarmService>(),
                 services.GetRequiredService<CalendarEventApplicationService>(),
-                services.GetRequiredService<IOccurrenceExpander>());
+                services.GetRequiredService<IOccurrenceExpander>(),
+                services.GetRequiredService<TimeProvider>());
         }
         _debugWindow.Activate();
     }

@@ -14,19 +14,22 @@ public sealed partial class AlarmDebugWindow : Window
     private readonly IAlarmService _alarmService;
     private readonly CalendarEventApplicationService _eventService;
     private readonly IOccurrenceExpander _expander;
+    private readonly TimeProvider _clock;
     private DispatcherQueueTimer? _refreshTimer;
     private DispatcherQueueTimer? _clockTimer;
 
     public AlarmDebugWindow(
         IAlarmService alarmService,
         CalendarEventApplicationService eventService,
-        IOccurrenceExpander expander)
+        IOccurrenceExpander expander,
+        TimeProvider clock)
     {
         InitializeComponent();
 
         _alarmService = alarmService;
         _eventService = eventService;
         _expander = expander;
+        _clock = clock;
 
         // Set window size
         if (AppWindow is not null)
@@ -38,9 +41,9 @@ public sealed partial class AlarmDebugWindow : Window
         // 1-second clock
         _clockTimer = DispatcherQueue.CreateTimer();
         _clockTimer.Interval = TimeSpan.FromSeconds(1);
-        _clockTimer.Tick += (_, _) => ClockLabel.Text = DateTime.Now.ToString("yyyy/MM/dd (ddd) HH:mm:ss");
+        _clockTimer.Tick += (_, _) => ClockLabel.Text = _clock.GetLocalNow().ToString("yyyy/MM/dd (ddd) HH:mm:ss");
         _clockTimer.Start();
-        ClockLabel.Text = DateTime.Now.ToString("yyyy/MM/dd (ddd) HH:mm:ss");
+        ClockLabel.Text = _clock.GetLocalNow().ToString("yyyy/MM/dd (ddd) HH:mm:ss");
 
         // Real-time refresh on schedule changes
         _alarmService.ScheduleChanged += OnScheduleChanged;
@@ -74,7 +77,7 @@ public sealed partial class AlarmDebugWindow : Window
     private void Refresh()
     {
         if (_closed) return;
-        var now = DateTime.Now;
+        var now = _clock.GetLocalNow().DateTime;
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
         var allEvents = _eventService.FindAll();

@@ -1,5 +1,12 @@
+using NolumiaScheduler.Application.Services;
+
 namespace NolumiaScheduler.Presentation.Services;
 
+/// <summary>
+/// Presentation-side alarm host: runs the polling timer and shows notification windows.
+/// All due/fired/snooze decisions live in <see cref="AlarmApplicationService"/>; the members
+/// below that expose schedule state simply delegate to it for debug/diagnostic UI.
+/// </summary>
 public interface IAlarmService
 {
     void Start();
@@ -19,12 +26,3 @@ public interface IAlarmService
     /// </summary>
     IReadOnlyList<string> GetDiagnosticLines();
 }
-
-public record AlarmScheduleEntry(
-    string EventId,
-    string Title,
-    DateTime OccurrenceStart,
-    int MinutesBefore,
-    DateTime NotifyAt,
-    bool AlreadyFired,
-    bool IsSnoozed);

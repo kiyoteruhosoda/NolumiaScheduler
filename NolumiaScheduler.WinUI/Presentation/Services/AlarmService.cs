@@ -1,8 +1,5 @@
 using Microsoft.UI.Dispatching;
-using Microsoft.UI.Xaml;
 using NolumiaScheduler.Application.Services;
-using NolumiaScheduler.Domain.Services;
-using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.WinUI.Presentation.Pages;
@@ -10,20 +7,32 @@ using System.Diagnostics;
 
 namespace NolumiaScheduler.WinUI.Presentation.Services;
 
-public class AlarmService(CalendarEventApplicationService eventService, IOccurrenceExpander expander) : IAlarmService
+/// <summary>
+/// Hosts the alarm polling timer and presents notification windows. All scheduling decisions
+/// (which alarms are due, fired keys, snoozes) live in <see cref="AlarmApplicationService"/>;
+/// expired events are purged at startup and on every local-date rollover.
+/// </summary>
+public class AlarmService(
+    AlarmApplicationService alarms,
+    CalendarEventApplicationService eventService,
+    PurgeExpiredEventsService purgeService,
+    TimeProvider clock) : IAlarmService
 {
+    private readonly AlarmApplicationService _alarms = alarms;
     private readonly CalendarEventApplicationService _eventService = eventService;
-    private readonly IOccurrenceExpander _expander = expander;
+    private readonly PurgeExpiredEventsService _purgeService = purgeService;
+    private readonly TimeProvider _clock = clock;
     private DispatcherQueueTimer? _timer;
-    private readonly HashSet<string> _firedKeys = [];
-    private readonly List<SnoozeEntry> _snoozed = [];
     private bool _isShowingNotification;
     private DispatcherQueue? _dispatcherQueue;
+    private DateOnly _lastPurgeDate;
 
     public event Action? ScheduleChanged;
 
     public void Start()
     {
+        PurgeExpiredEvents();
+
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _timer = _dispatcherQueue.CreateTimer();
         _timer.Interval = TimeSpan.FromSeconds(10);
@@ -44,79 +53,52 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
         var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
         dq.TryEnqueue(() =>
         {
-            _firedKeys.Clear();
             ScheduleChanged?.Invoke();
             _ = CheckAlarmsAsync();
         });
     }
 
-    public void ResetFiredKeys(string eventId)
-    {
-        _firedKeys.RemoveWhere(k => k.StartsWith(eventId, StringComparison.Ordinal));
-    }
+    public void ResetFiredKeys(string eventId) => _alarms.ResetFiredKeys(eventId);
+    public IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms() => _alarms.GetScheduledAlarms();
+    public IReadOnlyList<string> GetFiredKeys() => _alarms.GetFiredKeys();
+    public IReadOnlyList<string> GetDiagnosticLines() => _alarms.GetDiagnosticLines();
 
     private async Task CheckAlarmsAsync()
     {
         if (_isShowingNotification) return;
 
-        var now = DateTime.Now;
-        var today = new LocalDateValue(now.Year, now.Month, now.Day);
-        var tomorrow = today.AddDays(1);
-
+        var now = _clock.GetLocalNow().DateTime;
         Debug.WriteLine($"[AlarmService] CheckAlarms at {now:HH:mm:ss}");
 
-        var dueSnoozes = _snoozed.Where(s => s.NotifyAt <= now).ToList();
-        foreach (var snooze in dueSnoozes)
+        // The app lives in the tray for weeks, so a startup-only purge is not enough.
+        if (DateOnly.FromDateTime(now) != _lastPurgeDate)
+            PurgeExpiredEvents();
+
+        foreach (var due in _alarms.CollectDueAlarms())
         {
-            _snoozed.Remove(snooze);
-            var snoozeMsg = string.Format(AppResources.AlarmSnoozeReminder, snooze.Title);
-            await ShowAlarmAsync(snooze.EventId, snooze.Title, snoozeMsg, snooze.Location);
-            if (_isShowingNotification) return;
-        }
-
-        var events = _eventService.FindAll();
-        foreach (var ev in events)
-        {
-            if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
-
-            var occurrences = _expander.Expand(ev, today, tomorrow, null);
-            foreach (var occ in occurrences)
-            {
-                if (occ.AllDay || occ.StartTime == null) continue;
-
-                var occStart = new DateTime(
-                    occ.Date.Year, occ.Date.Month, occ.Date.Day,
-                    occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
-
-                foreach (var min in AlarmScheduleCalculator.Offsets)
-                {
-                    if (!AlarmScheduleCalculator.IsOffsetEnabled(ev.Alarm, min)) continue;
-
-                    var key = $"{ev.Id.Value}:{occ.Date}:{min}";
-                    if (_firedKeys.Contains(key)) continue;
-
-                    var notifyAt = occStart.AddMinutes(-min);
-                    if (AlarmScheduleCalculator.IsDue(now, notifyAt))
-                    {
-                        _firedKeys.Add(key);
-                        var msg = GetMinuteMessage(min);
-                        await ShowAlarmAsync(ev.Id.Value, occ.Title.Value, msg, ev.Location?.Value, occStart);
-                        if (_isShowingNotification) return;
-                    }
-                }
-            }
+            await ShowAlarmAsync(due, GetMessage(due));
         }
     }
 
-    private static string GetMinuteMessage(int minutes) => minutes switch
+    private void PurgeExpiredEvents()
     {
-        15 => AppResources.AlarmNotify15MinMsg,
-        5  => AppResources.AlarmNotify5MinMsg,
-        1  => AppResources.AlarmNotify1MinMsg,
-        _  => AppResources.AlarmNotify0MinMsg
-    };
+        _lastPurgeDate = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
+        var purged = _purgeService.PurgeExpiredEvents();
+        if (purged > 0)
+            Debug.WriteLine($"[AlarmService] Purged {purged} expired event(s)");
+    }
 
-    private async Task ShowAlarmAsync(string eventId, string title, string message, string? location = null, DateTime? eventStartTime = null)
+    private static string GetMessage(DueAlarm due) => due.IsSnoozeReminder
+        ? string.Format(AppResources.AlarmSnoozeReminder, due.Title)
+        : due.OffsetMinutes switch
+        {
+            15 => AppResources.AlarmNotify15MinMsg,
+            5  => AppResources.AlarmNotify5MinMsg,
+            1  => AppResources.AlarmNotify1MinMsg,
+            _  => AppResources.AlarmNotify0MinMsg
+        };
+
+    private async Task ShowAlarmAsync(DueAlarm due, string message)
     {
         _isShowingNotification = true;
         try
@@ -128,7 +110,8 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
             {
                 try
                 {
-                    var alarmWindow = new AlarmNotificationWindow(title, message, location, eventStartTime);
+                    var alarmWindow = new AlarmNotificationWindow(
+                        due.Title, message, due.Location, due.OccurrenceStart, _clock);
                     alarmWindow.Activate();
                     // Push to the foreground after Activate(); the window's own Activated handler
                     // also does this, but call it here as a safety net for activation timing.
@@ -148,21 +131,19 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
             switch (notificationResult)
             {
                 case AlarmNotificationResult.Snooze5Min:
-                    _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(5), location));
+                    _alarms.SnoozeFor(due, TimeSpan.FromMinutes(5));
                     break;
                 case AlarmNotificationResult.Snooze1Min:
-                    _snoozed.Add(new SnoozeEntry(eventId, title, DateTime.Now.AddMinutes(1), location));
+                    _alarms.SnoozeFor(due, TimeSpan.FromMinutes(1));
                     break;
                 case AlarmNotificationResult.CancelAll:
-                    CancelRemainingAlarms(eventId);
+                    _alarms.CancelRemainingAlarms(due.EventId);
                     break;
                 case AlarmNotificationResult.SnoozeTo5MinBefore:
-                    if (eventStartTime.HasValue)
-                        _snoozed.Add(new SnoozeEntry(eventId, title, eventStartTime.Value.AddMinutes(-5), location));
+                    _alarms.SnoozeUntilBeforeStart(due, TimeSpan.FromMinutes(5));
                     break;
                 case AlarmNotificationResult.SnoozeTo1MinBefore:
-                    if (eventStartTime.HasValue)
-                        _snoozed.Add(new SnoozeEntry(eventId, title, eventStartTime.Value.AddMinutes(-1), location));
+                    _alarms.SnoozeUntilBeforeStart(due, TimeSpan.FromMinutes(1));
                     break;
             }
         }
@@ -172,144 +153,12 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
         }
     }
 
-    private void CancelRemainingAlarms(string eventId)
-    {
-        var now = DateTime.Now;
-        var today = new LocalDateValue(now.Year, now.Month, now.Day);
-        var tomorrow = today.AddDays(1);
-
-        var events = _eventService.FindAll();
-        foreach (var ev in events)
-        {
-            if (ev.Id.Value != eventId) continue;
-            if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
-
-            var occurrences = _expander.Expand(ev, today, tomorrow, null);
-            foreach (var occ in occurrences)
-            {
-                if (occ.AllDay || occ.StartTime == null) continue;
-
-                foreach (var min in AlarmScheduleCalculator.Offsets)
-                {
-                    var key = $"{ev.Id.Value}:{occ.Date}:{min}";
-                    _firedKeys.Add(key);
-                }
-            }
-        }
-
-        _snoozed.RemoveAll(s => s.EventId == eventId);
-    }
-
-    private record SnoozeEntry(string EventId, string Title, DateTime NotifyAt, string? Location);
-
-    public IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms()
-    {
-        var now = DateTime.Now;
-        var today = new LocalDateValue(now.Year, now.Month, now.Day);
-        var tomorrow = today.AddDays(1);
-        var results = new List<AlarmScheduleEntry>();
-
-        var events = _eventService.FindAll();
-        foreach (var ev in events)
-        {
-            if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
-
-            var occurrences = _expander.Expand(ev, today, tomorrow, null);
-            foreach (var occ in occurrences)
-            {
-                if (occ.AllDay || occ.StartTime == null) continue;
-
-                var occStart = new DateTime(
-                    occ.Date.Year, occ.Date.Month, occ.Date.Day,
-                    occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
-
-                foreach (var min in AlarmScheduleCalculator.Offsets)
-                {
-                    if (!AlarmScheduleCalculator.IsOffsetEnabled(ev.Alarm, min)) continue;
-                    var key = $"{ev.Id.Value}:{occ.Date}:{min}";
-                    var notifyAt = occStart.AddMinutes(-min);
-                    results.Add(new AlarmScheduleEntry(
-                        ev.Id.Value, occ.Title.Value, occStart, min, notifyAt,
-                        _firedKeys.Contains(key), false));
-                }
-            }
-        }
-
-        foreach (var s in _snoozed)
-        {
-            results.Add(new AlarmScheduleEntry(
-                s.EventId, s.Title, default, 0, s.NotifyAt, false, true));
-        }
-
-        return [.. results.OrderBy(e => e.NotifyAt)];
-    }
-
-    public IReadOnlyList<string> GetFiredKeys() => [.. _firedKeys];
-
-    public IReadOnlyList<string> GetDiagnosticLines()
-    {
-        var lines = new List<string>();
-        var now = DateTime.Now;
-        var today = new LocalDateValue(now.Year, now.Month, now.Day);
-        var tomorrow = today.AddDays(1);
-
-        var events = _eventService.FindAll();
-        lines.Add($"[Diag] Total events: {events.Count}, Range: {today} ~ {tomorrow}");
-
-        foreach (var ev in events)
-        {
-            var evLabel = $"{ev.Title.Value} (id={ev.Id.Value[..Math.Min(8, ev.Id.Value.Length)]})";
-
-            if (ev.Alarm == null)
-            {
-                lines.Add($"  SKIP {evLabel}: Alarm is null");
-                continue;
-            }
-            if (!ev.Alarm.IsEnabled)
-            {
-                lines.Add($"  SKIP {evLabel}: Alarm disabled");
-                continue;
-            }
-
-            var occurrences = _expander.Expand(ev, today, tomorrow, null);
-            lines.Add($"  {evLabel}: Alarm ON, Occurrences in range = {occurrences.Count}");
-
-            foreach (var occ in occurrences)
-            {
-                if (occ.AllDay)
-                {
-                    lines.Add($"    SKIP occ {occ.Date}: AllDay=true");
-                    continue;
-                }
-                if (occ.StartTime == null)
-                {
-                    lines.Add($"    SKIP occ {occ.Date}: StartTime=null");
-                    continue;
-                }
-
-                var occStart = new DateTime(
-                    occ.Date.Year, occ.Date.Month, occ.Date.Day,
-                    occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
-
-                lines.Add($"    occ {occ.Date} start={occStart:HH:mm} | 15m={ev.Alarm.Notify15Min} 5m={ev.Alarm.Notify5Min} 1m={ev.Alarm.Notify1Min} atStart={ev.Alarm.NotifyAtStart}");
-
-                foreach (var min in AlarmScheduleCalculator.Offsets)
-                {
-                    if (!AlarmScheduleCalculator.IsOffsetEnabled(ev.Alarm, min)) continue;
-                    var notifyAt = occStart.AddMinutes(-min);
-                    var key = $"{ev.Id.Value}:{occ.Date}:{min}";
-                    var fired = _firedKeys.Contains(key);
-                    var inWindow = AlarmScheduleCalculator.IsDue(now, notifyAt);
-                    lines.Add($"      {min}min: notifyAt={notifyAt:HH:mm:ss} fired={fired} inWindow={inWindow}");
-                }
-            }
-        }
-
-        return lines;
-    }
-
     public async Task ShowTestAlarmAsync()
     {
-        await ShowAlarmAsync("test-debug", "テストアラーム", "これはアラームウィンドウのテスト表示です", "https://example.com", DateTime.Now.AddMinutes(30));
+        var due = new DueAlarm(
+            "test-debug", "テストアラーム", "https://example.com",
+            OffsetMinutes: 0, IsSnoozeReminder: false,
+            _clock.GetLocalNow().DateTime.AddMinutes(30));
+        await ShowAlarmAsync(due, "これはアラームウィンドウのテスト表示です");
     }
 }

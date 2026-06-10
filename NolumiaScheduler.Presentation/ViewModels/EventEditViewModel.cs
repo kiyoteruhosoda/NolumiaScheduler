@@ -24,12 +24,13 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 {
     private readonly CalendarEventApplicationService _eventService;
     private readonly BusinessCalendarApplicationService _calendarService;
+    private readonly TimeProvider _clock;
 
     // ── Basic fields ────────────────────────────────────────────
     private string _title = "";
     private string _location = "";
     private bool _allDay;
-    private DateTime _startDate = DateTime.Today;
+    private DateTime _startDate;
 
     private TimeSpan _startTime = new(9, 0, 0);
     private TimeSpan _endTime = new(10, 0, 0);
@@ -38,7 +39,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private int _repeatTypeIndex;
     private int _interval = 1;
     private bool _hasEndDate = false;
-    private DateTime _endDate = DateTime.Today.AddYears(1);
+    private DateTime _endDate;
 
     // Weekly
     private bool _weekSun, _weekMon, _weekTue, _weekWed, _weekThu, _weekFri, _weekSat;
@@ -69,7 +70,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     // Start date of the loaded recurring series. The editable StartDate tracks the occurrence
     // being edited, so the end-date validation for an entire-series edit must compare against
     // the original series start, not the occurrence date.
-    private DateTime _seriesStartDate = DateTime.Today;
+    private DateTime _seriesStartDate;
     private string _timeZoneId = EventEditDefaults.DefaultTimeZone;
 
     // ── Alarm ────────────────────────────────────────────────
@@ -82,10 +83,17 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     // ── Constructor ──────────────────────────────────────────
     public EventEditViewModel(
         CalendarEventApplicationService eventService,
-        BusinessCalendarApplicationService calendarService)
+        BusinessCalendarApplicationService calendarService,
+        TimeProvider clock)
     {
         _eventService = eventService;
         _calendarService = calendarService;
+        _clock = clock;
+
+        var today = Today();
+        _startDate = today;
+        _endDate = today.AddYears(1);
+        _seriesStartDate = today;
 
         SaveCommand = new RelayCommand(RequestSave);
 
@@ -94,6 +102,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         LoadAvailableCalendars();
     }
+
+    private DateTime Today() => _clock.GetLocalNow().Date;
 
     public bool IsEditing => _editingEventId != null;
     public string? EditingEventId => _editingEventId;
@@ -431,8 +441,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set
         {
             _hasEndDate = value;
-            if (value && _endDate < DateTime.Today)
-                _endDate = DateTime.Today.AddYears(1);
+            if (value && _endDate < Today())
+                _endDate = Today().AddYears(1);
             OnPropertyChanged();
             OnPropertyChanged(nameof(EndDate));
         }
