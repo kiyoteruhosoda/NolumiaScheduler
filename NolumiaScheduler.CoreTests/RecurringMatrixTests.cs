@@ -170,6 +170,41 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
+    public void Change_系列全体_時刻変更後もスキップと上書きと移動が維持される()
+    {
+        foreach (var type in Rec.AllTypes)
+        {
+            Setup();
+            var id = CreateSeries(type);
+            var expected = Rec.Expected(type, 5);
+
+            // Customize three occurrences before the series-wide time change:
+            // skip the 2nd, override the 3rd's title, move the 4th two days later.
+            _svc.DeleteOccurrence(new SkipOccurrenceCommand(id, Key(type, 1)));
+            _svc.OverrideOccurrence(new OverrideOccurrenceCommand(
+                id, Key(type, 2), "special", null, Visibility.Public, false,
+                expected[2], Rec.StartTime, Rec.EndTime));
+            var movedDate = expected[3].AddDays(2);
+            _svc.MoveOccurrence(new MoveOccurrenceCommand(
+                id, Key(type, 3), movedDate, Rec.StartTime, Rec.EndTime, null, null, null));
+
+            // Series-wide time change (occurrence keys embed the start time).
+            _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
+                id, "orig", null, Visibility.Public,
+                new LocalTimeValue(13, 0, 0), new LocalTimeValue(14, 0, 0), Rec.Rule(type)));
+
+            var occ = Occurrences(id, Rec.Start(type), expected[^1].AddDays(2));
+            var dates = occ.Select(o => o.Date).ToList();
+
+            CollectionAssert.DoesNotContain(dates, expected[1], $"skip kept type={type}");
+            Assert.AreEqual("special", occ.Single(o => o.Date.Equals(expected[2])).Title.Value,
+                $"override kept type={type}");
+            CollectionAssert.DoesNotContain(dates, expected[3], $"moved-from removed type={type}");
+            CollectionAssert.Contains(dates, movedDate, $"moved-to kept type={type}");
+        }
+    }
+
+    [TestMethod]
     public void Change_系列全体_終了日短縮_発生数が減る()
     {
         foreach (var type in Rec.AllTypes)

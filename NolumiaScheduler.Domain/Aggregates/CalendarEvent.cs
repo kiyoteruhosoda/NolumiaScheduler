@@ -218,8 +218,38 @@ public class CalendarEvent
         if (newSchedule.AllDay != AllDay)
             throw new DomainException("All-day status cannot be changed for an existing series.");
 
+        // Occurrence keys are (candidate date, series start time), so a start-time change would
+        // orphan every existing skip/override/move. Re-key them to the new start time so the
+        // per-occurrence customizations keep applying.
+        var oldStartTime = RecurringSchedule?.StartTime;
+        if (!Equals(oldStartTime, newSchedule.StartTime))
+            RekeyOccurrenceCustomizations(oldStartTime, newSchedule.StartTime);
+
         RecurringSchedule = newSchedule;
         Touch(updatedAt);
+    }
+
+    private void RekeyOccurrenceCustomizations(LocalTimeValue? oldTime, LocalTimeValue? newTime)
+    {
+        for (var i = 0; i < _exceptions.Count; i++)
+        {
+            var ex = _exceptions[i];
+            if (!Equals(ex.OccurrenceKey.Time, oldTime)) continue;
+            var key = new OccurrenceLocalKey(ex.OccurrenceKey.Date, newTime);
+            _exceptions[i] = ex.Type == ExceptionType.Skip
+                ? EventException.CreateSkip(key)
+                : EventException.CreateOverride(key, ex.Override!);
+        }
+
+        for (var i = 0; i < _moves.Count; i++)
+        {
+            var move = _moves[i];
+            if (!Equals(move.OccurrenceKey.Time, oldTime)) continue;
+            _moves[i] = new EventMove(
+                new OccurrenceLocalKey(move.OccurrenceKey.Date, newTime),
+                move.NewDate, move.NewStartTime, move.NewEndTime,
+                move.Title, move.Location, move.Visibility);
+        }
     }
 
     public void SkipOccurrence(
