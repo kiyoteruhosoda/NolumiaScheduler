@@ -21,7 +21,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private readonly IOccurrenceExpander _expander;
     private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
     private readonly IWeekAllDayLayoutStrategy _weekAllDayLayoutStrategy;
-    private readonly DateTime _today = DateTime.Today.Date;
+    private readonly TimeProvider _timeProvider;
+    private DateTime _today;
 
     private DateTime _month;
     private CalendarDayCell? _selectedCell;
@@ -39,15 +40,19 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         BusinessCalendarApplicationService calendarService,
         IOccurrenceExpander expander,
         IWeekEventLayoutStrategy weekEventLayoutStrategy,
-        IWeekAllDayLayoutStrategy weekAllDayLayoutStrategy)
+        IWeekAllDayLayoutStrategy weekAllDayLayoutStrategy,
+        TimeProvider timeProvider)
     {
         _eventService = eventService;
         _calendarService = calendarService;
         _expander = expander;
         _weekEventLayoutStrategy = weekEventLayoutStrategy;
         _weekAllDayLayoutStrategy = weekAllDayLayoutStrategy;
-        _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+        _timeProvider = timeProvider;
+        var today = Today;
+        _today = today;
+        _month = new DateTime(today.Year, today.Month, 1);
+        _weekStartDate = today.AddDays(-(int)today.DayOfWeek);
 
         DayCells = [];
         SelectedDayEvents = [];
@@ -103,8 +108,13 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             cell.CellHeight = _dayCellHeight;
         }
     }
-    public bool IsCurrentWeek => _weekStartDate.Date <= DateTime.Now.Date && DateTime.Now.Date <= _weekStartDate.Date.AddDays(6);
-    public static double CurrentTimeLineTop => (DateTime.Now.Hour * 60) + DateTime.Now.Minute;
+    // Wall-clock readers go through the injected TimeProvider so the calendar's notion of "now"
+    // and "today" can be controlled deterministically in tests.
+    private DateTime Now => _timeProvider.GetLocalNow().DateTime;
+    private DateTime Today => _timeProvider.GetLocalNow().Date;
+
+    public bool IsCurrentWeek => _weekStartDate.Date <= Today && Today <= _weekStartDate.Date.AddDays(6);
+    public double CurrentTimeLineTop => (Now.Hour * 60) + Now.Minute;
 
     public string MonthYearTitle
     {
@@ -211,6 +221,27 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     }
 
     public void ReloadCurrentMonth() => RefreshAfterChange();
+
+    /// <summary>
+    /// Re-evaluates wall-clock-dependent state so the view keeps up while the app is left
+    /// running. The "now" line moves every minute; on a midnight rollover the "today"
+    /// highlight has to move to the new day and the current-week test re-run. Driven by a
+    /// periodic timer in the hosting page (no clock ticks on its own here).
+    /// </summary>
+    public void RefreshCurrentTime()
+    {
+        // The "now" line position depends on the current time of day.
+        OnPropertyChanged(nameof(CurrentTimeLineTop));
+
+        var today = Today;
+        if (_today == today) return;
+
+        // The date changed (e.g. the app stayed open past midnight): rebuild so the "today"
+        // highlight lands on the new day. This keeps the same month/week in view — it only
+        // refreshes which cell/column is marked as today, not where the user navigated to.
+        _today = today;
+        RefreshAfterChange();
+    }
 
     public bool IsEventRecurring(string eventId) =>
         _eventService.FindById(eventId)?.IsRecurring() ?? false;
@@ -334,8 +365,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private void GoToday()
     {
         ClearSelection();
-        _month = new DateTime(DateTime.Today.Year, DateTime.Today.Month, 1);
-        _weekStartDate = DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek);
+        var today = Today;
+        _month = new DateTime(today.Year, today.Month, 1);
+        _weekStartDate = today.AddDays(-(int)today.DayOfWeek);
         LoadMonth();
         LoadWeek();
         if (IsWeekMode)
@@ -481,7 +513,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     {
         MonthYearTitle = _month.ToString(AppResources.MonthYearFormat, AppResources.FormatCulture);
 
-        var today = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(DateTime.Today));
+        var today = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(Today));
         var monthFrom = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_month));
         var monthTo = LocalDateValue.FromDateOnly(
             DateOnly.FromDateTime(_month.AddMonths(1).AddDays(-1)));

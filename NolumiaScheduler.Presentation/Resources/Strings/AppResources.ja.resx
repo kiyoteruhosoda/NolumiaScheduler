@@ -282,6 +282,9 @@
   <data name="ErrorWeekdayRequired" xml:space="preserve">
     <value>曜日を1つ以上選択してください。</value>
   </data>
+  <data name="ErrorEndDateBeforeStart" xml:space="preserve">
+    <value>終了日は開始日以降にしてください。</value>
+  </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="DeleteEventTitle" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
@@ -333,6 +336,12 @@
   </data>
   <data name="AlarmNotify1Min" xml:space="preserve">
     <value>1分前</value>
+  </data>
+  <data name="AlarmNotifyAtStart" xml:space="preserve">
+    <value>開始時刻</value>
+  </data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve">
+    <value>まもなく開始です</value>
   </data>
   <data name="AlarmDismiss" xml:space="preserve">
     <value>閉じる</value>

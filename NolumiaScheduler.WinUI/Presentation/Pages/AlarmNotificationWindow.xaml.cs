@@ -12,6 +12,7 @@ public sealed partial class AlarmNotificationWindow : Window
 {
     private readonly TaskCompletionSource<AlarmNotificationResult> _tcs = new();
     private readonly string? _location;
+    private bool _foregroundForced;
 
     public AlarmNotificationWindow(string title, string message, string? location = null, DateTime? eventStartTime = null)
     {
@@ -55,14 +56,14 @@ public sealed partial class AlarmNotificationWindow : Window
             AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
         }
 
-        // Force to foreground and pin as topmost so the alarm is always visible
-        var hwnd = WindowNative.GetWindowHandle(this);
-        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
-            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_SHOWWINDOW);
-        NativeMethods.SetForegroundWindow(hwnd);
-
         // Disable other app windows to simulate system-modal
         DisableOtherWindows(true);
+
+        // Bring to the foreground once the window is actually activated, and re-assert top-most
+        // whenever it loses focus so it stays visible (mirrors WPF's maintained Topmost). The
+        // foreground push must run after Activate() — doing it in the constructor, before the
+        // hosting service calls Activate(), is too early and gets overridden.
+        Activated += OnActivated;
 
         Closed += (_, _) =>
         {
@@ -72,6 +73,82 @@ public sealed partial class AlarmNotificationWindow : Window
     }
 
     public Task<AlarmNotificationResult> WaitForResultAsync() => _tcs.Task;
+
+    private void OnActivated(object sender, WindowActivatedEventArgs args)
+    {
+        if (args.WindowActivationState == WindowActivationState.Deactivated)
+        {
+            // Keep the alarm visually above other windows when it loses focus, without
+            // aggressively stealing focus back on every deactivation.
+            ReassertTopmost();
+        }
+        else if (!_foregroundForced)
+        {
+            ForceToForeground();
+        }
+    }
+
+    /// <summary>
+    /// Forces the alarm window to the foreground. Windows silently ignores SetForegroundWindow
+    /// from a background/tray process (foreground lock), which is exactly the case when an alarm
+    /// fires while another app is active, so this attaches to the active window's input queue
+    /// (AttachThreadInput) to be allowed to take focus, and flashes the taskbar if focus is still
+    /// denied.
+    /// </summary>
+    public void ForceToForeground()
+    {
+        _foregroundForced = true;
+
+        var hwnd = WindowNative.GetWindowHandle(this);
+
+        // Restore in case the window is minimized.
+        NativeMethods.ShowWindow(hwnd, NativeMethods.SW_RESTORE);
+
+        var foreground = NativeMethods.GetForegroundWindow();
+        var foregroundThread = NativeMethods.GetWindowThreadProcessId(foreground, out _);
+        var currentThread = NativeMethods.GetCurrentThreadId();
+
+        var attached = false;
+        if (foregroundThread != 0 && foregroundThread != currentThread)
+            attached = NativeMethods.AttachThreadInput(currentThread, foregroundThread, true);
+
+        try
+        {
+            NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+                NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_SHOWWINDOW);
+            NativeMethods.BringWindowToTop(hwnd);
+            var gotForeground = NativeMethods.SetForegroundWindow(hwnd);
+            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_SHOW);
+
+            if (!gotForeground)
+                FlashTaskbar(hwnd);
+        }
+        finally
+        {
+            if (attached)
+                NativeMethods.AttachThreadInput(currentThread, foregroundThread, false);
+        }
+    }
+
+    private void ReassertTopmost()
+    {
+        var hwnd = WindowNative.GetWindowHandle(this);
+        NativeMethods.SetWindowPos(hwnd, NativeMethods.HWND_TOPMOST, 0, 0, 0, 0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE | NativeMethods.SWP_SHOWWINDOW);
+    }
+
+    private static void FlashTaskbar(nint hwnd)
+    {
+        var info = new NativeMethods.FLASHWINFO
+        {
+            cbSize = (uint)Marshal.SizeOf<NativeMethods.FLASHWINFO>(),
+            hwnd = hwnd,
+            dwFlags = NativeMethods.FLASHW_ALL | NativeMethods.FLASHW_TIMERNOFG,
+            uCount = uint.MaxValue,
+            dwTimeout = 0
+        };
+        NativeMethods.FlashWindowEx(in info);
+    }
 
     private void OnDismissClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.Dismiss);
     private void OnSnooze5Clicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.Snooze5Min);
@@ -124,6 +201,20 @@ public sealed partial class AlarmNotificationWindow : Window
         public const uint SWP_NOMOVE      = 0x0002;
         public const uint SWP_NOSIZE      = 0x0001;
         public const uint SWP_SHOWWINDOW  = 0x0040;
+        public const int  SW_SHOW         = 5;
+        public const int  SW_RESTORE      = 9;
+        public const uint FLASHW_ALL       = 0x00000003;
+        public const uint FLASHW_TIMERNOFG = 0x0000000C;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct FLASHWINFO
+        {
+            public uint cbSize;
+            public nint hwnd;
+            public uint dwFlags;
+            public uint uCount;
+            public uint dwTimeout;
+        }
 
         [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
@@ -136,5 +227,30 @@ public sealed partial class AlarmNotificationWindow : Window
         [LibraryImport("user32.dll")]
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool SetForegroundWindow(nint hWnd);
+
+        [LibraryImport("user32.dll")]
+        public static partial nint GetForegroundWindow();
+
+        [LibraryImport("user32.dll")]
+        public static partial uint GetWindowThreadProcessId(nint hWnd, out uint lpdwProcessId);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool AttachThreadInput(uint idAttach, uint idAttachTo, [MarshalAs(UnmanagedType.Bool)] bool fAttach);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool BringWindowToTop(nint hWnd);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool ShowWindow(nint hWnd, int nCmdShow);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool FlashWindowEx(in FLASHWINFO pwfi);
+
+        [LibraryImport("kernel32.dll")]
+        public static partial uint GetCurrentThreadId();
     }
 }

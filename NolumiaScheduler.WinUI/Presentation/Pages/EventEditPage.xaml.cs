@@ -43,6 +43,7 @@ public sealed partial class EventEditPage : Page
     private bool _suppressYearlyWeekdayChanged;
     private bool _suppressAdjustmentChanged;
     private bool _suppressCalendarPickerChanged;
+    private bool _suppressWeekdayChanged;
 
 
     // 15-minute interval time items ("00:00" to "23:45"). Each picker has its own observable
@@ -82,6 +83,7 @@ public sealed partial class EventEditPage : Page
         Notify15Label.Text      = AppResources.AlarmNotify15Min;
         Notify5Label.Text       = AppResources.AlarmNotify5Min;
         Notify1Label.Text       = AppResources.AlarmNotify1Min;
+        Notify0Label.Text       = AppResources.AlarmNotifyAtStart;
         SaveBtn.Content         = AppResources.SaveButton;
     }
 
@@ -183,7 +185,11 @@ public sealed partial class EventEditPage : Page
         YearlyRulePicker.SelectedIndex = _vm.YearlyRuleIndex;
         _suppressYearlyRuleChanged = false;
 
-        // Weekday checkboxes for weekly recurrence
+        // Weekday checkboxes for weekly recurrence.
+        // Suppress the change handler while populating: it reads every checkbox back into the
+        // VM, so an unsuppressed mid-population assignment would clobber weekday flags that have
+        // not been applied to their checkbox yet (leaving only the first selected day checked).
+        _suppressWeekdayChanged = true;
         WChkSun.IsChecked = _vm.WeekSun;
         WChkMon.IsChecked = _vm.WeekMon;
         WChkTue.IsChecked = _vm.WeekTue;
@@ -191,6 +197,7 @@ public sealed partial class EventEditPage : Page
         WChkThu.IsChecked = _vm.WeekThu;
         WChkFri.IsChecked = _vm.WeekFri;
         WChkSat.IsChecked = _vm.WeekSat;
+        _suppressWeekdayChanged = false;
 
         // Monthly
         _suppressDomChanged = true;
@@ -252,6 +259,7 @@ public sealed partial class EventEditPage : Page
         ChkNotify15.IsChecked  = _vm.AlarmNotify15Min;
         ChkNotify5.IsChecked   = _vm.AlarmNotify5Min;
         ChkNotify1.IsChecked   = _vm.AlarmNotify1Min;
+        ChkNotify0.IsChecked   = _vm.AlarmNotifyAtStart;
 
         // Validation
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
@@ -263,6 +271,55 @@ public sealed partial class EventEditPage : Page
 
         // Apply initial section visibility
         ApplySectionVisibility();
+    }
+
+    // Push the VM's recurrence selector values into the weekday checkboxes and the monthly/yearly
+    // inputs. Used when the recurrence type changes so start-date-based defaults appear in the UI.
+    private void SyncRecurrenceInputsFromVm()
+    {
+        if (_vm == null) return;
+
+        _suppressWeekdayChanged = true;
+        WChkSun.IsChecked = _vm.WeekSun;
+        WChkMon.IsChecked = _vm.WeekMon;
+        WChkTue.IsChecked = _vm.WeekTue;
+        WChkWed.IsChecked = _vm.WeekWed;
+        WChkThu.IsChecked = _vm.WeekThu;
+        WChkFri.IsChecked = _vm.WeekFri;
+        WChkSat.IsChecked = _vm.WeekSat;
+        _suppressWeekdayChanged = false;
+
+        _suppressDomChanged = true;
+        DomBox.Text = _vm.DayOfMonth.ToString();
+        _suppressDomChanged = false;
+
+        _suppressWeekIndexChanged = true;
+        WeekIndexPicker.SelectedIndex = _vm.WeekIndexPickerIndex;
+        _suppressWeekIndexChanged = false;
+
+        _suppressMonthlyWeekdayChanged = true;
+        MonthlyWeekdayPicker.SelectedIndex = _vm.MonthlyWeekdayIndex;
+        _suppressMonthlyWeekdayChanged = false;
+
+        _suppressYearlyMonthChanged = true;
+        YearlyMonthBox.Text = _vm.YearlyMonth.ToString();
+        _suppressYearlyMonthChanged = false;
+
+        _suppressYearlyDayChanged = true;
+        YearlyDayBox.Text = _vm.YearlyDay.ToString();
+        _suppressYearlyDayChanged = false;
+
+        _suppressYearlyMonth2Changed = true;
+        YearlyMonthBox2.Text = _vm.YearlyMonth.ToString();
+        _suppressYearlyMonth2Changed = false;
+
+        _suppressYearlyWeekIndexChanged = true;
+        YearlyWeekIndexPicker.SelectedIndex = _vm.YearlyWeekIndexPickerIndex;
+        _suppressYearlyWeekIndexChanged = false;
+
+        _suppressYearlyWeekdayChanged = true;
+        YearlyWeekdayPicker.SelectedIndex = _vm.YearlyWeekdayIndex;
+        _suppressYearlyWeekdayChanged = false;
     }
 
     private void OnTimePickerDropDownOpened(object sender, object e)
@@ -353,6 +410,9 @@ public sealed partial class EventEditPage : Page
                     RepeatTypePicker.SelectedIndex = _vm.RepeatTypeIndex;
                     _suppressRepeatTypeChanged = false;
                 }
+                // Picking a recurrence type seeds the selectors from the start date in the VM;
+                // push those values into the weekday/day/month controls so the UI reflects them.
+                SyncRecurrenceInputsFromVm();
                 break;
 
             case nameof(EventEditViewModel.HasEndDate):
@@ -578,7 +638,7 @@ public sealed partial class EventEditPage : Page
 
     private void OnWeekdayChecked(object sender, RoutedEventArgs e)
     {
-        if (_vm == null) return;
+        if (_suppressWeekdayChanged || _vm == null) return;
         _vm.WeekSun = WChkSun.IsChecked == true;
         _vm.WeekMon = WChkMon.IsChecked == true;
         _vm.WeekTue = WChkTue.IsChecked == true;
@@ -698,6 +758,7 @@ public sealed partial class EventEditPage : Page
         _vm.AlarmNotify15Min = ChkNotify15.IsChecked == true;
         _vm.AlarmNotify5Min  = ChkNotify5.IsChecked  == true;
         _vm.AlarmNotify1Min  = ChkNotify1.IsChecked  == true;
+        _vm.AlarmNotifyAtStart = ChkNotify0.IsChecked == true;
     }
 
     private async void OnSaveClicked(object sender, RoutedEventArgs e)

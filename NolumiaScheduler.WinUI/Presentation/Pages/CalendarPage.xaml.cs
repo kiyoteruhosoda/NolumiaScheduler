@@ -17,9 +17,17 @@ public sealed partial class CalendarPage : Page
     private CalendarViewModel? _vm;
     private readonly List<EventEditWindow> _openEditWindows = [];
 
+    // Ticks while the page is shown so the week view's "now" line keeps moving and the "today"
+    // highlight follows a midnight rollover even when the app is just left running.
+    private readonly DispatcherTimer _clockTimer;
+
     public CalendarPage()
     {
         InitializeComponent();
+
+        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        _clockTimer.Tick += OnClockTick;
+        Unloaded += (_, _) => _clockTimer.Stop();
 
         // Static strings
         BtnToday.Content     = AppResources.TodayButton;
@@ -43,7 +51,16 @@ public sealed partial class CalendarPage : Page
         else
             _vm.SwitchToWeekViewCommand.Execute(null);
         BindViewModel();
+        _clockTimer.Start();
     }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        _clockTimer.Stop();
+        base.OnNavigatedFrom(e);
+    }
+
+    private void OnClockTick(object? sender, object e) => _vm?.RefreshCurrentTime();
 
     private void BindViewModel()
     {
@@ -56,10 +73,12 @@ public sealed partial class CalendarPage : Page
         WeekView.WeekTimeSlots     = _vm.WeekTimeSlots;
         WeekView.WeekDayColumns    = _vm.WeekDayColumns;
         WeekView.WeekAllDayEventBlocks = _vm.WeekAllDayEventBlocks;
-        WeekView.WeekStartDate     = _vm.WeekStartDate;
         WeekView.WeekCanvasHeight  = CalendarViewModel.WeekCanvasHeight;
-        WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
+        // Set IsCurrentWeek / CurrentTimeLineTop before WeekStartDate so the per-week scroll
+        // anchor (now vs 9:00) is resolved correctly when the week-change handler runs.
+        WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
         WeekView.IsCurrentWeek     = _vm.IsCurrentWeek;
+        WeekView.WeekStartDate     = _vm.WeekStartDate;
         UpdateViewMode();
         UpdateSelectedDayPanel();
 
@@ -109,14 +128,14 @@ public sealed partial class CalendarPage : Page
                     WeekView.WeekStartDate = _vm.WeekStartDate;
                     break;
                 case nameof(CalendarViewModel.IsCurrentWeek):
-                    WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
+                    WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
                     WeekView.IsCurrentWeek = _vm.IsCurrentWeek;
                     break;
                 case nameof(CalendarViewModel.WeekCanvasHeight):
                     WeekView.WeekCanvasHeight = CalendarViewModel.WeekCanvasHeight;
                     break;
                 case nameof(CalendarViewModel.CurrentTimeLineTop):
-                    WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
+                    WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
                     break;
             }
         };
@@ -146,7 +165,7 @@ public sealed partial class CalendarPage : Page
         }
         else if (!isMonth)
         {
-            WeekView.CurrentTimeLineTop = CalendarViewModel.CurrentTimeLineTop;
+            WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
             WeekView.IsCurrentWeek = _vm.IsCurrentWeek;
             WeekView.RequestScroll();
         }
@@ -173,9 +192,19 @@ public sealed partial class CalendarPage : Page
     }
 
     // Header buttons
+    // Week navigation (< / >) intentionally does NOT scroll: the user wants to keep the same
+    // time-of-day in view while comparing adjacent weeks.
     private void OnPrevClicked(object sender, RoutedEventArgs e)  => _vm?.PreviousMonthCommand.Execute(null);
     private void OnNextClicked(object sender, RoutedEventArgs e)  => _vm?.NextMonthCommand.Execute(null);
-    private void OnTodayClicked(object sender, RoutedEventArgs e) => _vm?.GoTodayCommand.Execute(null);
+
+    private void OnTodayClicked(object sender, RoutedEventArgs e)
+    {
+        _vm?.GoTodayCommand.Execute(null);
+        // Today is an explicit "take me back to now" action, so re-anchor the week view to the
+        // current time.
+        if (_vm is { IsMonthMode: false })
+            WeekView.RequestScroll();
+    }
 
     private void OnNewEventForSelectedDayClicked(object sender, RoutedEventArgs e)
     {

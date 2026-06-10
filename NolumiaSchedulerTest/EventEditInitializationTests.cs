@@ -159,6 +159,140 @@ public class EventEditInitializationTests
         Assert.IsFalse(vm.HasValidationError);
     }
 
+    [TestMethod]
+    public void 系列全体を選ぶと繰り返しの曜日が更新される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-series"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-series", key);
+
+        // The loaded series recurs on Wednesday only; redefine it to Monday + Friday.
+        vm.WeekWed = false;
+        vm.WeekMon = true;
+        vm.WeekFri = true;
+
+        vm.Save(RecurringEditScope.EntireSeries);
+        Assert.IsFalse(vm.HasValidationError);
+
+        // No split occurs: the series keeps its identity.
+        Assert.HasCount(1, repo.FindAll());
+
+        var saved = repo.FindById(new EventId("rec-series"))!;
+        CollectionAssert.AreEquivalent(
+            new[] { Weekday.Monday, Weekday.Friday },
+            saved.RecurringSchedule!.RecurrenceRule.Weekly!.Weekdays.ToList());
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1), saved.RecurringSchedule.StartDate);
+    }
+
+    [TestMethod]
+    public void 複数曜日の週次予定を読み込むと該当曜日がすべて選択される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateWeeklyEvent("rec-multi", Weekday.Tuesday, Weekday.Thursday));
+
+        vm.LoadEvent("rec-multi", new OccurrenceLocalKey(new LocalDateValue(2026, 5, 5), new LocalTimeValue(9, 30, 0)));
+
+        Assert.IsTrue(vm.WeekTue, "Tuesday should be checked");
+        Assert.IsTrue(vm.WeekThu, "Thursday should be checked");
+        Assert.IsFalse(vm.WeekMon, "Monday should not be checked");
+        Assert.IsFalse(vm.WeekWed, "Wednesday should not be checked");
+    }
+
+    [TestMethod]
+    public void 系列全体で終了日を開始日より前にすると検証エラーになる()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-end")); // series starts 2026-05-01
+
+        vm.LoadEvent("rec-end", new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0)));
+        vm.HasEndDate = true;
+        vm.EndDate = new DateTime(2026, 4, 1); // before the series start
+
+        vm.Save(RecurringEditScope.EntireSeries);
+
+        Assert.IsTrue(vm.HasValidationError);
+        Assert.HasCount(1, repo.FindAll());
+    }
+
+    [TestMethod]
+    public void 新規週次予定で終了日が開始日より前だと検証エラーになる()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 1), 540);
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Weekly; // Monday selected by default
+        vm.HasEndDate = true;
+        vm.EndDate = new DateTime(2026, 5, 1); // before start
+
+        vm.Save();
+
+        Assert.IsTrue(vm.HasValidationError);
+    }
+
+    [TestMethod]
+    public void 読み込み時に過去終了日が既定値で上書きされない()
+    {
+        var vm = CreateViewModel(out var repo);
+        // A series that already ended in the past.
+        repo.Save(CreateWeeklyEvent("rec-ended", new LocalDateValue(2020, 1, 6),
+            new LocalDateValue(2020, 3, 30), Weekday.Monday));
+
+        vm.LoadEvent("rec-ended", new OccurrenceLocalKey(new LocalDateValue(2020, 1, 6), new LocalTimeValue(9, 30, 0)));
+
+        Assert.IsTrue(vm.HasEndDate);
+        Assert.AreEqual(new DateTime(2020, 3, 30), vm.EndDate.Date);
+    }
+
+    [TestMethod]
+    public void 新規週次は開始日の曜日が初期選択される()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 3), 540); // Wednesday
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Weekly;
+
+        Assert.IsTrue(vm.WeekWed, "Wednesday should be the default");
+        Assert.IsFalse(vm.WeekMon);
+        Assert.IsFalse(vm.WeekSun);
+        Assert.IsFalse(vm.WeekTue);
+        Assert.IsFalse(vm.WeekThu);
+    }
+
+    [TestMethod]
+    public void 新規月次は開始日の日が初期値になる()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 18), 540);
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Monthly;
+
+        Assert.AreEqual(18, vm.DayOfMonth);
+    }
+
+    [TestMethod]
+    public void 新規年次は開始日の月日が初期値になる()
+    {
+        var vm = CreateViewModel();
+        vm.InitializeNewEvent(new DateOnly(2026, 6, 15), 540);
+        vm.RepeatTypeIndex = (int)RepeatTypeIndex.Yearly;
+
+        Assert.AreEqual(6, vm.YearlyMonth);
+        Assert.AreEqual(15, vm.YearlyDay);
+    }
+
+    [TestMethod]
+    public void 既存週次の読み込みは開始日デフォルトで上書きされない()
+    {
+        // Series starts 2026-05-01 (a Friday) but recurs Tue + Thu. Loading must keep Tue/Thu
+        // and must not force-select the start weekday (Friday).
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateWeeklyEvent("rec-load-def", Weekday.Tuesday, Weekday.Thursday));
+        vm.LoadEvent("rec-load-def", new OccurrenceLocalKey(new LocalDateValue(2026, 5, 5), new LocalTimeValue(9, 30, 0)));
+
+        Assert.IsTrue(vm.WeekTue);
+        Assert.IsTrue(vm.WeekThu);
+        Assert.IsFalse(vm.WeekFri);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();
@@ -194,6 +328,20 @@ public class EventEditInitializationTests
             new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false,
             new RecurringEventSchedule(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), new LocalTimeValue(10, 30, 0),
                 new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31), weekly: new WeeklyRule([Weekday.Wednesday])), false),
+            now);
+    }
+
+    private static CalendarEvent CreateWeeklyEvent(string id, params Weekday[] days)
+        => CreateWeeklyEvent(id, new LocalDateValue(2026, 5, 1), new LocalDateValue(2026, 12, 31), days);
+
+    private static CalendarEvent CreateWeeklyEvent(string id, LocalDateValue start, LocalDateValue end, params Weekday[] days)
+    {
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var now = DateTimeOffset.UtcNow;
+        return CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false,
+            new RecurringEventSchedule(start, new LocalTimeValue(9, 30, 0), new LocalTimeValue(10, 30, 0),
+                new RecurrenceRule(RecurrenceType.Weekly, 1, end, weekly: new WeeklyRule([.. days])), false),
             now);
     }
 

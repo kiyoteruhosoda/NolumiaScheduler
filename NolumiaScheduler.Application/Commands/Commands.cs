@@ -66,6 +66,16 @@ public sealed record MoveOccurrenceCommand(
     string? Location,
     Visibility? Visibility);
 
+public sealed record UpdateRecurringSeriesCommand(
+    string EventId,
+    string Title,
+    string? Location,
+    Visibility Visibility,
+    LocalTimeValue? StartTime,
+    LocalTimeValue? EndTime,
+    RecurrenceRule RecurrenceRule,
+    EventAlarm? Alarm = null);
+
 public sealed record ChangeFollowingOccurrencesCommand(
     string EventId,
     OccurrenceLocalKey FromOccurrenceKey,

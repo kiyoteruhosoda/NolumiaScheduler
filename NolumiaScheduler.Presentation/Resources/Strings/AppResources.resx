@@ -71,6 +71,7 @@
   <data name="BusinessCalendarLabel" xml:space="preserve"><value>Business Calendar</value></data>
   <data name="ErrorTitleRequired" xml:space="preserve"><value>Title is required.</value></data>
   <data name="ErrorWeekdayRequired" xml:space="preserve"><value>Select at least one day.</value></data>
+  <data name="ErrorEndDateBeforeStart" xml:space="preserve"><value>End date must be on or after the start date.</value></data>
 
   <!-- Event actions -->
   <data name="EditButton" xml:space="preserve"><value>Edit</value></data>
@@ -114,6 +115,7 @@
   <data name="AlarmNotify15Min" xml:space="preserve"><value>15 minutes before</value></data>
   <data name="AlarmNotify5Min" xml:space="preserve"><value>5 minutes before</value></data>
   <data name="AlarmNotify1Min" xml:space="preserve"><value>1 minute before</value></data>
+  <data name="AlarmNotifyAtStart" xml:space="preserve"><value>At start time</value></data>
   <data name="AlarmDismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="AlarmSnooze5Min" xml:space="preserve"><value>Snooze 5 min</value></data>
   <data name="AlarmSnooze1Min" xml:space="preserve"><value>Snooze 1 min</value></data>

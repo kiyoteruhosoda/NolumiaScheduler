@@ -63,6 +63,13 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private string _validationError = "";
     private string? _editingEventId;
     private bool _wasRecurringAtLoad;
+    // Set while loading a saved event so changing RepeatTypeIndex does not overwrite the saved
+    // recurrence selectors with start-date defaults.
+    private bool _suppressRecurrenceDefaults;
+    // Start date of the loaded recurring series. The editable StartDate tracks the occurrence
+    // being edited, so the end-date validation for an entire-series edit must compare against
+    // the original series start, not the occurrence date.
+    private DateTime _seriesStartDate = DateTime.Today;
     private string _timeZoneId = EventEditDefaults.DefaultTimeZone;
 
     // ── Alarm ────────────────────────────────────────────────
@@ -70,6 +77,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private bool _alarmNotify15Min = true;
     private bool _alarmNotify5Min = true;
     private bool _alarmNotify1Min = true;
+    private bool _alarmNotifyAtStart = true;
 
     // ── Constructor ──────────────────────────────────────────
     public EventEditViewModel(
@@ -151,6 +159,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             var effectiveDate = occurrenceKey?.Date ?? sched.StartDate;
             var effectiveStart = occurrenceKey?.Time ?? sched.StartTime;
 
+            _seriesStartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
             StartDate = new DateTime(effectiveDate.Year, effectiveDate.Month, effectiveDate.Day);
             StartTime = effectiveStart != null ? new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0) : new TimeSpan(9, 0, 0);
 
@@ -162,16 +171,34 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             LoadRecurrenceRule(sched.RecurrenceRule);
         }
 
-        AlarmEnabled     = ev.Alarm?.IsEnabled   ?? false;
-        AlarmNotify15Min = ev.Alarm?.Notify15Min ?? true;
-        AlarmNotify5Min  = ev.Alarm?.Notify5Min  ?? true;
-        AlarmNotify1Min  = ev.Alarm?.Notify1Min  ?? true;
+        AlarmEnabled      = ev.Alarm?.IsEnabled    ?? false;
+        AlarmNotify15Min  = ev.Alarm?.Notify15Min  ?? true;
+        AlarmNotify5Min   = ev.Alarm?.Notify5Min   ?? true;
+        AlarmNotify1Min   = ev.Alarm?.Notify1Min   ?? true;
+        AlarmNotifyAtStart = ev.Alarm?.NotifyAtStart ?? true;
     }
 
     private void LoadRecurrenceRule(RecurrenceRule rule)
     {
-        EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
+        // Loading assigns the saved recurrence selectors explicitly, so suppress the start-date
+        // defaulting that RepeatTypeIndex would otherwise trigger.
+        _suppressRecurrenceDefaults = true;
+        try
+        {
+            LoadRecurrenceRuleCore(rule);
+        }
+        finally
+        {
+            _suppressRecurrenceDefaults = false;
+        }
+    }
+
+    private void LoadRecurrenceRuleCore(RecurrenceRule rule)
+    {
+        // Set HasEndDate before EndDate: the HasEndDate setter bumps a stale default forward,
+        // which would clobber an already-ended series' real end date if EndDate were set first.
         HasEndDate = rule.EndDate.Year < 9999;
+        EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
         Interval = rule.Interval;
 
         switch (rule.RuleType)
@@ -345,7 +372,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         get => _repeatTypeIndex;
         set
         {
+            var becameRecurring = value != _repeatTypeIndex
+                && value != (int)ViewModels.RepeatTypeIndex.None;
             _repeatTypeIndex = value;
+
+            // Seed the weekday / day-of-month / month defaults from the start date when the user
+            // picks a recurrence type (not while loading an existing event, which assigns the
+            // saved values right after). Apply before notifying so the view reads fresh values.
+            if (becameRecurring && !_suppressRecurrenceDefaults)
+                ApplyStartDateRecurrenceDefaults();
+
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsRecurring));
             OnPropertyChanged(nameof(IsWeekly));
@@ -354,6 +390,33 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             OnPropertyChanged(nameof(IntervalUnitLabel));
             OnPropertyChanged(nameof(RequiresRecurringEditScopeSelection));
         }
+    }
+
+    // Default the recurrence selectors to the start date: weekly selects the start weekday,
+    // monthly uses the start day-of-month (and the matching nth-weekday), yearly uses the start
+    // month/day.
+    private void ApplyStartDateRecurrenceDefaults()
+    {
+        var start = _startDate;
+        var dow = start.DayOfWeek;
+        var weekIndex = Math.Clamp((start.Day - 1) / 7, 0, 4); // 0=1st … 4=5th occurrence
+
+        WeekSun = dow == DayOfWeek.Sunday;
+        WeekMon = dow == DayOfWeek.Monday;
+        WeekTue = dow == DayOfWeek.Tuesday;
+        WeekWed = dow == DayOfWeek.Wednesday;
+        WeekThu = dow == DayOfWeek.Thursday;
+        WeekFri = dow == DayOfWeek.Friday;
+        WeekSat = dow == DayOfWeek.Saturday;
+
+        DayOfMonth = start.Day;
+        MonthlyWeekdayIndex = (int)dow;     // 0=Sun … 6=Sat (matches WeekdayItems / Weekday enum)
+        WeekIndexPickerIndex = weekIndex;
+
+        YearlyMonth = start.Month;
+        YearlyDay = start.Day;
+        YearlyWeekdayIndex = (int)dow;
+        YearlyWeekIndexPickerIndex = weekIndex;
     }
 
     public int Interval
@@ -507,6 +570,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set { _alarmNotify1Min = value; OnPropertyChanged(); }
     }
 
+    public bool AlarmNotifyAtStart
+    {
+        get => _alarmNotifyAtStart;
+        set { _alarmNotifyAtStart = value; OnPropertyChanged(); }
+    }
+
     public bool ShowAlarmNotifyOptions => _alarmEnabled;
 
     // ── Computed visibility ──────────────────────────────────────────
@@ -605,6 +674,19 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                         CompleteSaveIfValid();
                         return;
                     }
+
+                    // RecurringEditScope.EntireSeries falls through to the series update below.
+                }
+
+                // Editing a recurring event (entire series, or a recurring event opened without
+                // an occurrence context) must redefine the recurrence rule and times, not just
+                // the details. UpdateExisting only handles single events.
+                if (_wasRecurringAtLoad && IsRecurring)
+                {
+                    SaveEntireSeries(_editingEventId);
+                    if (!string.IsNullOrEmpty(ValidationError)) return;
+                    CompleteSaveIfValid();
+                    return;
                 }
 
                 UpdateExisting(_editingEventId);
@@ -638,6 +720,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             return;
         }
 
+        // The new (following) series starts at the split occurrence date, so the end date must
+        // be on or after that date — not the original series start.
+        var followingStart = new DateTime(
+            EditingOccurrenceKey.Date.Year, EditingOccurrenceKey.Date.Month, EditingOccurrenceKey.Date.Day);
+        if (!EndDateIsValid(followingStart))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
+        }
+
         var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
 
@@ -653,7 +745,40 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newStart,
             newEnd,
             newRule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
+    }
+
+    private void SaveEntireSeries(string eventId)
+    {
+        if (IsWeekly)
+        {
+            var selectedDays = CollectWeekdays();
+            if (selectedDays.Count == 0)
+            {
+                ValidationError = AppResources.ErrorWeekdayRequired;
+                return;
+            }
+        }
+
+        if (!EndDateIsValid(_seriesStartDate))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
+        }
+
+        var rule = BuildRecurrenceRule();
+        var startTime = new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        var endTime   = new LocalTimeValue(EndTime.Hours,   EndTime.Minutes,   0);
+
+        _eventService.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
+            eventId,
+            Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            startTime,
+            endTime,
+            rule,
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveThisOccurrence(string eventId)
@@ -702,7 +827,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newDate,
             newStartTime,
             newEndTime,
-            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveSingle()
@@ -717,7 +842,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             DateOnly.FromDateTime(StartDate),
             AllDay ? TimeSpan.Zero : StartTime,
             AllDay ? TimeSpan.Zero : EndTime,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveRecurring()
@@ -730,6 +855,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 ValidationError = AppResources.ErrorWeekdayRequired;
                 return;
             }
+        }
+
+        if (!EndDateIsValid(StartDate))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
         }
 
         var rule = BuildRecurrenceRule();
@@ -746,7 +877,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             AllDay,
             startDate, startTime, endTime,
             rule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private RecurrenceRule BuildRecurrenceRule()
@@ -813,6 +944,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             direction == AdjustmentDirection.Forward ? 1 : -1,
             calId);
     }
+
+    // Reject a recurrence end date that falls before the series start. Without this the domain
+    // throws a raw (unlocalized) exception, or the series silently expands to zero occurrences.
+    private bool EndDateIsValid(DateTime seriesStart)
+        => !_hasEndDate || _endDate.Date >= seriesStart.Date;
 
     private List<Weekday> CollectWeekdays()
     {

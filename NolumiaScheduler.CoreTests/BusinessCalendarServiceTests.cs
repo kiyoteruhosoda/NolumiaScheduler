@@ -4,7 +4,7 @@ using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 
-namespace NolumiaSchedulerTest;
+namespace NolumiaScheduler.CoreTests;
 
 /// <summary>
 /// In-memory repository for testing BusinessCalendarApplicationService.

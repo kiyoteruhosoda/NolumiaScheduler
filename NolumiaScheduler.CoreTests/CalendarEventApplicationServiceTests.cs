@@ -6,7 +6,7 @@ using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
 
-namespace NolumiaSchedulerTest;
+namespace NolumiaScheduler.CoreTests;
 
 [TestClass]
 public class CalendarEventApplicationServiceTests
@@ -295,6 +295,42 @@ public class CalendarEventApplicationServiceTests
         var newSeries = all.Single(e => e.Id.Value != "split1");
         Assert.AreEqual("New Series", newSeries.Title.Value);
         Assert.AreEqual(new LocalDateValue(2026, 5, 6), newSeries.RecurringSchedule!.StartDate);
+    }
+
+    // ── UpdateRecurringSeries ──────────────────────────────────────────────
+
+    [TestMethod]
+    public void UpdateRecurringSeries_繰り返しルールと時刻と詳細が更新される()
+    {
+        SaveRecurringEvent("series1");
+
+        var newRule = new RecurrenceRule(
+            RecurrenceType.Weekly, 2,
+            new LocalDateValue(2026, 12, 31),
+            weekly: new WeeklyRule([Weekday.Monday, Weekday.Friday]));
+
+        _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
+            EventId: "series1",
+            Title: "Renamed",
+            Location: "Room B",
+            Visibility: Visibility.Public,
+            StartTime: new LocalTimeValue(13, 0, 0),
+            EndTime: new LocalTimeValue(14, 0, 0),
+            RecurrenceRule: newRule));
+
+        var all = _repo.FindAll();
+        Assert.HasCount(1, all);
+
+        var ev = all[0];
+        Assert.AreEqual("Renamed", ev.Title.Value);
+        Assert.AreEqual("Room B", ev.Location!.Value);
+        CollectionAssert.AreEquivalent(
+            new[] { Weekday.Monday, Weekday.Friday },
+            ev.RecurringSchedule!.RecurrenceRule.Weekly!.Weekdays.ToList());
+        Assert.AreEqual(2, ev.RecurringSchedule.RecurrenceRule.Interval);
+        Assert.AreEqual(13, ev.RecurringSchedule.StartTime!.Hour);
+        // The original series start date is preserved so existing occurrence keys stay aligned.
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1), ev.RecurringSchedule.StartDate);
     }
 
     // ── DeleteEvent ────────────────────────────────────────────────────────

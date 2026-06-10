@@ -105,6 +105,36 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         _repository.Save(ev);
     }
 
+    public void UpdateRecurringSeries(UpdateRecurringSeriesCommand command)
+    {
+        var ev = GetOrThrow(command.EventId);
+        if (!ev.IsRecurring() || ev.RecurringSchedule == null)
+            throw new DomainException("UpdateRecurringSeries is only valid for recurring events.");
+
+        ev.ChangeDetails(
+            new EventTitle(command.Title),
+            command.Location != null ? new Location(command.Location) : null,
+            command.Visibility,
+            ev.EventType,
+            ev.Description,
+            DateTimeOffset.UtcNow);
+
+        // Preserve the original series start date so existing occurrence keys (exceptions and
+        // moves) stay aligned; only the rule and times are redefined for the whole series. The
+        // all-day status is structural and cannot change here, so derive times from ev.AllDay.
+        var old = ev.RecurringSchedule;
+        var newSchedule = new RecurringEventSchedule(
+            old.StartDate,
+            ev.AllDay ? null : command.StartTime,
+            ev.AllDay ? null : command.EndTime,
+            command.RecurrenceRule,
+            ev.AllDay);
+
+        ev.ChangeRecurrenceSchedule(newSchedule, DateTimeOffset.UtcNow);
+        ev.SetAlarm(command.Alarm, DateTimeOffset.UtcNow);
+        _repository.Save(ev);
+    }
+
     public void SkipOccurrence(SkipOccurrenceCommand command)
     {
         var ev = GetOrThrow(command.EventId);
@@ -166,9 +196,19 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         if (!ev.IsRecurring() || ev.RecurringSchedule == null)
             throw new DomainException("ChangeFollowingOccurrences is only valid for recurring events.");
 
+        // Splitting from the very first occurrence leaves the original series with no
+        // occurrences, and an end date before its start date is invalid. In that case the edit
+        // applies to the whole series, so drop the original rather than truncating it.
         var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
-        ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
-        _repository.Save(ev);
+        if (newEndDate.CompareTo(ev.RecurringSchedule.StartDate) < 0)
+        {
+            _repository.Delete(ev.Id);
+        }
+        else
+        {
+            ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
+            _repository.Save(ev);
+        }
 
         var newId = new EventId(Guid.NewGuid().ToString());
         var newSchedule = new RecurringEventSchedule(

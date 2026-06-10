@@ -88,21 +88,15 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                var minutesBefore = new[] { 15, 5, 1, 0 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
-                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
-
-                for (int i = 0; i < minutesBefore.Length; i++)
+                foreach (var min in AlarmScheduleCalculator.Offsets)
                 {
-                    if (!notifyFlags[i]) continue;
+                    if (!AlarmScheduleCalculator.IsOffsetEnabled(ev.Alarm, min)) continue;
 
-                    var min = minutesBefore[i];
                     var key = $"{ev.Id.Value}:{occ.Date}:{min}";
                     if (_firedKeys.Contains(key)) continue;
 
                     var notifyAt = occStart.AddMinutes(-min);
-                    // Fire window: [notifyAt - 2min, notifyAt + 1min]
-                    if (now >= notifyAt.AddMinutes(-2) && now <= notifyAt.AddMinutes(1))
+                    if (AlarmScheduleCalculator.IsDue(now, notifyAt))
                     {
                         _firedKeys.Add(key);
                         var msg = GetMinuteMessage(min);
@@ -136,6 +130,9 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
                 {
                     var alarmWindow = new AlarmNotificationWindow(title, message, location, eventStartTime);
                     alarmWindow.Activate();
+                    // Push to the foreground after Activate(); the window's own Activated handler
+                    // also does this, but call it here as a safety net for activation timing.
+                    alarmWindow.ForceToForeground();
 
                     var result = await alarmWindow.WaitForResultAsync();
                     tcs.TrySetResult(result);
@@ -192,7 +189,7 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
             {
                 if (occ.AllDay || occ.StartTime == null) continue;
 
-                foreach (var min in new[] { 15, 5, 1, 0 })
+                foreach (var min in AlarmScheduleCalculator.Offsets)
                 {
                     var key = $"{ev.Id.Value}:{occ.Date}:{min}";
                     _firedKeys.Add(key);
@@ -226,14 +223,9 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                var minutesBefore = new[] { 15, 5, 1, 0 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
-                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
-
-                for (int i = 0; i < minutesBefore.Length; i++)
+                foreach (var min in AlarmScheduleCalculator.Offsets)
                 {
-                    if (!notifyFlags[i]) continue;
-                    var min = minutesBefore[i];
+                    if (!AlarmScheduleCalculator.IsOffsetEnabled(ev.Alarm, min)) continue;
                     var key = $"{ev.Id.Value}:{occ.Date}:{min}";
                     var notifyAt = occStart.AddMinutes(-min);
                     results.Add(new AlarmScheduleEntry(
@@ -299,19 +291,15 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
                     occ.Date.Year, occ.Date.Month, occ.Date.Day,
                     occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
-                lines.Add($"    occ {occ.Date} start={occStart:HH:mm} | 15m={ev.Alarm.Notify15Min} 5m={ev.Alarm.Notify5Min} 1m={ev.Alarm.Notify1Min}");
+                lines.Add($"    occ {occ.Date} start={occStart:HH:mm} | 15m={ev.Alarm.Notify15Min} 5m={ev.Alarm.Notify5Min} 1m={ev.Alarm.Notify1Min} atStart={ev.Alarm.NotifyAtStart}");
 
-                var minutesBefore = new[] { 15, 5, 1, 0 };
-                var notifyFlags = new[] { ev.Alarm.Notify15Min, ev.Alarm.Notify5Min, ev.Alarm.Notify1Min,
-                    !ev.Alarm.Notify15Min && !ev.Alarm.Notify5Min && !ev.Alarm.Notify1Min };
-                for (int i = 0; i < minutesBefore.Length; i++)
+                foreach (var min in AlarmScheduleCalculator.Offsets)
                 {
-                    if (!notifyFlags[i]) continue;
-                    var min = minutesBefore[i];
+                    if (!AlarmScheduleCalculator.IsOffsetEnabled(ev.Alarm, min)) continue;
                     var notifyAt = occStart.AddMinutes(-min);
                     var key = $"{ev.Id.Value}:{occ.Date}:{min}";
                     var fired = _firedKeys.Contains(key);
-                    var inWindow = now >= notifyAt.AddMinutes(-2) && now <= notifyAt.AddMinutes(1);
+                    var inWindow = AlarmScheduleCalculator.IsDue(now, notifyAt);
                     lines.Add($"      {min}min: notifyAt={notifyAt:HH:mm:ss} fired={fired} inWindow={inWindow}");
                 }
             }
