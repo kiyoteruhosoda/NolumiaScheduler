@@ -114,6 +114,9 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         var services = new ServiceCollection();
 
+        // System clock (injected so wall-clock-dependent view models stay testable)
+        services.AddSingleton(TimeProvider.System);
+
         // Domain services
         services.AddSingleton<IBusinessDayShiftService, BusinessDayShiftService>();
         services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
