@@ -136,6 +136,9 @@ public class AlarmService(CalendarEventApplicationService eventService, IOccurre
                 {
                     var alarmWindow = new AlarmNotificationWindow(title, message, location, eventStartTime);
                     alarmWindow.Activate();
+                    // Push to the foreground after Activate(); the window's own Activated handler
+                    // also does this, but call it here as a safety net for activation timing.
+                    alarmWindow.ForceToForeground();
 
                     var result = await alarmWindow.WaitForResultAsync();
                     tcs.TrySetResult(result);
