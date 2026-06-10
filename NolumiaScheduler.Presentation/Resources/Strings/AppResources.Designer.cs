@@ -127,6 +127,7 @@ public static class AppResources
     public static string AlarmNotify15Min    => Get(nameof(AlarmNotify15Min));
     public static string AlarmNotify5Min     => Get(nameof(AlarmNotify5Min));
     public static string AlarmNotify1Min     => Get(nameof(AlarmNotify1Min));
+    public static string AlarmNotifyAtStart  => Get(nameof(AlarmNotifyAtStart));
     public static string AlarmDismiss        => Get(nameof(AlarmDismiss));
     public static string AlarmSnooze5Min     => Get(nameof(AlarmSnooze5Min));
     public static string AlarmSnooze1Min     => Get(nameof(AlarmSnooze1Min));

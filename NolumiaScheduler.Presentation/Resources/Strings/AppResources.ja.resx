@@ -337,6 +337,12 @@
   <data name="AlarmNotify1Min" xml:space="preserve">
     <value>1分前</value>
   </data>
+  <data name="AlarmNotifyAtStart" xml:space="preserve">
+    <value>開始時刻</value>
+  </data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve">
+    <value>まもなく開始です</value>
+  </data>
   <data name="AlarmDismiss" xml:space="preserve">
     <value>閉じる</value>
   </data>

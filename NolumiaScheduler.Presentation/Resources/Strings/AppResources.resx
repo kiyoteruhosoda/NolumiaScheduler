@@ -115,6 +115,7 @@
   <data name="AlarmNotify15Min" xml:space="preserve"><value>15 minutes before</value></data>
   <data name="AlarmNotify5Min" xml:space="preserve"><value>5 minutes before</value></data>
   <data name="AlarmNotify1Min" xml:space="preserve"><value>1 minute before</value></data>
+  <data name="AlarmNotifyAtStart" xml:space="preserve"><value>At start time</value></data>
   <data name="AlarmDismiss" xml:space="preserve"><value>Dismiss</value></data>
   <data name="AlarmSnooze5Min" xml:space="preserve"><value>Snooze 5 min</value></data>
   <data name="AlarmSnooze1Min" xml:space="preserve"><value>Snooze 1 min</value></data>

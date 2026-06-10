@@ -237,6 +237,12 @@
                                        Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
                             <CheckBox x:Name="ChkNotify1" Grid.Column="1" Checked="OnAlarmChecked" Unchecked="OnAlarmChecked"/>
                         </Grid>
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                            <TextBlock x:Name="Notify0Label" Grid.Column="0" FontSize="14"
+                                       Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                            <CheckBox x:Name="ChkNotify0" Grid.Column="1" Checked="OnAlarmChecked" Unchecked="OnAlarmChecked"/>
+                        </Grid>
                     </StackPanel>
                 </StackPanel>
             </Border>

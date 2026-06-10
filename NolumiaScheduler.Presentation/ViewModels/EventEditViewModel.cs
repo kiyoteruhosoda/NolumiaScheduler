@@ -77,6 +77,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private bool _alarmNotify15Min = true;
     private bool _alarmNotify5Min = true;
     private bool _alarmNotify1Min = true;
+    private bool _alarmNotifyAtStart = true;
 
     // ── Constructor ──────────────────────────────────────────
     public EventEditViewModel(
@@ -170,10 +171,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             LoadRecurrenceRule(sched.RecurrenceRule);
         }
 
-        AlarmEnabled     = ev.Alarm?.IsEnabled   ?? false;
-        AlarmNotify15Min = ev.Alarm?.Notify15Min ?? true;
-        AlarmNotify5Min  = ev.Alarm?.Notify5Min  ?? true;
-        AlarmNotify1Min  = ev.Alarm?.Notify1Min  ?? true;
+        AlarmEnabled      = ev.Alarm?.IsEnabled    ?? false;
+        AlarmNotify15Min  = ev.Alarm?.Notify15Min  ?? true;
+        AlarmNotify5Min   = ev.Alarm?.Notify5Min   ?? true;
+        AlarmNotify1Min   = ev.Alarm?.Notify1Min   ?? true;
+        AlarmNotifyAtStart = ev.Alarm?.NotifyAtStart ?? true;
     }
 
     private void LoadRecurrenceRule(RecurrenceRule rule)
@@ -568,6 +570,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set { _alarmNotify1Min = value; OnPropertyChanged(); }
     }
 
+    public bool AlarmNotifyAtStart
+    {
+        get => _alarmNotifyAtStart;
+        set { _alarmNotifyAtStart = value; OnPropertyChanged(); }
+    }
+
     public bool ShowAlarmNotifyOptions => _alarmEnabled;
 
     // ── Computed visibility ──────────────────────────────────────────
@@ -737,7 +745,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newStart,
             newEnd,
             newRule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveEntireSeries(string eventId)
@@ -770,7 +778,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             startTime,
             endTime,
             rule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveThisOccurrence(string eventId)
@@ -819,7 +827,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newDate,
             newStartTime,
             newEndTime,
-            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveSingle()
@@ -834,7 +842,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             DateOnly.FromDateTime(StartDate),
             AllDay ? TimeSpan.Zero : StartTime,
             AllDay ? TimeSpan.Zero : EndTime,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private void SaveRecurring()
@@ -869,7 +877,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             AllDay,
             startDate, startTime, endTime,
             rule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
     }
 
     private RecurrenceRule BuildRecurrenceRule()

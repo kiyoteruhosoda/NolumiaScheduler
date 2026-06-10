@@ -99,7 +99,7 @@ internal class CalendarEventDto
         var moves = Moves.Select(m => m.ToDomain()).ToList();
 
         EventAlarm? alarm = Alarm != null
-            ? new EventAlarm(Alarm.IsEnabled, Alarm.Notify15Min, Alarm.Notify5Min, Alarm.Notify1Min)
+            ? new EventAlarm(Alarm.IsEnabled, Alarm.Notify15Min, Alarm.Notify5Min, Alarm.Notify1Min, Alarm.NotifyAtStart)
             : null;
 
         return CalendarEvent.Reconstitute(
@@ -150,7 +150,8 @@ internal class CalendarEventDto
                 IsEnabled = ev.Alarm.IsEnabled,
                 Notify15Min = ev.Alarm.Notify15Min,
                 Notify5Min = ev.Alarm.Notify5Min,
-                Notify1Min = ev.Alarm.Notify1Min
+                Notify1Min = ev.Alarm.Notify1Min,
+                NotifyAtStart = ev.Alarm.NotifyAtStart
             } : null,
             Version = ev.Version.Value,
             CreatedAt = ev.CreatedAt.ToString("O"),
@@ -165,6 +166,8 @@ internal class AlarmDto
     public bool Notify15Min { get; set; } = true;
     public bool Notify5Min { get; set; } = true;
     public bool Notify1Min { get; set; } = true;
+    // Defaults to true so events saved before this field existed still alarm at the start time.
+    public bool NotifyAtStart { get; set; } = true;
 }
 
 internal class SingleScheduleDto

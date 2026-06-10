@@ -83,6 +83,7 @@ public sealed partial class EventEditPage : Page
         Notify15Label.Text      = AppResources.AlarmNotify15Min;
         Notify5Label.Text       = AppResources.AlarmNotify5Min;
         Notify1Label.Text       = AppResources.AlarmNotify1Min;
+        Notify0Label.Text       = AppResources.AlarmNotifyAtStart;
         SaveBtn.Content         = AppResources.SaveButton;
     }
 
@@ -258,6 +259,7 @@ public sealed partial class EventEditPage : Page
         ChkNotify15.IsChecked  = _vm.AlarmNotify15Min;
         ChkNotify5.IsChecked   = _vm.AlarmNotify5Min;
         ChkNotify1.IsChecked   = _vm.AlarmNotify1Min;
+        ChkNotify0.IsChecked   = _vm.AlarmNotifyAtStart;
 
         // Validation
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
@@ -756,6 +758,7 @@ public sealed partial class EventEditPage : Page
         _vm.AlarmNotify15Min = ChkNotify15.IsChecked == true;
         _vm.AlarmNotify5Min  = ChkNotify5.IsChecked  == true;
         _vm.AlarmNotify1Min  = ChkNotify1.IsChecked  == true;
+        _vm.AlarmNotifyAtStart = ChkNotify0.IsChecked == true;
     }
 
     private async void OnSaveClicked(object sender, RoutedEventArgs e)
