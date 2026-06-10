@@ -21,7 +21,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private readonly IOccurrenceExpander _expander;
     private readonly IWeekEventLayoutStrategy _weekEventLayoutStrategy;
     private readonly IWeekAllDayLayoutStrategy _weekAllDayLayoutStrategy;
-    private readonly DateTime _today = DateTime.Today.Date;
+    private DateTime _today = DateTime.Today.Date;
 
     private DateTime _month;
     private CalendarDayCell? _selectedCell;
@@ -211,6 +211,26 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     }
 
     public void ReloadCurrentMonth() => RefreshAfterChange();
+
+    /// <summary>
+    /// Re-evaluates wall-clock-dependent state so the view keeps up while the app is left
+    /// running. The "now" line moves every minute; on a midnight rollover the "today"
+    /// highlight has to move to the new day and the current-week test re-run. Driven by a
+    /// periodic timer in the hosting page (no clock ticks on its own here).
+    /// </summary>
+    public void RefreshCurrentTime()
+    {
+        // The "now" line position depends on the current time of day.
+        OnPropertyChanged(nameof(CurrentTimeLineTop));
+
+        if (_today == DateTime.Today.Date) return;
+
+        // The date changed (e.g. the app stayed open past midnight): rebuild so the "today"
+        // highlight lands on the new day. This keeps the same month/week in view — it only
+        // refreshes which cell/column is marked as today, not where the user navigated to.
+        _today = DateTime.Today.Date;
+        RefreshAfterChange();
+    }
 
     public bool IsEventRecurring(string eventId) =>
         _eventService.FindById(eventId)?.IsRecurring() ?? false;

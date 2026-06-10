@@ -17,9 +17,17 @@ public sealed partial class CalendarPage : Page
     private CalendarViewModel? _vm;
     private readonly List<EventEditWindow> _openEditWindows = [];
 
+    // Ticks while the page is shown so the week view's "now" line keeps moving and the "today"
+    // highlight follows a midnight rollover even when the app is just left running.
+    private readonly DispatcherTimer _clockTimer;
+
     public CalendarPage()
     {
         InitializeComponent();
+
+        _clockTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(30) };
+        _clockTimer.Tick += OnClockTick;
+        Unloaded += (_, _) => _clockTimer.Stop();
 
         // Static strings
         BtnToday.Content     = AppResources.TodayButton;
@@ -43,7 +51,16 @@ public sealed partial class CalendarPage : Page
         else
             _vm.SwitchToWeekViewCommand.Execute(null);
         BindViewModel();
+        _clockTimer.Start();
     }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        _clockTimer.Stop();
+        base.OnNavigatedFrom(e);
+    }
+
+    private void OnClockTick(object? sender, object e) => _vm?.RefreshCurrentTime();
 
     private void BindViewModel()
     {
