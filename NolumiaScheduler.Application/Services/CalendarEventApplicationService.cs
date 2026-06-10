@@ -9,10 +9,14 @@ using Location = NolumiaScheduler.Domain.ValueObjects.Location;
 
 namespace NolumiaScheduler.Application.Services;
 
-public class CalendarEventApplicationService(ICalendarEventRepository repository, ICalendarEventChanges changes)
+public class CalendarEventApplicationService(
+    ICalendarEventRepository repository,
+    ICalendarEventChanges changes,
+    TimeProvider clock)
 {
     private readonly ICalendarEventRepository _repository = repository;
     private readonly ICalendarEventChanges _changes = changes;
+    private readonly TimeProvider _clock = clock;
 
     public event Action? Changed
     {
@@ -45,7 +49,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             new TimeZoneId(command.TimeZone),
             command.AllDay,
             schedule,
-            DateTimeOffset.UtcNow,
+            _clock.GetUtcNow(),
             alarm: command.Alarm);
 
         _repository.Save(ev);
@@ -71,7 +75,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             new TimeZoneId(command.TimeZone),
             command.AllDay,
             schedule,
-            DateTimeOffset.UtcNow,
+            _clock.GetUtcNow(),
             alarm: command.Alarm);
 
         _repository.Save(ev);
@@ -87,7 +91,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             command.Visibility,
             ev.EventType,
             ev.Description,
-            DateTimeOffset.UtcNow);
+            _clock.GetUtcNow());
 
         var canReschedule = command.NewDate.HasValue && ev.IsSingle() &&
             (command.AllDay || (command.NewStartTime.HasValue && command.NewEndTime.HasValue));
@@ -98,10 +102,10 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
                 newDate, command.NewStartTime ?? TimeSpan.Zero,
                 newDate, command.NewEndTime ?? TimeSpan.Zero,
                 command.AllDay, ev.TimeZoneId.Value);
-            ev.RescheduleSingle(new SingleEventSchedule(start, end), DateTimeOffset.UtcNow);
+            ev.RescheduleSingle(new SingleEventSchedule(start, end), _clock.GetUtcNow());
         }
 
-        ev.SetAlarm(command.Alarm, DateTimeOffset.UtcNow);
+        ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 
@@ -117,7 +121,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             command.Visibility,
             ev.EventType,
             ev.Description,
-            DateTimeOffset.UtcNow);
+            _clock.GetUtcNow());
 
         // Preserve the original series start date so existing occurrence keys (exceptions and
         // moves) stay aligned; only the rule and times are redefined for the whole series. The
@@ -130,15 +134,15 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             command.RecurrenceRule,
             ev.AllDay);
 
-        ev.ChangeRecurrenceSchedule(newSchedule, DateTimeOffset.UtcNow);
-        ev.SetAlarm(command.Alarm, DateTimeOffset.UtcNow);
+        ev.ChangeRecurrenceSchedule(newSchedule, _clock.GetUtcNow());
+        ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 
     public void SkipOccurrence(SkipOccurrenceCommand command)
     {
         var ev = GetOrThrow(command.EventId);
-        ev.SkipOccurrence(command.OccurrenceKey, DateTimeOffset.UtcNow);
+        ev.SkipOccurrence(command.OccurrenceKey, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 
@@ -155,7 +159,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             startTime: command.AllDay ? null : command.StartTime,
             endTime: command.AllDay ? null : command.EndTime);
 
-        ev.OverrideOccurrence(command.OccurrenceKey, exceptionOverride, DateTimeOffset.UtcNow);
+        ev.OverrideOccurrence(command.OccurrenceKey, exceptionOverride, _clock.GetUtcNow());
 
         if (!command.OccurrenceKey.Date.Equals(command.Date))
         {
@@ -167,7 +171,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
                 new EventTitle(command.Title),
                 command.Location != null ? new Location(command.Location) : null,
                 command.Visibility);
-            ev.MoveOccurrence(move, DateTimeOffset.UtcNow);
+            ev.MoveOccurrence(move, _clock.GetUtcNow());
         }
 
         _repository.Save(ev);
@@ -186,7 +190,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             command.Location != null ? new Location(command.Location) : null,
             command.Visibility);
 
-        ev.MoveOccurrence(move, DateTimeOffset.UtcNow);
+        ev.MoveOccurrence(move, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 
@@ -206,7 +210,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
         }
         else
         {
-            ev.ChangeRecurrenceEndDate(newEndDate, DateTimeOffset.UtcNow);
+            ev.ChangeRecurrenceEndDate(newEndDate, _clock.GetUtcNow());
             _repository.Save(ev);
         }
 
@@ -228,7 +232,7 @@ public class CalendarEventApplicationService(ICalendarEventRepository repository
             ev.TimeZoneId,
             command.NewAllDay,
             newSchedule,
-            DateTimeOffset.UtcNow,
+            _clock.GetUtcNow(),
             alarm: command.Alarm);
 
         _repository.Save(newEv);

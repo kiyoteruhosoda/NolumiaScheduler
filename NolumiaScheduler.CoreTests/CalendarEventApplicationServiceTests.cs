@@ -12,13 +12,15 @@ namespace NolumiaScheduler.CoreTests;
 public class CalendarEventApplicationServiceTests
 {
     private InMemoryCalendarEventRepository _repo = null!;
+    private FakeClock _clock = null!;
     private CalendarEventApplicationService _svc = null!;
 
     [TestInitialize]
     public void Setup()
     {
         _repo = new InMemoryCalendarEventRepository();
-        _svc = new CalendarEventApplicationService(_repo, _repo);
+        _clock = new FakeClock(new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero));
+        _svc = new CalendarEventApplicationService(_repo, _repo, _clock);
     }
 
     // ── CreateSingleEvent ──────────────────────────────────────────────────
@@ -64,6 +66,47 @@ public class CalendarEventApplicationServiceTests
         Assert.IsTrue(ev.AllDay);
         var duration = ev.SingleSchedule!.End - ev.SingleSchedule.Start;
         Assert.AreEqual(TimeSpan.FromDays(1), duration);
+    }
+
+    [TestMethod]
+    public void CreateSingleEvent_作成日時と更新日時はTimeProviderの現在時刻になる()
+    {
+        _svc.CreateSingleEvent(new CreateSingleEventCommand(
+            Title: "Clock",
+            Location: null,
+            Visibility: Visibility.Public,
+            EventType: null,
+            Description: null,
+            TimeZone: "Asia/Tokyo",
+            AllDay: false,
+            StartDate: new DateOnly(2026, 5, 20),
+            StartTime: new TimeSpan(10, 0, 0),
+            EndTime: new TimeSpan(11, 0, 0)));
+
+        var ev = _repo.FindAll()[0];
+        Assert.AreEqual(_clock.GetUtcNow(), ev.CreatedAt);
+        Assert.AreEqual(_clock.GetUtcNow(), ev.UpdatedAt);
+    }
+
+    [TestMethod]
+    public void UpdateEvent_更新日時は進んだクロックの時刻に遷移する()
+    {
+        CreateAndSaveSingleEvent("clk1");
+        _clock.Advance(TimeSpan.FromHours(3));
+
+        _svc.UpdateEvent(new UpdateEventCommand(
+            EventId: "clk1",
+            Title: "Touched",
+            Location: null,
+            Visibility: Visibility.Public,
+            AllDay: false,
+            NewDate: null,
+            NewStartTime: null,
+            NewEndTime: null,
+            Alarm: null));
+
+        var saved = _repo.FindById(new EventId("clk1"))!;
+        Assert.AreEqual(_clock.GetUtcNow(), saved.UpdatedAt);
     }
 
     // ── CreateRecurringEvent ───────────────────────────────────────────────
