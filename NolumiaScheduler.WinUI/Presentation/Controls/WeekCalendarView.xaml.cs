@@ -43,6 +43,9 @@ public sealed partial class WeekCalendarView : UserControl
     // begins, so the landing day follows the cursor rather than the chip's left edge.
     private double _moveGrabOffsetX;
     private const double ChipMarginLeft = 4;
+    // Set when ESC cancels a move/resize while the pointer is still down, so the
+    // remaining manipulation events are swallowed and the release commits nothing.
+    private bool _dragCanceledByEscape;
 
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEmptySlotTappedEventArgs>? AllDaySlotTapped;
@@ -119,7 +122,36 @@ public sealed partial class WeekCalendarView : UserControl
         _gestureArbitrationService = services?.GetService<IWeekGestureArbitrationService>() ?? new WeekGestureArbitrationService();
         _autoScrollService = services?.GetService<IWeekAutoScrollService>() ?? new WeekAutoScrollService();
 
+        // ESC cancels an in-progress drag. A KeyboardAccelerator's default scope is the
+        // whole window, so it fires even though chips and lanes never take keyboard focus.
+        var escapeAccelerator = new KeyboardAccelerator { Key = Windows.System.VirtualKey.Escape };
+        escapeAccelerator.Invoked += OnEscapeAcceleratorInvoked;
+        KeyboardAccelerators.Add(escapeAccelerator);
+
         Loaded += OnLoaded;
+    }
+
+    private void OnEscapeAcceleratorInvoked(KeyboardAccelerator sender, KeyboardAcceleratorInvokedEventArgs args)
+    {
+        if (_interactionState is not (WeekInteractionState.DraggingMove
+            or WeekInteractionState.DraggingResize
+            or WeekInteractionState.DraggingCreate))
+            return;
+
+        args.Handled = true;
+
+        if (_interactionState == WeekInteractionState.DraggingCreate)
+        {
+            // The lane keeps pointer capture until release, but with the drag-create state
+            // cleared the remaining move/release events are no-ops.
+            ResetDragCreateState();
+        }
+        else
+        {
+            _dragCanceledByEscape = true;
+            CancelCurrentInteraction();
+        }
+        _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
     }
 
     private async void OnLoaded(object sender, RoutedEventArgs e)
@@ -733,6 +765,8 @@ public sealed partial class WeekCalendarView : UserControl
     {
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
+        _dragCanceledByEscape = false;
+
         // Top/bottom edge => resize the time; the middle => move the event.
         _activeResizeEdge = EdgeAt(e.Position.Y, b.ActualHeight);
 
@@ -743,6 +777,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
     {
+        if (_dragCanceledByEscape) return;
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
         var now = DateTime.UtcNow;
         if ((now - _lastInteractionFrameUtc).TotalMilliseconds < InteractionFrameThrottleMs) return;
@@ -817,6 +852,13 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void OnEventBlockManipulationCompleted(object sender, ManipulationCompletedRoutedEventArgs e)
     {
+        if (_dragCanceledByEscape)
+        {
+            // ESC already restored the chip and cleared the preview; the release that
+            // ends the manipulation must not commit a move/resize or change selection.
+            _dragCanceledByEscape = false;
+            return;
+        }
         if (sender is not Border b || b.Tag is not WeekEventBlock block)
         {
             CancelCurrentInteraction();
@@ -916,8 +958,11 @@ public sealed partial class WeekCalendarView : UserControl
         RestoreMoveChipOpacity();
         TransitionTo(WeekInteractionState.Canceled);
         ClearPreview();
+        // Push the cleared preview to every lane so the landing ghost disappears.
+        UpdateOverlayPreview();
         TransitionTo(WeekInteractionState.Idle);
         _activeBlock = null;
+        _activeResizeEdge = ResizeEdge.None;
         _isResizing = false;
     }
 }
