@@ -1,6 +1,7 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
@@ -22,6 +23,7 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public static Window? MainWindow { get; private set; }
     private TrayIconManager? _trayIcon;
+    private AppNotificationManager? _notificationManager;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
@@ -51,6 +53,19 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         try
         {
+            // Register for app (toast) notifications before the alarm service starts so the
+            // first alarm can already send a notification.
+            try
+            {
+                _notificationManager = AppNotificationManager.Default;
+                _notificationManager.NotificationInvoked += OnAppNotificationInvoked;
+                _notificationManager.Register();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[App] AppNotificationManager.Register failed: {ex.Message}");
+            }
+
             MainWindow = new MainWindow();
             MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
             MainWindow.Activate();
@@ -106,8 +121,19 @@ public partial class App : Microsoft.UI.Xaml.Application
         }
     }
 
+    private void OnAppNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
+    {
+        // Bring the main window to the foreground when the user clicks a toast notification.
+        MainWindow?.DispatcherQueue.TryEnqueue(() =>
+        {
+            MainWindow.AppWindow.Show();
+            MainWindow.Activate();
+        });
+    }
+
     private void OnTrayExitRequested()
     {
+        _notificationManager?.Unregister();
         _trayIcon?.Dispose();
         _trayIcon = null;
         if (MainWindow is MainWindow mw)

@@ -1,4 +1,5 @@
 using Microsoft.UI.Dispatching;
+using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
@@ -76,7 +77,9 @@ public class AlarmService(
 
         foreach (var due in _alarms.CollectDueAlarms())
         {
-            await ShowAlarmAsync(due, GetMessage(due));
+            var message = GetMessage(due);
+            ShowAppNotification(due, message);
+            await ShowAlarmAsync(due, message);
         }
     }
 
@@ -87,6 +90,31 @@ public class AlarmService(
         if (purged > 0)
             Debug.WriteLine($"[AlarmService] Purged {purged} expired event(s)");
     }
+
+    private static void ShowAppNotification(DueAlarm due, string message)
+    {
+        try
+        {
+            var title = XmlEscape(due.Title);
+            var body = XmlEscape(message);
+            var locationPart = due.Location is { Length: > 0 }
+                ? $"<text>{XmlEscape(due.Location)}</text>"
+                : "";
+            var xml = $"<toast><visual><binding template=\"ToastGeneric\">" +
+                      $"<text>{title}</text><text>{body}</text>{locationPart}" +
+                      $"</binding></visual>" +
+                      $"<audio src=\"ms-winsoundevent:Notification.Alarm\"/></toast>";
+            AppNotificationManager.Default.Show(new AppNotification(xml));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AlarmService] App notification failed: {ex.Message}");
+        }
+    }
+
+    private static string XmlEscape(string value)
+        => value.Replace("&", "&amp;").Replace("<", "&lt;").Replace(">", "&gt;")
+                .Replace("\"", "&quot;").Replace("'", "&apos;");
 
     private static string GetMessage(DueAlarm due) => due.IsSnoozeReminder
         ? string.Format(AppResources.AlarmSnoozeReminder, due.Title)
