@@ -44,6 +44,7 @@ public sealed partial class EventEditPage : Page
     private bool _suppressAdjustmentChanged;
     private bool _suppressCalendarPickerChanged;
     private bool _suppressWeekdayChanged;
+    private bool _suppressAlarmChanged;
 
 
     // 15-minute interval time items ("00:00" to "23:45"). Each picker has its own observable
@@ -255,11 +256,16 @@ public sealed partial class EventEditPage : Page
         _suppressCalendarPickerChanged = false;
 
         // Alarm
+        // Suppress the change handlers while populating: OnAlarmChecked reads every checkbox
+        // back into the VM, so an unsuppressed mid-population event would clobber alarm flags
+        // that have not been applied to their checkbox yet (leaving only the first one checked).
+        _suppressAlarmChanged = true;
         AlarmSwitch.IsOn       = _vm.AlarmEnabled;
         ChkNotify15.IsChecked  = _vm.AlarmNotify15Min;
         ChkNotify5.IsChecked   = _vm.AlarmNotify5Min;
         ChkNotify1.IsChecked   = _vm.AlarmNotify1Min;
         ChkNotify0.IsChecked   = _vm.AlarmNotifyAtStart;
+        _suppressAlarmChanged = false;
 
         // Validation
         ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
@@ -749,12 +755,13 @@ public sealed partial class EventEditPage : Page
 
     private void OnAlarmToggled(object sender, RoutedEventArgs e)
     {
+        if (_suppressAlarmChanged) return;
         _vm?.AlarmEnabled = AlarmSwitch.IsOn;
     }
 
     private void OnAlarmChecked(object sender, RoutedEventArgs e)
     {
-        if (_vm == null) return;
+        if (_suppressAlarmChanged || _vm == null) return;
         _vm.AlarmNotify15Min = ChkNotify15.IsChecked == true;
         _vm.AlarmNotify5Min  = ChkNotify5.IsChecked  == true;
         _vm.AlarmNotify1Min  = ChkNotify1.IsChecked  == true;
