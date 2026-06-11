@@ -9,6 +9,16 @@ public partial class WeekGridBackgroundView : UserControl
 {
     private readonly Canvas _canvas = new();
 
+    public static readonly DependencyProperty HasAllDayEventsProperty =
+        DependencyProperty.Register(nameof(HasAllDayEvents), typeof(bool), typeof(WeekGridBackgroundView),
+            new PropertyMetadata(false, (d, _) => ((WeekGridBackgroundView)d).Redraw()));
+
+    public bool HasAllDayEvents
+    {
+        get => (bool)GetValue(HasAllDayEventsProperty);
+        set => SetValue(HasAllDayEventsProperty, value);
+    }
+
     public static readonly DependencyProperty IsTodayProperty =
         DependencyProperty.Register(nameof(IsToday), typeof(bool), typeof(WeekGridBackgroundView),
             new PropertyMetadata(false, (d, _) => ((WeekGridBackgroundView)d).Redraw()));
@@ -51,6 +61,20 @@ public partial class WeekGridBackgroundView : UserControl
 
         var width = ActualWidth;
         if (width <= 0) width = 120;
+
+        // All-day event tint: a very subtle fill over the whole column so it's
+        // visually distinct from days with no all-day events.
+        if (HasAllDayEvents)
+        {
+            var height = ActualHeight > 0 ? ActualHeight : 1440;
+            var tint = new Rectangle
+            {
+                Width = width,
+                Height = height,
+                Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(18, 26, 115, 232))
+            };
+            _canvas.Children.Add(tint);
+        }
 
         // Hour and half-hour grid lines
         for (var h = 0; h < 24; h++)

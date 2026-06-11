@@ -72,7 +72,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     public static readonly DependencyProperty WeekAllDayEventBlocksProperty =
         DependencyProperty.Register(nameof(WeekAllDayEventBlocks), typeof(IEnumerable), typeof(WeekCalendarView),
-            new PropertyMetadata(null, (d, _) => ((WeekCalendarView)d).BuildWeekColumns()));
+            new PropertyMetadata(null, (d, _) => { var v = (WeekCalendarView)d; v.BuildWeekColumns(); v.UpdateBackgroundViews(); }));
 
     public static readonly DependencyProperty WeekAllDayLaneHeightProperty =
         DependencyProperty.Register(nameof(WeekAllDayLaneHeight), typeof(double), typeof(WeekCalendarView),
@@ -129,6 +129,8 @@ public sealed partial class WeekCalendarView : UserControl
         var escapeAccelerator = new KeyboardAccelerator { Key = Windows.System.VirtualKey.Escape };
         escapeAccelerator.Invoked += OnEscapeAcceleratorInvoked;
         KeyboardAccelerators.Add(escapeAccelerator);
+        // Suppress the "Esc" tooltip that WinUI shows on hover for registered accelerators.
+        KeyboardAcceleratorPlacementMode = Microsoft.UI.Xaml.Input.KeyboardAcceleratorPlacementMode.Hidden;
 
         Loaded += OnLoaded;
     }
@@ -220,10 +222,15 @@ public sealed partial class WeekCalendarView : UserControl
     {
         foreach (var canvas in WeekBodyGrid.Children.OfType<Canvas>())
         {
+            if (canvas.Tag is not WeekDayColumn day) continue;
+            var hasAllDay = (WeekAllDayEventBlocks as IEnumerable)?
+                .OfType<WeekAllDayEventBlock>()
+                .Any(b => b.StartDate.Date <= day.Date.Date && b.EndDate.Date >= day.Date.Date) ?? false;
             foreach (var bg in canvas.Children.OfType<WeekGridBackgroundView>())
             {
                 bg.IsCurrentWeek = IsCurrentWeek;
                 bg.CurrentTimeLineTop = CurrentTimeLineTop;
+                bg.HasAllDayEvents = hasAllDay;
             }
         }
     }
@@ -363,6 +370,9 @@ public sealed partial class WeekCalendarView : UserControl
             };
 
             // Background grid
+            var allDayBlocksForDay = (WeekAllDayEventBlocks as IEnumerable)?
+                .OfType<WeekAllDayEventBlock>()
+                .Any(b => b.StartDate.Date <= day.Date.Date && b.EndDate.Date >= day.Date.Date) ?? false;
             var bg = new WeekGridBackgroundView { Height = WeekCanvasHeight };
             bg.SetBinding(WeekGridBackgroundView.IsTodayProperty, new Microsoft.UI.Xaml.Data.Binding
             {
@@ -371,6 +381,7 @@ public sealed partial class WeekCalendarView : UserControl
             });
             bg.IsCurrentWeek = IsCurrentWeek;
             bg.CurrentTimeLineTop = CurrentTimeLineTop;
+            bg.HasAllDayEvents = allDayBlocksForDay;
             Canvas.SetLeft(bg, 0);
             Canvas.SetTop(bg, 0);
             bg.Width = double.NaN;

@@ -35,7 +35,7 @@ public class AlarmService(
 
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _timer = _dispatcherQueue.CreateTimer();
-        _timer.Interval = TimeSpan.FromSeconds(10);
+        _timer.Interval = TimeSpan.FromSeconds(1);
         _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
         _timer.Start();
 
