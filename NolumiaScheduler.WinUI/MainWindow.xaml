@@ -13,7 +13,8 @@
                     BackRequested="OnBackRequested"
                     SelectionChanged="OnNavSelectionChanged"
                     IsPaneToggleButtonVisible="True"
-                    IsPaneOpen="False">
+                    IsPaneOpen="False"
+                    IsSettingsVisible="True">
         <NavigationView.MenuItems>
             <NavigationViewItem x:Name="MonthNavItem" Tag="Month">
                 <NavigationViewItem.Icon>
@@ -23,6 +24,11 @@
             <NavigationViewItem x:Name="WeekNavItem" Tag="Week">
                 <NavigationViewItem.Icon>
                     <FontIcon Glyph="&#xE8BF;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+            <NavigationViewItem x:Name="WeekdaysNavItem" Tag="Weekdays">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE8F1;"/>
                 </NavigationViewItem.Icon>
             </NavigationViewItem>
         </NavigationView.MenuItems>

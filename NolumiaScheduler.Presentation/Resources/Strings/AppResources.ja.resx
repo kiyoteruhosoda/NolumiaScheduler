@@ -150,6 +150,9 @@
   <data name="WeekViewLabel" xml:space="preserve">
     <value>週表示</value>
   </data>
+  <data name="WeekdaysViewLabel" xml:space="preserve">
+    <value>平日表示</value>
+  </data>
   <data name="WeekViewHint" xml:space="preserve">
     <value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value>
   </data>
@@ -444,5 +447,22 @@
   </data>
   <data name="EditEventTitle" xml:space="preserve">
     <value>イベント編集</value>
+  </data>
+
+  <!-- Settings -->
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>設定</value>
+  </data>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>テーマ</value>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>システム設定に従う</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>ライト</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>ダーク</value>
   </data>
 </root>

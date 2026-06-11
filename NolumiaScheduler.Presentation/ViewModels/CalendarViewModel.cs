@@ -66,6 +66,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         GoTodayCommand = new RelayCommand(GoToday);
         SwitchToMonthViewCommand = new RelayCommand(() => SetDisplayMode(CalendarDisplayMode.Month));
         SwitchToWeekViewCommand = new RelayCommand(() => SetDisplayMode(CalendarDisplayMode.Week));
+        SwitchToWeekdaysViewCommand = new RelayCommand(() => SetDisplayMode(CalendarDisplayMode.Weekdays));
         CloseSelectedDayCommand = new RelayCommand(ClearSelection);
 
         BuildWeekScaffold();
@@ -159,6 +160,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     public ICommand GoTodayCommand { get; }
     public ICommand SwitchToMonthViewCommand { get; }
     public ICommand SwitchToWeekViewCommand { get; }
+    public ICommand SwitchToWeekdaysViewCommand { get; }
     public ICommand CloseSelectedDayCommand { get; }
 
 
@@ -172,12 +174,14 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsMonthMode));
             OnPropertyChanged(nameof(IsWeekMode));
+            OnPropertyChanged(nameof(IsWeekdaysMode));
             OnPropertyChanged(nameof(IsMonthModeAndHasSelectedDay));
         }
     }
 
     public bool IsMonthMode => DisplayMode == CalendarDisplayMode.Month;
     public bool IsWeekMode => DisplayMode == CalendarDisplayMode.Week;
+    public bool IsWeekdaysMode => DisplayMode == CalendarDisplayMode.Weekdays;
     public bool IsMonthModeAndHasSelectedDay => IsMonthMode && HasSelectedDay;
 
     public void SelectDay(CalendarDayCell cell)
@@ -356,6 +360,15 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (IsWeekdaysMode)
+        {
+            _weekStartDate = _weekStartDate.AddDays(step * 5);
+            _month = new DateTime(_weekStartDate.Year, _weekStartDate.Month, 1);
+            LoadWeek();
+            MonthYearTitle = FormatWeekdaysRangeTitle(_weekStartDate);
+            return;
+        }
+
         _month = _month.AddMonths(step);
         _weekStartDate = _month.AddDays(-(int)_month.DayOfWeek);
         LoadMonth();
@@ -367,11 +380,22 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         ClearSelection();
         var today = Today;
         _month = new DateTime(today.Year, today.Month, 1);
-        _weekStartDate = today.AddDays(-(int)today.DayOfWeek);
+        if (IsWeekdaysMode)
+        {
+            // Align to Monday
+            var daysFromMonday = ((int)today.DayOfWeek + 6) % 7;
+            _weekStartDate = today.AddDays(-daysFromMonday);
+        }
+        else
+        {
+            _weekStartDate = today.AddDays(-(int)today.DayOfWeek);
+        }
         LoadMonth();
         LoadWeek();
         if (IsWeekMode)
             MonthYearTitle = FormatWeekRangeTitle(_weekStartDate);
+        else if (IsWeekdaysMode)
+            MonthYearTitle = FormatWeekdaysRangeTitle(_weekStartDate);
     }
 
     private void ClearSelection()
@@ -388,10 +412,22 @@ public partial class CalendarViewModel : INotifyPropertyChanged
 
     private void SetDisplayMode(CalendarDisplayMode mode)
     {
+        if (mode == CalendarDisplayMode.Weekdays && _displayMode != CalendarDisplayMode.Weekdays)
+        {
+            // Align weekStartDate to Monday of the current week
+            var daysFromMonday = ((int)_weekStartDate.DayOfWeek + 6) % 7;
+            _weekStartDate = _weekStartDate.AddDays(-daysFromMonday);
+        }
         DisplayMode = mode;
         if (mode == CalendarDisplayMode.Month)
         {
             MonthYearTitle = _month.ToString(AppResources.MonthYearFormat, AppResources.FormatCulture);
+        }
+        else if (mode == CalendarDisplayMode.Weekdays)
+        {
+            LoadWeek();
+            MonthYearTitle = FormatWeekdaysRangeTitle(_weekStartDate);
+            return;
         }
         else
         {
@@ -411,11 +447,12 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         WeekDayColumns.Clear();
         WeekAllDayEventBlocks.Clear();
 
+        var dayCount = IsWeekdaysMode ? 5 : 7;
         var from = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate));
-        var to = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate.AddDays(6)));
+        var to = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate.AddDays(dayCount - 1)));
 
         var weekly = new Dictionary<int, List<CalendarEventItem>>();
-        for (var i = 0; i < 7; i++) weekly[i] = [];
+        for (var i = 0; i < dayCount; i++) weekly[i] = [];
 
         var calendarCache = new Dictionary<string, BusinessCalendar>();
         BusinessCalendar? GetCalendar(string? id)
@@ -436,9 +473,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             foreach (var occ in _expander.Expand(ev, from, to, calendar))
             {
                 var dayIdx = (int)(occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue).Date - _weekStartDate.Date).TotalDays;
-                if (dayIdx is < 0 or > 6) continue;
+                if (dayIdx < 0 || dayIdx >= dayCount) continue;
                 var item = new CalendarEventItem(occ);
-                if (!item.IsAllDay && item.CrossesMidnight && dayIdx < 6)
+                if (!item.IsAllDay && item.CrossesMidnight && dayIdx < dayCount - 1)
                 {
                     var firstOccurrence = new EventOccurrence(
                         occ.EventId,
@@ -481,7 +518,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         foreach (var block in _weekAllDayLayoutStrategy.Layout(allDayInput, _weekStartDate))
             WeekAllDayEventBlocks.Add(block);
 
-        for (var i = 0; i < 7; i++)
+        for (var i = 0; i < dayCount; i++)
         {
             var date = _weekStartDate.AddDays(i);
             var header = date.ToString("ddd M/d", AppResources.FormatCulture);
@@ -503,6 +540,12 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(IsCurrentWeek));
         OnPropertyChanged(nameof(WeekStartDate));
         OnPropertyChanged(nameof(WeekAllDayLaneHeight));
+    }
+
+    private static string FormatWeekdaysRangeTitle(DateTime weekStartDate)
+    {
+        var weekEndDate = weekStartDate.AddDays(4);
+        return $"{weekStartDate:yyyy/MM/dd (ddd)} - {weekEndDate:yyyy/MM/dd (ddd)}";
     }
 
     private static string FormatWeekRangeTitle(DateTime weekStartDate)

@@ -48,6 +48,8 @@ public sealed partial class CalendarPage : Page
         _vm.ReloadCurrentMonth();
         if (e.Parameter as string == "Month")
             _vm.SwitchToMonthViewCommand.Execute(null);
+        else if (e.Parameter as string == "Weekdays")
+            _vm.SwitchToWeekdaysViewCommand.Execute(null);
         else
             _vm.SwitchToWeekViewCommand.Execute(null);
         BindViewModel();

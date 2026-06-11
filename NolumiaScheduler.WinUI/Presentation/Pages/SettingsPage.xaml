@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Page
+    x:Class="NolumiaScheduler.WinUI.Presentation.Pages.SettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <ScrollViewer Padding="24">
+        <StackPanel Spacing="16" MaxWidth="480" HorizontalAlignment="Left">
+
+            <TextBlock x:Name="PageTitleText"
+                       Style="{StaticResource TitleTextBlockStyle}"
+                       Margin="0,0,0,8"/>
+
+            <!-- Theme -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="ThemeLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <ComboBox x:Name="ThemePicker"
+                          MinWidth="200"
+                          SelectionChanged="OnThemeSelectionChanged"/>
+            </StackPanel>
+
+        </StackPanel>
+    </ScrollViewer>
+</Page>

@@ -18,6 +18,7 @@
 
   <data name="MonthViewLabel" xml:space="preserve"><value>Month</value></data>
   <data name="WeekViewLabel" xml:space="preserve"><value>Week</value></data>
+  <data name="WeekdaysViewLabel" xml:space="preserve"><value>Weekdays</value></data>
   <data name="WeekViewHint" xml:space="preserve"><value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value></data>
 
   <data name="AllDay" xml:space="preserve"><value>All day</value></data>
@@ -145,4 +146,11 @@
   <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve"><value>Remind 5 min before event</value></data>
   <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve"><value>Remind 1 min before event</value></data>
   <data name="AlarmCancelAll" xml:space="preserve"><value>Cancel all remaining alarms</value></data>
+
+  <!-- Settings -->
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="ThemeLabel" xml:space="preserve"><value>Theme</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>System</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
 </root>
