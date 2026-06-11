@@ -33,7 +33,10 @@ public class WeekViewPresentationTests
         Assert.HasCount(0, blocks);
     }
 
+    // Theme-dependent tests read the process-wide ThemeHelper state, so they must not run in
+    // parallel with the dark-theme test (this assembly parallelizes at method level).
     [TestMethod]
+    [DoNotParallelize]
     public void 休日カラムは月表示と同系統の赤背景になる()
     {
         var holidayColumn = new WeekDayColumn("Sun 4", new DateTime(2026,5,4), true);
@@ -44,6 +47,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
+    [DoNotParallelize]
     public void 休日カラムはダークテーマでは暗色系の赤背景になる()
     {
         // Theme state is static: restore the default so other tests keep seeing light mode.
