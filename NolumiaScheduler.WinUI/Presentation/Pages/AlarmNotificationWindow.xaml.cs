@@ -104,13 +104,9 @@ public sealed partial class AlarmNotificationWindow : Window
             // the primary monitor if there is no foreground window.
             var foreground = NativeMethods.GetForegroundWindow();
             var source = foreground != nint.Zero ? foreground : WindowNative.GetWindowHandle(this);
-            var hMonitor = NativeMethods.MonitorFromWindow(source, NativeMethods.MONITOR_DEFAULTTOPRIMARY);
-
-            var info = new NativeMethods.MONITORINFO { cbSize = (uint)Marshal.SizeOf<NativeMethods.MONITORINFO>() };
-            if (!NativeMethods.GetMonitorInfo(hMonitor, ref info)) return;
-
-            var r = info.rcMonitor;
-            AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top));
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(source);
+            var displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Primary);
+            AppWindow.MoveAndResize(displayArea.OuterBounds);
         }
         catch (Exception ex)
         {
@@ -235,26 +231,6 @@ public sealed partial class AlarmNotificationWindow : Window
         public const int  SW_RESTORE      = 9;
         public const uint FLASHW_ALL       = 0x00000003;
         public const uint FLASHW_TIMERNOFG = 0x0000000C;
-        public const uint MONITOR_DEFAULTTOPRIMARY = 0x00000001;
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct RECT { public int Left, Top, Right, Bottom; }
-
-        [StructLayout(LayoutKind.Sequential)]
-        public struct MONITORINFO
-        {
-            public uint cbSize;
-            public RECT rcMonitor;
-            public RECT rcWork;
-            public uint dwFlags;
-        }
-
-        [LibraryImport("user32.dll")]
-        public static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
-
-        [LibraryImport("user32.dll")]
-        [return: MarshalAs(UnmanagedType.Bool)]
-        public static partial bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct FLASHWINFO
