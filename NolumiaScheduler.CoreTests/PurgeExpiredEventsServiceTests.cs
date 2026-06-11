@@ -143,6 +143,28 @@ public class PurgeExpiredEventsServiceTests
         Assert.AreEqual(1, _service.PurgeExpiredEvents());
     }
 
+    [TestMethod]
+    public void 終了日なしの繰り返しイベントはパージでクラッシュせず残る()
+    {
+        // Startup crash regression: a weekly series without an end date is stored with the
+        // 9999-12-31 sentinel and used to overflow DateOnly during expiry expansion.
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1, new LocalDateValue(9999, 12, 31),
+            weekly: new WeeklyRule([Weekday.Monday]));
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("endless"), new EventTitle("Endless"), null,
+            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
+            new RecurringEventSchedule(
+                new LocalDateValue(2026, 6, 1),
+                new LocalTimeValue(9, 0, 0), new LocalTimeValue(10, 0, 0),
+                rule, allDay: false),
+            Now);
+        _repo.Save(ev);
+
+        Assert.AreEqual(0, _service.PurgeExpiredEvents());
+        Assert.IsNotNull(_repo.FindById(new EventId("endless")));
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────
 
     private static CalendarEvent SingleEvent(string id, DateTimeOffset end)

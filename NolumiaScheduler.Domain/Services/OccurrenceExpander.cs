@@ -54,16 +54,6 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
 
         foreach (var candidateDate in candidateDates)
         {
-            var adjustedDate = candidateDate;
-
-            if (rule.Adjustment != null && businessCalendar != null)
-            {
-                adjustedDate = _shiftService.Shift(candidateDate, rule.Adjustment, businessCalendar);
-            }
-
-            if (adjustedDate < fromDate || adjustedDate > toDate)
-                continue;
-
             var key = new OccurrenceLocalKey(candidateDate, schedule.StartTime);
 
             // Check skip
@@ -71,7 +61,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
             if (exception != null && exception.Type == ExceptionType.Skip)
                 continue;
 
-            // Check move
+            // Check move before the range filter: an occurrence moved into the requested window
+            // must appear even when its original candidate date lies outside the window.
             var move = ev.Moves.FirstOrDefault(m => m.OccurrenceKey.Equals(key));
             if (move != null)
             {
@@ -94,6 +85,16 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 }
                 continue;
             }
+
+            var adjustedDate = candidateDate;
+
+            if (rule.Adjustment != null && businessCalendar != null)
+            {
+                adjustedDate = _shiftService.Shift(candidateDate, rule.Adjustment, businessCalendar);
+            }
+
+            if (adjustedDate < fromDate || adjustedDate > toDate)
+                continue;
 
             // Check override
             if (exception != null && exception.Type == ExceptionType.Override && exception.Override != null)
@@ -150,7 +151,10 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
             foreach (var weekday in weekly.Weekdays)
             {
                 var dayOffset = ((int)weekday.ToDayOfWeek() - (int)DayOfWeek.Monday + 7) % 7;
-                var candidate = weekStart.AddDays(dayOffset);
+                var candidateDayNumber = (long)weekStart.DayNumber + dayOffset;
+                // The last week of the calendar (year 9999) can extend past DateOnly.MaxValue.
+                if (candidateDayNumber > DateOnly.MaxValue.DayNumber) yield break;
+                var candidate = DateOnly.FromDayNumber((int)candidateDayNumber);
 
                 if (candidate < startDate.ToDateOnly()) continue;
                 if (candidate > end) yield break;
@@ -158,7 +162,9 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 yield return LocalDateValue.FromDateOnly(candidate);
             }
 
-            weekStart = weekStart.AddDays(7 * interval);
+            var nextWeekDayNumber = (long)weekStart.DayNumber + 7L * interval;
+            if (nextWeekDayNumber > DateOnly.MaxValue.DayNumber) yield break;
+            weekStart = DateOnly.FromDayNumber((int)nextWeekDayNumber);
         }
     }
 
@@ -178,6 +184,9 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     yield return LocalDateValue.FromDateOnly(candidate.Value);
             }
 
+            // Guard against stepping past December 9999, where AddMonths would overflow.
+            var nextMonthIndex = (long)current.Year * 12 + (current.Month - 1) + interval;
+            if (nextMonthIndex > 9999L * 12 + 11) yield break;
             current = current.AddMonths(interval);
             if (current > end) yield break;
         }
@@ -216,7 +225,10 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     yield return LocalDateValue.FromDateOnly(candidate.Value);
             }
 
-            currentYear += interval;
+            // Guard against stepping past year 9999, where DateOnly construction would overflow.
+            var nextYear = (long)currentYear + interval;
+            if (nextYear > 9999) yield break;
+            currentYear = (int)nextYear;
             if (new DateOnly(currentYear, 1, 1) > end) yield break;
         }
     }

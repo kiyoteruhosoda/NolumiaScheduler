@@ -162,6 +162,18 @@ public class EventExpirationServiceTests
         Assert.IsTrue(_service.IsExpired(ev, calendar, new DateTimeOffset(2026, 6, 16, 10, 0, 0, TimeSpan.Zero)));
     }
 
+    [TestMethod]
+    public void 終了日なしセンチネル_9999年末までの繰り返しは期限切れにならない()
+    {
+        // "No end date" series are stored with end date 9999-12-31. Expiry must neither expand
+        // the series to the end of the calendar (startup crash regression) nor report expired.
+        var ev = WeeklyMondayEvent(endDate: new LocalDateValue(9999, 12, 31));
+
+        Assert.IsFalse(_service.IsExpired(ev, null, new DateTimeOffset(2026, 6, 11, 0, 50, 0, TimeSpan.Zero)));
+        Assert.IsFalse(_service.IsExpired(ev, null, new DateTimeOffset(2080, 1, 1, 0, 0, 0, TimeSpan.Zero)),
+            "遠い将来でもシリーズ継続中なら有効");
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────
 
     private static CalendarEvent SingleEvent(DateTimeOffset end, string timeZone = "UTC")

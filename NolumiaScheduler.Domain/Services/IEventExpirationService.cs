@@ -12,6 +12,8 @@ public interface IEventExpirationService
     /// <summary>
     /// The instant the event's final occurrence ends, or null when the event will never
     /// produce an occurrence (e.g. every occurrence of the series is skipped).
+    /// Expands the entire series — do not call for "no end date" (9999-12-31) series in hot
+    /// paths; expiry checks belong on <see cref="IsExpired"/>.
     /// </summary>
     DateTimeOffset? GetLastOccurrenceEnd(CalendarEvent calendarEvent, BusinessCalendar? businessCalendar);
 

@@ -6,37 +6,68 @@ namespace NolumiaScheduler.Domain.Services;
 public class EventExpirationService(IOccurrenceExpander expander) : IEventExpirationService
 {
     // A business-day adjustment can shift an occurrence past the recurrence end date (e.g. a
-    // forward shift across a holiday run). Expanding this far past the last scheduled date keeps
-    // any realistically shifted occurrence inside the search window; candidate dates themselves
-    // are still bounded by the recurrence rule's end date.
+    // forward shift across a holiday run). Searching this far past the last scheduled date keeps
+    // any realistically shifted occurrence inside the window; candidate dates themselves are
+    // still bounded by the recurrence rule's end date.
     private const int ShiftSearchAllowanceDays = 366;
+
+    // IsExpired scans forward from the reference date in bounded chunks so a "no end date"
+    // series (end date stored as 9999-12-31) never forces an expansion across millennia.
+    private const int ScanChunkDays = 366;
+    private const int MaxScanChunks = 80;
 
     private readonly IOccurrenceExpander _expander = expander;
 
     public bool IsExpired(CalendarEvent calendarEvent, BusinessCalendar? businessCalendar, DateTimeOffset reference)
     {
-        var lastEnd = GetLastOccurrenceEnd(calendarEvent, businessCalendar);
-        return lastEnd == null || lastEnd <= reference;
+        if (calendarEvent.IsSingle())
+            return calendarEvent.SingleSchedule!.End <= reference;
+
+        var lastDate = GetLastPossibleOccurrenceDate(calendarEvent);
+        var timeZone = calendarEvent.TimeZoneId.ToTimeZoneInfo();
+        var referenceLocalDate = DateOnly.FromDateTime(TimeZoneInfo.ConvertTime(reference, timeZone).DateTime);
+
+        // Past the last possible day: every occurrence has ended by the start of the next local
+        // day, so the series is over without expanding it.
+        if (referenceLocalDate > lastDate.ToDateOnly())
+            return true;
+
+        // Otherwise the series is expired only when no remaining occurrence (skips considered)
+        // ends after the reference. Scan forward a chunk at a time; one day of back-slop covers
+        // an occurrence whose local day started just before the reference instant.
+        var from = LocalDateValue.FromDateOnly(AddDaysClamped(referenceLocalDate, -1));
+        for (var chunk = 0; chunk < MaxScanChunks; chunk++)
+        {
+            var to = MinDate(LocalDateValue.FromDateOnly(AddDaysClamped(from.ToDateOnly(), ScanChunkDays - 1)), lastDate);
+
+            foreach (var occurrence in _expander.Expand(calendarEvent, from, to, businessCalendar))
+            {
+                if (GetOccurrenceEnd(occurrence, timeZone) > reference)
+                    return false;
+            }
+
+            if (to.CompareTo(lastDate) >= 0)
+                return true; // scanned the whole remaining series and found nothing upcoming
+
+            from = to.AddDays(1);
+        }
+
+        // Undecided within the scan cap (an effectively endless series that yields no
+        // occurrences for decades): err on the side of keeping the event.
+        return false;
     }
 
+    /// <summary>
+    /// Expands the entire series, so callers must not use this for "no end date" sentinels in
+    /// hot paths — expiry checks go through <see cref="IsExpired"/>, which scans incrementally.
+    /// </summary>
     public DateTimeOffset? GetLastOccurrenceEnd(CalendarEvent calendarEvent, BusinessCalendar? businessCalendar)
     {
         if (calendarEvent.IsSingle())
             return calendarEvent.SingleSchedule!.End;
 
         var schedule = calendarEvent.RecurringSchedule!;
-
-        // Moves may relocate an occurrence beyond the rule's end date, so the search window must
-        // cover the latest moved date as well.
-        var lastDate = schedule.RecurrenceRule.EndDate;
-        foreach (var move in calendarEvent.Moves)
-        {
-            if (move.NewDate > lastDate)
-                lastDate = move.NewDate;
-        }
-
-        if (schedule.RecurrenceRule.Adjustment != null)
-            lastDate = lastDate.AddDays(ShiftSearchAllowanceDays);
+        var lastDate = GetLastPossibleOccurrenceDate(calendarEvent);
 
         var occurrences = _expander.Expand(calendarEvent, schedule.StartDate, lastDate, businessCalendar);
         if (occurrences.Count == 0)
@@ -54,14 +85,47 @@ public class EventExpirationService(IOccurrenceExpander expander) : IEventExpira
         return lastEnd;
     }
 
+    /// <summary>
+    /// Latest local date on which an occurrence can still happen: the rule's end date, pushed
+    /// out by moved occurrences and by the business-day shift allowance.
+    /// </summary>
+    private static LocalDateValue GetLastPossibleOccurrenceDate(CalendarEvent calendarEvent)
+    {
+        var schedule = calendarEvent.RecurringSchedule!;
+
+        var lastDate = schedule.RecurrenceRule.EndDate;
+        foreach (var move in calendarEvent.Moves)
+        {
+            if (move.NewDate > lastDate)
+                lastDate = move.NewDate;
+        }
+
+        if (schedule.RecurrenceRule.Adjustment != null)
+            lastDate = LocalDateValue.FromDateOnly(AddDaysClamped(lastDate.ToDateOnly(), ShiftSearchAllowanceDays));
+
+        return lastDate;
+    }
+
     private static DateTimeOffset GetOccurrenceEnd(EventOccurrence occurrence, TimeZoneInfo timeZone)
     {
         // All-day occurrences (and any occurrence without an end time) last until the end of
         // their local day.
         var localEnd = occurrence.EndTime != null
             ? occurrence.Date.ToDateOnly().ToDateTime(occurrence.EndTime.ToTimeOnly())
-            : occurrence.Date.ToDateOnly().AddDays(1).ToDateTime(TimeOnly.MinValue);
+            : AddDaysClamped(occurrence.Date.ToDateOnly(), 1).ToDateTime(TimeOnly.MinValue);
 
         return new DateTimeOffset(localEnd, timeZone.GetUtcOffset(localEnd));
     }
+
+    private static DateOnly AddDaysClamped(DateOnly date, int days)
+    {
+        var dayNumber = Math.Clamp(
+            (long)date.DayNumber + days,
+            DateOnly.MinValue.DayNumber,
+            DateOnly.MaxValue.DayNumber);
+        return DateOnly.FromDayNumber((int)dayNumber);
+    }
+
+    private static LocalDateValue MinDate(LocalDateValue a, LocalDateValue b)
+        => a.CompareTo(b) <= 0 ? a : b;
 }
