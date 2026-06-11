@@ -50,6 +50,11 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         NavigationService.Instance.Initialize(ContentFrame);
 
+        // Change the back button icon from the default ← arrow to × (ChromeClose) so it
+        // reads as "close this view" rather than "go to previous page". The button lives
+        // inside the NavigationView template and is only reachable after Loaded.
+        NavView.Loaded += (_, _) => TryApplyBackButtonCloseIcon();
+
         ContentFrame.Navigated += OnFrameNavigated;
 
         // Default to week view
@@ -161,4 +166,30 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
         => throw e.Exception;
+
+    private void TryApplyBackButtonCloseIcon()
+    {
+        if (FindDescendant<Button>(NavView, b => b.Name == "NavigationViewBackButton") is not { } btn)
+            return;
+        btn.Content = new FontIcon
+        {
+            Glyph = "",       // ChromeClose (×)
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"),
+            FontSize = 12
+        };
+    }
+
+    private static T? FindDescendant<T>(DependencyObject parent, Func<T, bool> predicate)
+        where T : DependencyObject
+    {
+        var count = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChildrenCount(parent);
+        for (var i = 0; i < count; i++)
+        {
+            var child = Microsoft.UI.Xaml.Media.VisualTreeHelper.GetChild(parent, i);
+            if (child is T t && predicate(t)) return t;
+            var found = FindDescendant(child, predicate);
+            if (found != null) return found;
+        }
+        return null;
+    }
 }

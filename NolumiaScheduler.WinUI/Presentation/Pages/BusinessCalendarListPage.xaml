@@ -40,8 +40,10 @@
         <!-- FAB: Add Calendar -->
         <Button x:Name="AddBtn" Width="56" Height="56" CornerRadius="28"
                 HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="20"
-                FontSize="28" Padding="0"
+                Padding="0" HorizontalContentAlignment="Center" VerticalContentAlignment="Center"
                 Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
-                Click="OnAddCalendarClicked">+</Button>
+                Click="OnAddCalendarClicked">
+            <FontIcon Glyph="&#xE710;" FontFamily="Segoe Fluent Icons" FontSize="20"/>
+        </Button>
     </Grid>
 </Page>

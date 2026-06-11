@@ -195,11 +195,13 @@
                                         Foreground="{ThemeResource GCalTextSecondary}"
                                         Tag="{x:Bind EventId}"
                                         Click="OnEditEventClicked"/>
-                                    <Button Grid.Column="3" Content="&#x2715;" Width="40" Height="40"
+                                    <Button Grid.Column="3" Width="40" Height="40"
                                         Background="Transparent" BorderThickness="0"
                                         Foreground="{ThemeResource GCalTextSecondary}"
                                         Tag="{x:Bind EventId}"
-                                        Click="OnDeleteEventClicked"/>
+                                        Click="OnDeleteEventClicked">
+                                        <FontIcon Glyph="&#xE74D;" FontFamily="Segoe Fluent Icons" FontSize="16"/>
+                                    </Button>
                                 </Grid>
                             </DataTemplate>
                         </ItemsControl.ItemTemplate>
