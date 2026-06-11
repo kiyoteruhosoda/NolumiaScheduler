@@ -5,11 +5,10 @@ using NolumiaScheduler.Domain.Services;
 namespace NolumiaScheduler.Application.Services;
 
 /// <summary>
-/// Deletes events whose final occurrence has already ended, so fired events do not accumulate
-/// in the store forever. A retention window keeps just-finished events around briefly: the
-/// calendar can still show what happened recently, snoozed alarms that straddle midnight
-/// survive, and a business-day shift landing slightly past the series end is never purged
-/// while still upcoming.
+/// Deletes events whose final occurrence ended before the start of the current local day, so
+/// fired events do not accumulate in the store. Today's already-finished events are kept until
+/// the date rolls over: the calendar still shows what happened earlier today, and snoozes or
+/// business-day shifts landing later the same day are never cut off.
 /// </summary>
 public class PurgeExpiredEventsService(
     ICalendarEventRepository eventRepository,
@@ -17,20 +16,19 @@ public class PurgeExpiredEventsService(
     IEventExpirationService expirationService,
     TimeProvider clock)
 {
-    public static readonly TimeSpan DefaultRetention = TimeSpan.FromDays(1);
-
     private readonly ICalendarEventRepository _eventRepository = eventRepository;
     private readonly IBusinessCalendarRepository _businessCalendarRepository = businessCalendarRepository;
     private readonly IEventExpirationService _expirationService = expirationService;
     private readonly TimeProvider _clock = clock;
 
     /// <summary>
-    /// Deletes every event that expired before now minus <paramref name="retention"/>
-    /// (default <see cref="DefaultRetention"/>). Returns the number of deleted events.
+    /// Deletes every event whose final occurrence ended before today (local midnight).
+    /// Returns the number of deleted events.
     /// </summary>
-    public int PurgeExpiredEvents(TimeSpan? retention = null)
+    public int PurgeExpiredEvents()
     {
-        var cutoff = _clock.GetUtcNow() - (retention ?? DefaultRetention);
+        var localNow = _clock.GetLocalNow();
+        var cutoff = new DateTimeOffset(localNow.Date, localNow.Offset);
 
         var purged = 0;
         foreach (var calendarEvent in _eventRepository.FindAll())

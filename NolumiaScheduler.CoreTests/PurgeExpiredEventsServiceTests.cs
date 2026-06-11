@@ -8,8 +8,8 @@ using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
 namespace NolumiaScheduler.CoreTests;
 
 /// <summary>
-/// Date/time-driven purge transitions: an event survives while inside the retention window
-/// and is deleted once the clock moves past it.
+/// Date/time-driven purge transitions: events that ended before today (local midnight) are
+/// deleted; today's finished events survive until the date rolls over.
 /// </summary>
 [TestClass]
 public class PurgeExpiredEventsServiceTests
@@ -34,36 +34,30 @@ public class PurgeExpiredEventsServiceTests
     }
 
     [TestMethod]
-    public void 保持期間より前に終了したイベントは削除される()
+    public void 昨日以前に終了したイベントは削除され今日と未来のものは残る()
     {
         _repo.Save(SingleEvent("old", end: Now.AddDays(-2)));
+        _repo.Save(SingleEvent("today", end: Now.AddHours(-2)));
         _repo.Save(SingleEvent("future", end: Now.AddDays(2)));
 
         var purged = _service.PurgeExpiredEvents();
 
         Assert.AreEqual(1, purged);
         Assert.IsNull(_repo.FindById(new EventId("old")));
+        Assert.IsNotNull(_repo.FindById(new EventId("today")), "今日終わった分は当日中は残る");
         Assert.IsNotNull(_repo.FindById(new EventId("future")));
     }
 
     [TestMethod]
-    public void 終了直後のイベントは保持期間内なので残る()
+    public void 境界_当日0時ちょうどに終了したものは削除される()
     {
-        _repo.Save(SingleEvent("just-ended", end: Now.AddHours(-2)));
-
-        Assert.AreEqual(0, _service.PurgeExpiredEvents());
-        Assert.IsNotNull(_repo.FindById(new EventId("just-ended")));
-    }
-
-    [TestMethod]
-    public void 保持期間の境界_丁度1日前に終了したものは削除される()
-    {
-        _repo.Save(SingleEvent("boundary", end: Now - PurgeExpiredEventsService.DefaultRetention));
-        _repo.Save(SingleEvent("inside", end: Now - PurgeExpiredEventsService.DefaultRetention + TimeSpan.FromSeconds(1)));
+        var startOfToday = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero);
+        _repo.Save(SingleEvent("at-midnight", end: startOfToday));
+        _repo.Save(SingleEvent("after-midnight", end: startOfToday.AddSeconds(1)));
 
         Assert.AreEqual(1, _service.PurgeExpiredEvents());
-        Assert.IsNull(_repo.FindById(new EventId("boundary")));
-        Assert.IsNotNull(_repo.FindById(new EventId("inside")));
+        Assert.IsNull(_repo.FindById(new EventId("at-midnight")));
+        Assert.IsNotNull(_repo.FindById(new EventId("after-midnight")));
     }
 
     [TestMethod]
@@ -74,10 +68,10 @@ public class PurgeExpiredEventsServiceTests
         Assert.AreEqual(0, _service.PurgeExpiredEvents(), "終了前: 削除されない");
 
         _clock.Advance(TimeSpan.FromHours(2));
-        Assert.AreEqual(0, _service.PurgeExpiredEvents(), "終了直後: 保持期間内なので残る");
+        Assert.AreEqual(0, _service.PurgeExpiredEvents(), "終了直後: 当日中は残る");
 
-        _clock.Advance(TimeSpan.FromDays(1));
-        Assert.AreEqual(1, _service.PurgeExpiredEvents(), "保持期間経過後: 削除される");
+        _clock.SetUtcNow(new DateTimeOffset(2026, 6, 11, 0, 0, 0, TimeSpan.Zero));
+        Assert.AreEqual(1, _service.PurgeExpiredEvents(), "日付が変わったら削除される");
         Assert.HasCount(0, _repo.FindAll());
     }
 
@@ -102,10 +96,10 @@ public class PurgeExpiredEventsServiceTests
 
         // 6/29 (last Monday) just ended.
         _clock.SetUtcNow(new DateTimeOffset(2026, 6, 29, 11, 0, 0, TimeSpan.Zero));
-        Assert.AreEqual(0, _service.PurgeExpiredEvents(), "最終オカレンス終了直後は保持期間内");
+        Assert.AreEqual(0, _service.PurgeExpiredEvents(), "最終オカレンス終了当日は残る");
 
-        // Retention elapsed.
-        _clock.SetUtcNow(new DateTimeOffset(2026, 7, 1, 0, 0, 0, TimeSpan.Zero));
+        // Date rolled over past the final occurrence.
+        _clock.SetUtcNow(new DateTimeOffset(2026, 6, 30, 0, 0, 0, TimeSpan.Zero));
         Assert.AreEqual(1, _service.PurgeExpiredEvents());
     }
 
@@ -139,7 +133,7 @@ public class PurgeExpiredEventsServiceTests
         _clock.SetUtcNow(new DateTimeOffset(2026, 6, 16, 9, 30, 0, TimeSpan.Zero));
         Assert.AreEqual(0, _service.PurgeExpiredEvents(), "シフト先のオカレンス開催中は削除されない");
 
-        _clock.SetUtcNow(new DateTimeOffset(2026, 6, 18, 0, 0, 0, TimeSpan.Zero));
+        _clock.SetUtcNow(new DateTimeOffset(2026, 6, 17, 0, 0, 0, TimeSpan.Zero));
         Assert.AreEqual(1, _service.PurgeExpiredEvents());
     }
 
