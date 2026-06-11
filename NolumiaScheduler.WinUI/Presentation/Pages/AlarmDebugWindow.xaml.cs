@@ -14,19 +14,22 @@ public sealed partial class AlarmDebugWindow : Window
     private readonly IAlarmService _alarmService;
     private readonly CalendarEventApplicationService _eventService;
     private readonly IOccurrenceExpander _expander;
+    private readonly TimeProvider _clock;
     private DispatcherQueueTimer? _refreshTimer;
     private DispatcherQueueTimer? _clockTimer;
 
     public AlarmDebugWindow(
         IAlarmService alarmService,
         CalendarEventApplicationService eventService,
-        IOccurrenceExpander expander)
+        IOccurrenceExpander expander,
+        TimeProvider clock)
     {
         InitializeComponent();
 
         _alarmService = alarmService;
         _eventService = eventService;
         _expander = expander;
+        _clock = clock;
 
         // Set window size
         if (AppWindow is not null)
@@ -38,9 +41,9 @@ public sealed partial class AlarmDebugWindow : Window
         // 1-second clock
         _clockTimer = DispatcherQueue.CreateTimer();
         _clockTimer.Interval = TimeSpan.FromSeconds(1);
-        _clockTimer.Tick += (_, _) => ClockLabel.Text = DateTime.Now.ToString("yyyy/MM/dd (ddd) HH:mm:ss");
+        _clockTimer.Tick += (_, _) => ClockLabel.Text = _clock.GetLocalNow().ToString("yyyy/MM/dd (ddd) HH:mm:ss");
         _clockTimer.Start();
-        ClockLabel.Text = DateTime.Now.ToString("yyyy/MM/dd (ddd) HH:mm:ss");
+        ClockLabel.Text = _clock.GetLocalNow().ToString("yyyy/MM/dd (ddd) HH:mm:ss");
 
         // Real-time refresh on schedule changes
         _alarmService.ScheduleChanged += OnScheduleChanged;
@@ -71,10 +74,37 @@ public sealed partial class AlarmDebugWindow : Window
     private void OnRefreshClicked(object sender, RoutedEventArgs e) => Refresh();
     private async void OnTestAlarmClicked(object sender, RoutedEventArgs e) => await _alarmService.ShowTestAlarmAsync();
 
+    private void OnCopyClicked(object sender, RoutedEventArgs e)
+    {
+        Refresh();
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"=== アラームデバッグ {_clock.GetLocalNow():yyyy/MM/dd HH:mm:ss} ===");
+        AppendSection(sb, "サマリー", SummaryLabel.Text);
+        AppendSection(sb, "全イベント (リポジトリ生データ)", AllEventsLabel.Text);
+        AppendSection(sb, "オカレンス展開結果 (today～tomorrow)", OccurrenceLabel.Text);
+        AppendSection(sb, "アラームエンジン判定パイプライン", EngineDiagLabel.Text);
+        AppendSection(sb, "発火済キー一覧", FiredKeysLabel.Text);
+
+        var alarmItems = AlarmList.ItemsSource as IEnumerable<AlarmDebugItem> ?? [];
+        AppendSection(sb, "スケジュール済アラーム", string.Join("\n", alarmItems.Select(i => i.ToClipboardLine())));
+
+        var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        package.SetText(sb.ToString());
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+    }
+
+    private static void AppendSection(System.Text.StringBuilder sb, string title, string body)
+    {
+        sb.AppendLine();
+        sb.AppendLine($"■ {title}");
+        sb.AppendLine(string.IsNullOrWhiteSpace(body) ? "(なし)" : body);
+    }
+
     private void Refresh()
     {
         if (_closed) return;
-        var now = DateTime.Now;
+        var now = _clock.GetLocalNow().DateTime;
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
         var allEvents = _eventService.FindAll();
@@ -204,9 +234,15 @@ internal class AlarmDebugItem
     {
         Title = entry.Title;
 
+        var remaining = entry.NotifyAt - now;
+
         if (entry.IsSnoozed)
         {
-            StatusBadge = "  [スヌーズ]";
+            // Due snoozes always fire on the next tick (no catch-up grace), so they are either
+            // counting down or about to ring.
+            StatusBadge = remaining.TotalSeconds <= 0
+                ? "  [スヌーズ 発火待ち]"
+                : $"  [スヌーズ あと{remaining.TotalMinutes:F0}分]";
             StatusBrush = new SolidColorBrush(Colors.Orange);
         }
         else if (entry.AlreadyFired)
@@ -214,19 +250,22 @@ internal class AlarmDebugItem
             StatusBadge = "  [発火済]";
             StatusBrush = new SolidColorBrush(Colors.Gray);
         }
+        else if (now > entry.NotifyAt + AlarmScheduleCalculator.CatchUpGrace)
+        {
+            // The notify time passed beyond the catch-up grace: this alarm will never ring
+            // (e.g. the event was already over when the app started).
+            StatusBadge = "  [期限切れ]";
+            StatusBrush = new SolidColorBrush(Colors.Gray);
+        }
+        else if (remaining.TotalSeconds <= 0)
+        {
+            StatusBadge = "  [発火待ち]";
+            StatusBrush = new SolidColorBrush(Colors.Red);
+        }
         else
         {
-            var remaining = entry.NotifyAt - now;
-            if (remaining.TotalMinutes <= 0)
-            {
-                StatusBadge = "  [発火待ち]";
-                StatusBrush = new SolidColorBrush(Colors.Red);
-            }
-            else
-            {
-                StatusBadge = $"  [あと{remaining.TotalMinutes:F0}分]";
-                StatusBrush = new SolidColorBrush(Colors.Green);
-            }
+            StatusBadge = $"  [あと{remaining.TotalMinutes:F0}分]";
+            StatusBrush = new SolidColorBrush(Colors.Green);
         }
 
         Detail = entry.IsSnoozed
@@ -235,4 +274,7 @@ internal class AlarmDebugItem
 
         NotifyAtText = $"通知時刻: {entry.NotifyAt:yyyy/MM/dd HH:mm:ss}  |  EventId: {entry.EventId}";
     }
+
+    public string ToClipboardLine()
+        => $"{Title}{StatusBadge} | {Detail} | {NotifyAtText}";
 }

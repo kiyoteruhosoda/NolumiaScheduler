@@ -28,7 +28,8 @@ public class RecurringMatrixTests
     public void Setup()
     {
         _repo = new InMemoryCalendarEventRepository();
-        _svc = new CalendarEventApplicationService(_repo, _repo);
+        _svc = new CalendarEventApplicationService(
+            _repo, _repo, new FakeClock(new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero)));
         _expander = new OccurrenceExpander(new BusinessDayShiftService());
     }
 

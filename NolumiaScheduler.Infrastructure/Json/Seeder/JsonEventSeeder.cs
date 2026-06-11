@@ -6,11 +6,11 @@ namespace NolumiaScheduler.Infrastructure.Json.Seeder;
 
 public static class JsonEventSeeder
 {
-    public static void SeedIfEmpty(ICalendarEventRepository repo)
+    public static void SeedIfEmpty(ICalendarEventRepository repo, TimeProvider clock)
     {
         if (repo.FindAll().Count > 0) return;
 
-        var now = DateTimeOffset.UtcNow;
+        var now = clock.GetUtcNow();
 
         var standup = CalendarEvent.CreateRecurring(
             new EventId(Guid.NewGuid().ToString()),

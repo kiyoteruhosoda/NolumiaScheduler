@@ -33,11 +33,11 @@ public sealed class WeekDayColumn
                 return isDark ? WinColors.GCalSundayBgDark : WinColors.GCalSundayBg;
             if (dow == DayOfWeek.Saturday)
                 return isDark ? WinColors.GCalSaturdayBgDark : WinColors.GCalSaturdayBg;
-            return Microsoft.UI.Colors.Transparent;
+            return WinColors.Transparent;
         }
     }
 
-    public static Color HeaderBackgroundColor => Microsoft.UI.Colors.Transparent;
+    public static Color HeaderBackgroundColor => WinColors.Transparent;
     public Color HeaderTextColor => IsToday ? WinColors.GCalBlue : WinColors.FromHex("#5f6368");
 
     public ObservableCollection<WeekEventBlock> EventBlocks { get; }

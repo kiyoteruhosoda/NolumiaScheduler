@@ -36,18 +36,18 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
     public Color CircleColor =>
         IsToday ? WinColors.GCalBlue :
         IsSelected ? WinColors.GCalSelectedCircle :
-        Microsoft.UI.Colors.Transparent;
+        WinColors.Transparent;
 
     public Color DayTextColor
     {
         get
         {
-            if (IsToday || IsSelected) return Microsoft.UI.Colors.White;
+            if (IsToday || IsSelected) return WinColors.White;
             var isDark = ThemeHelper.IsDark;
             if (IsHoliday && IsCurrentMonth)
                 return isDark ? WinColors.GCalRedDark : WinColors.GCalRed;
             if (IsCurrentMonth)
-                return isDark ? Microsoft.UI.Colors.White : WinColors.GCalTextPrimary;
+                return isDark ? WinColors.White : WinColors.GCalTextPrimary;
             return isDark ? WinColors.GCalOutOfMonthTextDark : WinColors.GCalOutOfMonthText;
         }
     }
@@ -56,7 +56,7 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
     {
         get
         {
-            if (!IsCurrentMonth) return Microsoft.UI.Colors.Transparent;
+            if (!IsCurrentMonth) return WinColors.Transparent;
             var isDark = ThemeHelper.IsDark;
             var dow = Date.DayOfWeek;
             if (IsHoliday)
@@ -65,7 +65,7 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
                 return isDark ? WinColors.GCalSundayBgDark : WinColors.GCalSundayBg;
             if (dow == DayOfWeek.Saturday)
                 return isDark ? WinColors.GCalSaturdayBgDark : WinColors.GCalSaturdayBg;
-            return Microsoft.UI.Colors.Transparent;
+            return WinColors.Transparent;
         }
     }
 

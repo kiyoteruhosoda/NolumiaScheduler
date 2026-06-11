@@ -297,18 +297,18 @@ public class EventEditInitializationTests
     {
         var eventRepo = new InMemoryEventRepo();
         var calendarRepo = new InMemoryCalendarRepo();
-        var eventService = new CalendarEventApplicationService(eventRepo, eventRepo);
+        var eventService = new CalendarEventApplicationService(eventRepo, eventRepo, TimeProvider.System);
         var calendarService = new BusinessCalendarApplicationService(calendarRepo);
-        return new EventEditViewModel(eventService, calendarService);
+        return new EventEditViewModel(eventService, calendarService, TimeProvider.System);
     }
 
     private static EventEditViewModel CreateViewModel(out InMemoryEventRepo eventRepo)
     {
         eventRepo = new InMemoryEventRepo();
         var calendarRepo = new InMemoryCalendarRepo();
-        var eventService = new CalendarEventApplicationService(eventRepo, eventRepo);
+        var eventService = new CalendarEventApplicationService(eventRepo, eventRepo, TimeProvider.System);
         var calendarService = new BusinessCalendarApplicationService(calendarRepo);
-        return new EventEditViewModel(eventService, calendarService);
+        return new EventEditViewModel(eventService, calendarService, TimeProvider.System);
     }
 
     private static CalendarEvent CreateSingleEvent(string id)

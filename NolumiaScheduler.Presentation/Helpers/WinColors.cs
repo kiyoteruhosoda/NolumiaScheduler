@@ -52,8 +52,11 @@ public static class WinColors
     public static Color GCalSundayBgDark  => FromHex("#2d1a1a");
     public static Color GCalSaturdayBg    => FromHex("#f0f4ff");
     public static Color GCalSaturdayBgDark => FromHex("#1a1a2d");
-    public static Color White              => Microsoft.UI.Colors.White;
-    public static Color Transparent        => Microsoft.UI.Colors.Transparent;
+    // Built from the struct directly: Microsoft.UI.Colors statics require WinRT activation,
+    // which is unavailable in unit test processes.
+    public static Color White              => Color.FromArgb(255, 255, 255, 255);
+    public static Color Transparent        => Color.FromArgb(0, 0, 0, 0);
+    public static Color Gray               => FromHex("#808080");
 
     public static Color Named(string key) => key switch
     {
@@ -85,6 +88,6 @@ public static class WinColors
         "GCalSundayBgDark"       => GCalSundayBgDark,
         "GCalSaturdayBg"         => GCalSaturdayBg,
         "GCalSaturdayBgDark"     => GCalSaturdayBgDark,
-        _ => Microsoft.UI.Colors.Gray
+        _ => Gray
     };
 }

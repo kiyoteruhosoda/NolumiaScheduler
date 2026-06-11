@@ -1,4 +1,6 @@
+using Microsoft.UI.Xaml;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Helpers;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 
@@ -31,14 +33,34 @@ public class WeekViewPresentationTests
         Assert.HasCount(0, blocks);
     }
 
+    // Theme-dependent tests read the process-wide ThemeHelper state, so they must not run in
+    // parallel with the dark-theme test (this assembly parallelizes at method level).
     [TestMethod]
+    [DoNotParallelize]
     public void 休日カラムは月表示と同系統の赤背景になる()
     {
         var holidayColumn = new WeekDayColumn("Sun 4", new DateTime(2026,5,4), true);
         var normalColumn = new WeekDayColumn("Mon 5", new DateTime(2026,5,5), false);
 
         Assert.AreEqual("#FFF0F0", $"#{holidayColumn.DayBackgroundColor.R:X2}{holidayColumn.DayBackgroundColor.G:X2}{holidayColumn.DayBackgroundColor.B:X2}");
-        Assert.AreEqual(Microsoft.UI.Colors.Transparent, normalColumn.DayBackgroundColor);
+        Assert.AreEqual(WinColors.Transparent, normalColumn.DayBackgroundColor);
+    }
+
+    [TestMethod]
+    [DoNotParallelize]
+    public void 休日カラムはダークテーマでは暗色系の赤背景になる()
+    {
+        // Theme state is static: restore the default so other tests keep seeing light mode.
+        ThemeHelper.UpdateTheme(ElementTheme.Dark);
+        try
+        {
+            var holidayColumn = new WeekDayColumn("Sun 4", new DateTime(2026, 5, 4), true);
+            Assert.AreEqual(WinColors.GCalHolidayBgDark, holidayColumn.DayBackgroundColor);
+        }
+        finally
+        {
+            ThemeHelper.UpdateTheme(ElementTheme.Default);
+        }
     }
 
 
