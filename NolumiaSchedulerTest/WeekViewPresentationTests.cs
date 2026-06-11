@@ -1,4 +1,6 @@
+using Microsoft.UI.Xaml;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Helpers;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 
@@ -39,6 +41,22 @@ public class WeekViewPresentationTests
 
         Assert.AreEqual("#FFF0F0", $"#{holidayColumn.DayBackgroundColor.R:X2}{holidayColumn.DayBackgroundColor.G:X2}{holidayColumn.DayBackgroundColor.B:X2}");
         Assert.AreEqual(Microsoft.UI.Colors.Transparent, normalColumn.DayBackgroundColor);
+    }
+
+    [TestMethod]
+    public void 休日カラムはダークテーマでは暗色系の赤背景になる()
+    {
+        // Theme state is static: restore the default so other tests keep seeing light mode.
+        ThemeHelper.UpdateTheme(ElementTheme.Dark);
+        try
+        {
+            var holidayColumn = new WeekDayColumn("Sun 4", new DateTime(2026, 5, 4), true);
+            Assert.AreEqual(WinColors.GCalHolidayBgDark, holidayColumn.DayBackgroundColor);
+        }
+        finally
+        {
+            ThemeHelper.UpdateTheme(ElementTheme.Default);
+        }
     }
 
 

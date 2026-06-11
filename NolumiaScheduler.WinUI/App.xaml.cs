@@ -30,6 +30,12 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         UnhandledException += OnAppUnhandledException;
         InitializeComponent();
+
+        // The Presentation layer resolves "follow system" theming through this delegate so view
+        // models never touch Application.Current (which does not exist in unit tests).
+        NolumiaScheduler.Presentation.Helpers.ThemeHelper.UseSystemThemeSource(
+            () => Current.RequestedTheme == ApplicationTheme.Dark);
+
         try
         {
             _services = BuildServices();
