@@ -8,6 +8,7 @@ namespace NolumiaScheduler.Infrastructure.Json.Repositories;
     DefaultIgnoreCondition = JsonIgnoreCondition.WhenWritingNull)]
 [JsonSerializable(typeof(CalendarEventDto))]
 [JsonSerializable(typeof(BusinessCalendarDto))]
+[JsonSerializable(typeof(AppSettingsDto))]
 internal partial class AppJsonContext : JsonSerializerContext
 {
 }

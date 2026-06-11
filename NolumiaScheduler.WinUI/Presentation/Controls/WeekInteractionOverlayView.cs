@@ -47,16 +47,17 @@ public partial class WeekInteractionOverlayView : UserControl
         var rawWidth = width * Preview.WidthRatio;
         var blockWidth = Math.Max(24, Math.Min(rawWidth - chipMargin, width * 0.8 - chipMargin));
 
-        _canvas.Children.Add(new Rectangle
+        var ghost = new Rectangle
         {
             Width = blockWidth,
             Height = height,
             Fill = new SolidColorBrush(WinColors.GCalDragGhost),
             RadiusX = 6,
-            RadiusY = 6,
-            [Canvas.LeftProperty] = left,
-            [Canvas.TopProperty] = top
-        });
+            RadiusY = 6
+        };
+        Canvas.SetLeft(ghost, left);
+        Canvas.SetTop(ghost, top);
+        _canvas.Children.Add(ghost);
 
         _canvas.Children.Add(new Line
         {

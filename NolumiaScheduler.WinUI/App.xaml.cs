@@ -67,6 +67,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             }
 
             MainWindow = new MainWindow();
+            Services.GetRequiredService<ThemeService>().Initialize(MainWindow);
             MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
             MainWindow.Activate();
             Services.GetRequiredService<IAlarmService>().Start();
@@ -165,6 +166,14 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
         services.AddSingleton<ICalendarEventChanges>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
 
+        services.AddSingleton<IAppSettingsRepository>(_ =>
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NolumiaScheduler");
+            return new JsonAppSettingsRepository(dir);
+        });
+
         services.AddSingleton<IBusinessCalendarRepository>(_ =>
         {
             var dir = Path.Combine(
@@ -181,6 +190,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Alarm
         services.AddSingleton<AlarmApplicationService>();
         services.AddSingleton<IAlarmService, AlarmService>();
+
+        // Theme (no UI yet; preference persisted in settings.json and applied at launch)
+        services.AddSingleton<ThemeService>();
 
         // Presentation services
         services.AddSingleton<IWeekEventLayoutStrategy, DefaultWeekEventLayoutStrategy>();
