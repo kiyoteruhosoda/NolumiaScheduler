@@ -466,12 +466,18 @@ public sealed partial class WeekCalendarView : UserControl
 
     private Canvas BuildAllDayLane(DateTime day)
     {
-        var canvas = new Canvas { Background = new SolidColorBrush(Microsoft.UI.Colors.Transparent), Tag = day };
-        canvas.Tapped += OnAllDayLaneTapped;
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
             .Where(b => b.StartDate.Date <= day.Date && b.EndDate.Date >= day.Date)
             .ToList() ?? [];
+
+        // Match the day-body tint (WeekGridBackgroundView) so days with an all-day
+        // event are marked in the all-day lane as well; transparent keeps taps working.
+        var laneBackground = blocks.Count > 0
+            ? Windows.UI.Color.FromArgb(48, 26, 115, 232)
+            : Microsoft.UI.Colors.Transparent;
+        var canvas = new Canvas { Background = new SolidColorBrush(laneBackground), Tag = day };
+        canvas.Tapped += OnAllDayLaneTapped;
 
         foreach (var block in blocks)
         {

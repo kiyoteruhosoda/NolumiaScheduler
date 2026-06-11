@@ -62,8 +62,9 @@ public partial class WeekGridBackgroundView : UserControl
         var width = ActualWidth;
         if (width <= 0) width = 120;
 
-        // All-day event tint: a very subtle fill over the whole column so it's
-        // visually distinct from days with no all-day events.
+        // All-day event tint over the whole column so days with an all-day event are
+        // recognizable at a glance. Strong enough to be obvious but light enough that
+        // grid lines and event chips stay readable on top.
         if (HasAllDayEvents)
         {
             var height = ActualHeight > 0 ? ActualHeight : 1440;
@@ -71,7 +72,7 @@ public partial class WeekGridBackgroundView : UserControl
             {
                 Width = width,
                 Height = height,
-                Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(18, 26, 115, 232))
+                Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(48, 26, 115, 232))
             };
             _canvas.Children.Add(tint);
         }

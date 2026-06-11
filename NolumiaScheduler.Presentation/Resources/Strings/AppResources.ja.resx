@@ -298,6 +298,9 @@
   <data name="SelectedDayFormat" xml:space="preserve">
     <value>M月d日 (ddd)</value>
   </data>
+  <data name="HolidayDateFormat" xml:space="preserve">
+    <value>yyyy年M月d日 (ddd)</value>
+  </data>
   <data name="FormatCultureName" xml:space="preserve">
     <value>ja-JP</value>
   </data>

@@ -52,6 +52,7 @@ public static class AppResources
 
     public static string MonthYearFormat   => Get(nameof(MonthYearFormat));
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
+    public static string HolidayDateFormat => Get(nameof(HolidayDateFormat));
 
     // Tabs
     public static string CalendarTab          => Get(nameof(CalendarTab));

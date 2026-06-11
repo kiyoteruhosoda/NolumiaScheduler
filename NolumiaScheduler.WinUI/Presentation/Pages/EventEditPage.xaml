@@ -196,7 +196,8 @@
                         <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
                             <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
                             <Grid ColumnDefinitions="Auto,*" MinHeight="48">
-                                <TextBlock x:Name="BusinessCalendarLabel" Grid.Column="0" FontSize="13" Width="80"
+                                <TextBlock x:Name="BusinessCalendarLabel" Grid.Column="0" FontSize="13"
+                                           Margin="0,0,12,0" TextWrapping="NoWrap"
                                            Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                                 <ComboBox x:Name="CalendarPicker" Grid.Column="1" FontSize="14" MinHeight="48"
                                           HorizontalAlignment="Stretch" SelectionChanged="OnCalendarPickerChanged"/>

@@ -86,6 +86,7 @@
 
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
+  <data name="HolidayDateFormat" xml:space="preserve"><value>MMMM d, yyyy (ddd)</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>
   <data name="EditRecurringEventTitle" xml:space="preserve">
     <value>Edit recurring event</value>
