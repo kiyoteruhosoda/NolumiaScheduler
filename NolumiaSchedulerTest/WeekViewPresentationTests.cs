@@ -40,7 +40,7 @@ public class WeekViewPresentationTests
         var normalColumn = new WeekDayColumn("Mon 5", new DateTime(2026,5,5), false);
 
         Assert.AreEqual("#FFF0F0", $"#{holidayColumn.DayBackgroundColor.R:X2}{holidayColumn.DayBackgroundColor.G:X2}{holidayColumn.DayBackgroundColor.B:X2}");
-        Assert.AreEqual(Microsoft.UI.Colors.Transparent, normalColumn.DayBackgroundColor);
+        Assert.AreEqual(WinColors.Transparent, normalColumn.DayBackgroundColor);
     }
 
     [TestMethod]
