@@ -50,10 +50,14 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         NavigationService.Instance.Initialize(ContentFrame);
 
-        // Change the back button icon from the default ← arrow to × (ChromeClose) so it
-        // reads as "close this view" rather than "go to previous page". The button lives
-        // inside the NavigationView template and is only reachable after Loaded.
-        NavView.Loaded += (_, _) => TryApplyBackButtonCloseIcon();
+        // The pane toggle button lives inside the NavigationView template and is only
+        // reachable after Loaded; refresh the icon on every open/close so it always
+        // points in the direction the click will move the pane.
+        NavView.Loaded += (_, _) => ApplyPaneToggleIcon(NavView.IsPaneOpen);
+        // IsPaneOpen still holds the old value while these events run, so pass the
+        // state the pane is moving to instead of reading the property.
+        NavView.PaneOpening += (_, _) => ApplyPaneToggleIcon(paneOpen: true);
+        NavView.PaneClosing += (_, _) => ApplyPaneToggleIcon(paneOpen: false);
 
         ContentFrame.Navigated += OnFrameNavigated;
 
@@ -167,15 +171,18 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     private void OnNavigationFailed(object sender, NavigationFailedEventArgs e)
         => throw e.Exception;
 
-    private void TryApplyBackButtonCloseIcon()
+    // The pane toggle (default hamburger ☰, tooltip "Close Navigation" when open) does not
+    // read as open/close. Replace its icon with a direction that says what the click will do:
+    // ForwardSolidBold (F8AD) when the pane is closed, BackSolidBold (F8AC) when it is open.
+    private void ApplyPaneToggleIcon(bool paneOpen)
     {
-        if (FindDescendant<Button>(NavView, b => b.Name == "NavigationViewBackButton") is not { } btn)
+        if (FindDescendant<Button>(NavView, b => b.Name == "TogglePaneButton") is not { } btn)
             return;
         btn.Content = new FontIcon
         {
-            Glyph = "",       // ChromeClose (×)
+            Glyph = paneOpen ? "\uF8AC" : "\uF8AD",
             FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe Fluent Icons"),
-            FontSize = 12
+            FontSize = 14
         };
     }
 
