@@ -47,14 +47,20 @@ public sealed partial class AlarmNotificationWindow : Window
             BeforeEventGrid.Visibility = Visibility.Visible;
         }
 
-        // Configure window: full-screen, no titlebar, always on top
+        // Configure window: full-screen on the active monitor, no titlebar, always on top
         if (AppWindow is not null)
         {
-            // Set taskbar icon
             AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
 
             ExtendsContentIntoTitleBar = true;
             AppWindow.TitleBar?.PreferredHeightOption = TitleBarHeightOption.Collapsed;
+
+            // Move to the monitor that currently has input focus so the alarm appears where
+            // the user is working, not necessarily on the primary display.
+            // SetPresenter(FullScreen) covers whichever monitor the window is currently on,
+            // so this must happen before the presenter switch.
+            MoveToActiveMonitor();
+
             AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
         }
 
@@ -87,6 +93,28 @@ public sealed partial class AlarmNotificationWindow : Window
         else if (!_foregroundForced)
         {
             ForceToForeground();
+        }
+    }
+
+    private void MoveToActiveMonitor()
+    {
+        try
+        {
+            // Prefer the monitor that holds the current foreground window; fall back to
+            // the primary monitor if there is no foreground window.
+            var foreground = NativeMethods.GetForegroundWindow();
+            var source = foreground != nint.Zero ? foreground : WindowNative.GetWindowHandle(this);
+            var hMonitor = NativeMethods.MonitorFromWindow(source, NativeMethods.MONITOR_DEFAULTTOPRIMARY);
+
+            var info = new NativeMethods.MONITORINFO { cbSize = (uint)Marshal.SizeOf<NativeMethods.MONITORINFO>() };
+            if (!NativeMethods.GetMonitorInfo(hMonitor, ref info)) return;
+
+            var r = info.rcMonitor;
+            AppWindow.MoveAndResize(new Windows.Graphics.RectInt32(r.Left, r.Top, r.Right - r.Left, r.Bottom - r.Top));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AlarmNotificationWindow] MoveToActiveMonitor failed: {ex.Message}");
         }
     }
 
@@ -207,6 +235,26 @@ public sealed partial class AlarmNotificationWindow : Window
         public const int  SW_RESTORE      = 9;
         public const uint FLASHW_ALL       = 0x00000003;
         public const uint FLASHW_TIMERNOFG = 0x0000000C;
+        public const uint MONITOR_DEFAULTTOPRIMARY = 0x00000001;
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct RECT { public int Left, Top, Right, Bottom; }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct MONITORINFO
+        {
+            public uint cbSize;
+            public RECT rcMonitor;
+            public RECT rcWork;
+            public uint dwFlags;
+        }
+
+        [LibraryImport("user32.dll")]
+        public static partial nint MonitorFromWindow(nint hwnd, uint dwFlags);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool GetMonitorInfo(nint hMonitor, ref MONITORINFO lpmi);
 
         [StructLayout(LayoutKind.Sequential)]
         public struct FLASHWINFO
