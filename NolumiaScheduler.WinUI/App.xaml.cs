@@ -123,12 +123,10 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     private void OnAppNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
     {
-        // Bring the main window to the foreground when the user clicks a toast notification.
-        MainWindow?.DispatcherQueue.TryEnqueue(() =>
-        {
-            MainWindow.AppWindow.Show();
-            MainWindow.Activate();
-        });
+        // NotificationInvoked arrives on a background thread; hop to the UI thread and
+        // restore the window the same way the tray "Show" action does (incl. hiding the
+        // tray icon, otherwise it would linger after the window is back).
+        MainWindow?.DispatcherQueue.TryEnqueue(OnTrayShowRequested);
     }
 
     private void OnTrayExitRequested()

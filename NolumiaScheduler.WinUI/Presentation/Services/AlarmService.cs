@@ -103,7 +103,10 @@ public class AlarmService(
             var xml = $"<toast><visual><binding template=\"ToastGeneric\">" +
                       $"<text>{title}</text><text>{body}</text>{locationPart}" +
                       $"</binding></visual>" +
-                      $"<audio src=\"ms-winsoundevent:Notification.Alarm\"/></toast>";
+                      // Notification.Alarm is not a valid ms-winsoundevent value (only the
+                      // Looping.Alarm* variants exist); an invalid src makes Windows reject
+                      // the whole toast, so use the documented Reminder sound.
+                      $"<audio src=\"ms-winsoundevent:Notification.Reminder\"/></toast>";
             AppNotificationManager.Default.Show(new AppNotification(xml));
         }
         catch (Exception ex)
