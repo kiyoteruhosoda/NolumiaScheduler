@@ -1,4 +1,5 @@
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
@@ -53,11 +54,12 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         // The pane toggle button lives inside the NavigationView template and is only
         // reachable after Loaded; refresh the icon on every open/close so it always
         // points in the direction the click will move the pane.
-        NavView.Loaded += (_, _) => ApplyPaneToggleIcon(NavView.IsPaneOpen);
-        // IsPaneOpen still holds the old value while these events run, so pass the
-        // state the pane is moving to instead of reading the property.
-        NavView.PaneOpening += (_, _) => ApplyPaneToggleIcon(paneOpen: true);
-        NavView.PaneClosing += (_, _) => ApplyPaneToggleIcon(paneOpen: false);
+        // Run with Low priority so WinUI's own VisualState transitions (which would
+        // reset Content) are already applied before we override the icon.
+        NavView.Loaded += (_, _) => EnqueuePaneToggleIcon(NavView.IsPaneOpen);
+        // IsPaneOpen still holds the old value inside these events; pass the target state.
+        NavView.PaneOpening += (_, _) => EnqueuePaneToggleIcon(paneOpen: true);
+        NavView.PaneClosing += (_, _) => EnqueuePaneToggleIcon(paneOpen: false);
 
         ContentFrame.Navigated += OnFrameNavigated;
 
@@ -174,10 +176,19 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
     // The pane toggle (default hamburger ☰, tooltip "Close Navigation" when open) does not
     // read as open/close. Replace its icon with a direction that says what the click will do:
     // ForwardSolidBold (F8AD) when the pane is closed, BackSolidBold (F8AC) when it is open.
+    private void EnqueuePaneToggleIcon(bool paneOpen)
+        // DispatcherQueuePriority.Low ensures this runs after WinUI's VisualState
+        // transitions, which otherwise reset ContentTemplate/Content on the button.
+        => DispatcherQueue.TryEnqueue(Microsoft.UI.Dispatching.DispatcherQueuePriority.Low,
+            () => ApplyPaneToggleIcon(paneOpen));
+
     private void ApplyPaneToggleIcon(bool paneOpen)
     {
         if (FindDescendant<Button>(NavView, b => b.Name == "TogglePaneButton") is not { } btn)
             return;
+        // Clear the template so it cannot restore the original hamburger icon on
+        // the next layout pass, then set our directional icon directly as Content.
+        btn.ContentTemplate = null;
         btn.Content = new FontIcon
         {
             Glyph = paneOpen ? "\uF8AC" : "\uF8AD",

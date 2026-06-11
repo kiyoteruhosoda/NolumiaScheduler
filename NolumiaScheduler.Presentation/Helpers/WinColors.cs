@@ -58,6 +58,15 @@ public static class WinColors
     public static Color Transparent        => Color.FromArgb(0, 0, 0, 0);
     public static Color Gray               => FromHex("#808080");
 
+    // Week-grid canvas tokens (mirrored in Colors.xaml ThemeDictionaries)
+    public static Color GCalGridLine          => FromHex("#D0D7DE");
+    public static Color GCalGridLineDark      => FromHex("#454545");
+    public static Color GCalGridHalfLine      => FromHex("#5AD0D7DE");  // alpha 90
+    public static Color GCalGridHalfLineDark  => FromHex("#50454545");  // alpha 80
+    public static Color GCalCurrentTimeLine   => FromHex("#EA4335");    // same both themes
+    public static Color GCalAllDayTint        => FromHex("#301A73E8");  // alpha 48, blue
+    public static Color GCalDragGhost         => FromHex("#5A1A73E8");  // alpha 90, blue
+
     public static Color Named(string key) => key switch
     {
         "GCalBlue"               => GCalBlue,
@@ -88,6 +97,13 @@ public static class WinColors
         "GCalSundayBgDark"       => GCalSundayBgDark,
         "GCalSaturdayBg"         => GCalSaturdayBg,
         "GCalSaturdayBgDark"     => GCalSaturdayBgDark,
+        "GCalGridLine"           => GCalGridLine,
+        "GCalGridLineDark"       => GCalGridLineDark,
+        "GCalGridHalfLine"       => GCalGridHalfLine,
+        "GCalGridHalfLineDark"   => GCalGridHalfLineDark,
+        "GCalCurrentTimeLine"    => GCalCurrentTimeLine,
+        "GCalAllDayTint"         => GCalAllDayTint,
+        "GCalDragGhost"          => GCalDragGhost,
         _ => Gray
     };
 }

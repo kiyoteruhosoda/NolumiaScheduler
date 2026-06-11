@@ -128,7 +128,7 @@
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                             <TextBox x:Name="DomBox" Grid.Column="1" FontSize="14"
                                      Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnDomChanged"
-                                     VerticalContentAlignment="Center"/>
+                                     VerticalAlignment="Center" VerticalContentAlignment="Center"/>
                         </Grid>
                         <Grid x:Name="NthWeekdaySection" ColumnDefinitions="*,*" ColumnSpacing="8" Visibility="Collapsed">
                             <ComboBox x:Name="WeekIndexPicker" Grid.Column="0" FontSize="13" MinHeight="44"
@@ -170,7 +170,7 @@
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                             <TextBox x:Name="IntervalBox" Grid.Column="1" FontSize="14"
                                      Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnIntervalChanged"
-                                     VerticalContentAlignment="Center"/>
+                                     VerticalAlignment="Center" VerticalContentAlignment="Center"/>
                             <TextBlock x:Name="IntervalUnitLabel" Grid.Column="2" FontSize="13" Margin="8,0,0,0"
                                        Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
                         </Grid>

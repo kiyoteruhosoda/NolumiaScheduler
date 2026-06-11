@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Media;
 using Microsoft.UI.Xaml.Shapes;
 using NolumiaScheduler.Presentation.Controls;
+using NolumiaScheduler.Presentation.Helpers;
 
 namespace NolumiaScheduler.WinUI.Presentation.Controls;
 
@@ -46,30 +47,24 @@ public partial class WeekInteractionOverlayView : UserControl
         var rawWidth = width * Preview.WidthRatio;
         var blockWidth = Math.Max(24, Math.Min(rawWidth - chipMargin, width * 0.8 - chipMargin));
 
-        // Filled rectangle with semi-transparent blue
-        var rect = new Rectangle
+        _canvas.Children.Add(new Rectangle
         {
             Width = blockWidth,
             Height = height,
-            Fill = new SolidColorBrush(Windows.UI.Color.FromArgb(90, 26, 115, 232)),
+            Fill = new SolidColorBrush(WinColors.GCalDragGhost),
             RadiusX = 6,
-            RadiusY = 6
-        };
-        Canvas.SetLeft(rect, left);
-        Canvas.SetTop(rect, top);
-        _canvas.Children.Add(rect);
+            RadiusY = 6,
+            [Canvas.LeftProperty] = left,
+            [Canvas.TopProperty] = top
+        });
 
-        // Top line
-        var line = new Line
+        _canvas.Children.Add(new Line
         {
-            X1 = 0, Y1 = top,
-            X2 = width, Y2 = top,
-            Stroke = new SolidColorBrush(Windows.UI.Color.FromArgb(255, 26, 115, 232)),
+            X1 = 0, Y1 = top, X2 = width, Y2 = top,
+            Stroke = new SolidColorBrush(WinColors.GCalBlue),
             StrokeThickness = 2
-        };
-        _canvas.Children.Add(line);
+        });
 
-        // Time label
         var label = new TextBlock
         {
             Text = $"{Preview.StartMinute / 60:D2}:{Preview.StartMinute % 60:D2} - {Preview.EndMinute / 60:D2}:{Preview.EndMinute % 60:D2}",

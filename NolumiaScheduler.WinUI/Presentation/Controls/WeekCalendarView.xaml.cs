@@ -1,6 +1,7 @@
 using System.Collections;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
+using NolumiaScheduler.Presentation.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
@@ -474,8 +475,8 @@ public sealed partial class WeekCalendarView : UserControl
         // Match the day-body tint (WeekGridBackgroundView) so days with an all-day
         // event are marked in the all-day lane as well; transparent keeps taps working.
         var laneBackground = blocks.Count > 0
-            ? Windows.UI.Color.FromArgb(48, 26, 115, 232)
-            : Microsoft.UI.Colors.Transparent;
+            ? WinColors.GCalAllDayTint
+            : WinColors.Transparent;
         var canvas = new Canvas { Background = new SolidColorBrush(laneBackground), Tag = day };
         canvas.Tapped += OnAllDayLaneTapped;
 
