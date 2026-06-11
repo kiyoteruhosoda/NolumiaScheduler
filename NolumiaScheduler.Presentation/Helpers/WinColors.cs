@@ -1,3 +1,4 @@
+using NolumiaScheduler.Domain.ValueObjects;
 using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.Helpers;
@@ -66,6 +67,35 @@ public static class WinColors
     public static Color GCalCurrentTimeLine   => FromHex("#EA4335");    // same both themes
     public static Color GCalAllDayTint        => FromHex("#301A73E8");  // alpha 48, blue
     public static Color GCalDragGhost         => FromHex("#5A1A73E8");  // alpha 90, blue
+
+    // Event color palette (Google Calendar hues). Saturated enough to carry white
+    // chip text in both light and dark themes, so one value serves both.
+    public static Color EventTomato     => FromHex("#D50000");
+    public static Color EventTangerine  => FromHex("#F4511E");
+    public static Color EventBanana     => FromHex("#F6BF26");
+    public static Color EventBasil      => FromHex("#0B8043");
+    public static Color EventSage       => FromHex("#33B679");
+    public static Color EventPeacock    => FromHex("#039BE5");
+    public static Color EventBlueberry  => FromHex("#3F51B5");
+    public static Color EventLavender   => FromHex("#7986CB");
+    public static Color EventGrape      => FromHex("#8E24AA");
+    public static Color EventGraphite   => FromHex("#616161");
+
+    /// <summary>Resolves an event's color key; Default falls back to the standard event blue.</summary>
+    public static Color ForEventColor(EventColorKey key) => key switch
+    {
+        EventColorKey.Tomato    => EventTomato,
+        EventColorKey.Tangerine => EventTangerine,
+        EventColorKey.Banana    => EventBanana,
+        EventColorKey.Basil     => EventBasil,
+        EventColorKey.Sage      => EventSage,
+        EventColorKey.Peacock   => EventPeacock,
+        EventColorKey.Blueberry => EventBlueberry,
+        EventColorKey.Lavender  => EventLavender,
+        EventColorKey.Grape     => EventGrape,
+        EventColorKey.Graphite  => EventGraphite,
+        _ => GCalBlue
+    };
 
     public static Color Named(string key) => key switch
     {

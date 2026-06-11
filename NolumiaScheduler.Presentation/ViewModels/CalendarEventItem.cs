@@ -47,7 +47,11 @@ public sealed class CalendarEventItem
         if (IsOverridden) badges.Add(AppResources.BadgeModified);
         BadgeText = badges.Count > 0 ? string.Join("  ", badges) : null;
 
-        DotColor = IsMoved ? WinColors.GCalEventMoved :
+        ColorKey = occ.ColorKey;
+        // An explicitly assigned event color wins over the moved/overridden tints;
+        // those states remain visible through their badges.
+        DotColor = ColorKey != EventColorKey.Default ? WinColors.ForEventColor(ColorKey) :
+                   IsMoved ? WinColors.GCalEventMoved :
                    IsOverridden ? WinColors.GCalGreen :
                    WinColors.GCalBlue;
     }
@@ -64,6 +68,7 @@ public sealed class CalendarEventItem
     public string TimeRange { get; }
     public string? BadgeText { get; }
     public Color DotColor { get; }
+    public EventColorKey ColorKey { get; }
     public bool IsAllDay { get; }
     public bool IsMoved { get; }
     public bool IsOverridden { get; }

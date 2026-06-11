@@ -451,7 +451,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                         occ.Visibility,
                         occ.IsMoved,
                         occ.IsOverridden,
-                        occ.SeriesKey);
+                        occ.SeriesKey,
+                        occ.ColorKey);
                     weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence));
 
                     var secondOccurrence = new EventOccurrence(
@@ -465,7 +466,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                         occ.Visibility,
                         occ.IsMoved,
                         occ.IsOverridden,
-                        occ.SeriesKey);
+                        occ.SeriesKey,
+                        occ.ColorKey);
                     weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence));
                 }
                 else

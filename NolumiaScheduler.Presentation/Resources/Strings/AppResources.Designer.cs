@@ -54,6 +54,20 @@ public static class AppResources
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
     public static string HolidayDateFormat => Get(nameof(HolidayDateFormat));
 
+    // Event colors
+    public static string ColorLabel     => Get(nameof(ColorLabel));
+    public static string ColorDefault   => Get(nameof(ColorDefault));
+    public static string ColorTomato    => Get(nameof(ColorTomato));
+    public static string ColorTangerine => Get(nameof(ColorTangerine));
+    public static string ColorBanana    => Get(nameof(ColorBanana));
+    public static string ColorBasil     => Get(nameof(ColorBasil));
+    public static string ColorSage      => Get(nameof(ColorSage));
+    public static string ColorPeacock   => Get(nameof(ColorPeacock));
+    public static string ColorBlueberry => Get(nameof(ColorBlueberry));
+    public static string ColorLavender  => Get(nameof(ColorLavender));
+    public static string ColorGrape     => Get(nameof(ColorGrape));
+    public static string ColorGraphite  => Get(nameof(ColorGraphite));
+
     // Tabs
     public static string CalendarTab          => Get(nameof(CalendarTab));
     public static string BusinessCalendarsTab => Get(nameof(BusinessCalendarsTab));

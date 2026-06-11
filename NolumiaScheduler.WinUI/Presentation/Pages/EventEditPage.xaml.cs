@@ -45,6 +45,7 @@ public sealed partial class EventEditPage : Page
     private bool _suppressCalendarPickerChanged;
     private bool _suppressWeekdayChanged;
     private bool _suppressAlarmChanged;
+    private bool _suppressEventColorChanged;
 
 
     // 15-minute interval time items ("00:00" to "23:45"). Each picker has its own observable
@@ -79,6 +80,7 @@ public sealed partial class EventEditPage : Page
         EndDateLabel.Text       = AppResources.EndDateLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
         BusinessCalendarLabel.Text = AppResources.BusinessCalendarLabel;
+        ColorLabel.Text         = AppResources.ColorLabel;
         AlarmLabel.Text         = AppResources.AlarmLabel;
         AlarmEnableLabel.Text   = AppResources.AlarmEnable;
         Notify15Label.Text      = AppResources.AlarmNotify15Min;
@@ -254,6 +256,32 @@ public sealed partial class EventEditPage : Page
         _suppressCalendarPickerChanged = true;
         CalendarPicker.SelectedIndex = _vm.SelectedCalendarIndex;
         _suppressCalendarPickerChanged = false;
+
+        // Color picker: one item per palette entry, rendered as swatch + localized name.
+        _suppressEventColorChanged = true;
+        EventColorPicker.Items.Clear();
+        var colorNames = EventEditViewModel.ColorItems;
+        for (var i = 0; i < EventEditViewModel.ColorKeys.Length; i++)
+        {
+            var swatch = new Microsoft.UI.Xaml.Shapes.Ellipse
+            {
+                Width = 14, Height = 14, VerticalAlignment = VerticalAlignment.Center,
+                Fill = new SolidColorBrush(
+                    NolumiaScheduler.Presentation.Helpers.WinColors.ForEventColor(EventEditViewModel.ColorKeys[i]))
+            };
+            var item = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 8 };
+            item.Children.Add(swatch);
+            item.Children.Add(new TextBlock { Text = colorNames[i], VerticalAlignment = VerticalAlignment.Center });
+            EventColorPicker.Items.Add(item);
+        }
+        EventColorPicker.SelectedIndex = _vm.SelectedColorIndex;
+        _suppressEventColorChanged = false;
+        UpdateColorHeaderSwatch();
+
+        // Rarely used sections start collapsed; open them only when already in use
+        // so an existing recurrence/color is immediately visible while editing.
+        RepeatExpander.IsExpanded = _vm.IsRecurring;
+        ColorExpander.IsExpanded  = _vm.HasCustomColor;
 
         // Alarm
         // Suppress the change handlers while populating: OnAlarmChecked reads every checkbox
@@ -751,6 +779,25 @@ public sealed partial class EventEditPage : Page
     {
         if (_suppressCalendarPickerChanged || _vm == null) return;
         _vm.SelectedCalendarIndex = CalendarPicker.SelectedIndex;
+    }
+
+    private void OnEventColorChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressEventColorChanged || _vm == null) return;
+        if (EventColorPicker.SelectedIndex >= 0)
+        {
+            _vm.SelectedColorIndex = EventColorPicker.SelectedIndex;
+            UpdateColorHeaderSwatch();
+        }
+    }
+
+    // Show the selected color next to the header text so the choice stays
+    // visible while the expander is collapsed.
+    private void UpdateColorHeaderSwatch()
+    {
+        if (_vm == null) return;
+        ColorHeaderSwatch.Fill = new SolidColorBrush(
+            NolumiaScheduler.Presentation.Helpers.WinColors.ForEventColor(_vm.SelectedColorKey));
     }
 
     private void OnAlarmToggled(object sender, RoutedEventArgs e)

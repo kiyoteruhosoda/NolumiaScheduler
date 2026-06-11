@@ -87,6 +87,19 @@
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
   <data name="HolidayDateFormat" xml:space="preserve"><value>MMMM d, yyyy (ddd)</value></data>
+
+  <data name="ColorLabel" xml:space="preserve"><value>Color</value></data>
+  <data name="ColorDefault" xml:space="preserve"><value>Default</value></data>
+  <data name="ColorTomato" xml:space="preserve"><value>Tomato</value></data>
+  <data name="ColorTangerine" xml:space="preserve"><value>Tangerine</value></data>
+  <data name="ColorBanana" xml:space="preserve"><value>Banana</value></data>
+  <data name="ColorBasil" xml:space="preserve"><value>Basil</value></data>
+  <data name="ColorSage" xml:space="preserve"><value>Sage</value></data>
+  <data name="ColorPeacock" xml:space="preserve"><value>Peacock</value></data>
+  <data name="ColorBlueberry" xml:space="preserve"><value>Blueberry</value></data>
+  <data name="ColorLavender" xml:space="preserve"><value>Lavender</value></data>
+  <data name="ColorGrape" xml:space="preserve"><value>Grape</value></data>
+  <data name="ColorGraphite" xml:space="preserve"><value>Graphite</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>
   <data name="EditRecurringEventTitle" xml:space="preserve">
     <value>Edit recurring event</value>

@@ -73,10 +73,15 @@
                 </StackPanel>
             </Border>
 
-            <!-- Recurrence section -->
-            <TextBlock x:Name="RepeatLabel" FontSize="12" Margin="4,0,0,4"
-                       Foreground="{ThemeResource GCalTextSecondary}"/>
-            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4" Margin="0,0,0,4">
+            <!-- Recurrence section (rarely used — collapsed by default; auto-expands
+                 when the event being edited is already recurring) -->
+            <Expander x:Name="RepeatExpander" Margin="0,0,0,8" MinHeight="48"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      Background="{ThemeResource GCalSurface}" CornerRadius="8">
+                <Expander.Header>
+                    <TextBlock x:Name="RepeatLabel" FontSize="14"
+                               Foreground="{ThemeResource GCalTextPrimary}"/>
+                </Expander.Header>
                 <StackPanel>
                     <ComboBox x:Name="RepeatTypePicker" FontSize="14" MinHeight="48"
                               HorizontalAlignment="Stretch" SelectionChanged="OnRepeatTypeChanged"/>
@@ -182,15 +187,11 @@
                                                 DateChanged="OnEndDateChanged"/>
                         </Grid>
                     </StackPanel>
-                </StackPanel>
-            </Border>
 
-            <!-- Adjustment (recurring only) -->
-            <StackPanel x:Name="AdjustmentSection" Visibility="Collapsed">
-                <TextBlock x:Name="AdjustmentLabel" FontSize="12" Margin="4,12,0,4"
-                           Foreground="{ThemeResource GCalTextSecondary}"/>
-                <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4" Margin="0,0,0,4">
-                    <StackPanel>
+                    <!-- Adjustment (recurring only) -->
+                    <StackPanel x:Name="AdjustmentSection" Visibility="Collapsed">
+                        <TextBlock x:Name="AdjustmentLabel" FontSize="12" Margin="0,12,0,4"
+                                   Foreground="{ThemeResource GCalTextSecondary}"/>
                         <ComboBox x:Name="AdjustmentPicker" FontSize="14" MinHeight="48"
                                   HorizontalAlignment="Stretch" SelectionChanged="OnAdjustmentChanged"/>
                         <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
@@ -204,8 +205,24 @@
                             </Grid>
                         </StackPanel>
                     </StackPanel>
-                </Border>
-            </StackPanel>
+                </StackPanel>
+            </Expander>
+
+            <!-- Color section (rarely used — collapsed by default; auto-expands
+                 when the event being edited has a custom color) -->
+            <Expander x:Name="ColorExpander" Margin="0,0,0,8" MinHeight="48"
+                      HorizontalAlignment="Stretch" HorizontalContentAlignment="Stretch"
+                      Background="{ThemeResource GCalSurface}" CornerRadius="8">
+                <Expander.Header>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                        <Ellipse x:Name="ColorHeaderSwatch" Width="14" Height="14" VerticalAlignment="Center"/>
+                        <TextBlock x:Name="ColorLabel" FontSize="14"
+                                   Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Expander.Header>
+                <ComboBox x:Name="EventColorPicker" FontSize="14" MinHeight="48"
+                          HorizontalAlignment="Stretch" SelectionChanged="OnEventColorChanged"/>
+            </Expander>
 
             <!-- Alarm section -->
             <TextBlock x:Name="AlarmLabel" FontSize="12" Margin="4,12,0,4"

@@ -73,6 +73,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private DateTime _seriesStartDate;
     private string _timeZoneId = EventEditDefaults.DefaultTimeZone;
 
+    // ── Color ────────────────────────────────────────────────
+    private int _selectedColorIndex;   // index into ColorKeys; 0 = Default (no explicit color)
+
     // ── Alarm ────────────────────────────────────────────────
     private bool _alarmEnabled = true;
     private bool _alarmNotify15Min = true;
@@ -180,6 +183,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
             LoadRecurrenceRule(sched.RecurrenceRule);
         }
+
+        SelectedColorIndex = Math.Max(0, Array.IndexOf(ColorKeys, ev.ColorKey));
 
         AlarmEnabled      = ev.Alarm?.IsEnabled    ?? false;
         AlarmNotify15Min  = ev.Alarm?.Notify15Min  ?? true;
@@ -306,6 +311,37 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         AppResources.AdjustmentNone,
         AppResources.AdjustmentForward,
         AppResources.AdjustmentBackward
+    ];
+
+    /// <summary>Selectable color keys; index-aligned with <see cref="ColorItems"/>.</summary>
+    public static readonly EventColorKey[] ColorKeys =
+    [
+        EventColorKey.Default,
+        EventColorKey.Tomato,
+        EventColorKey.Tangerine,
+        EventColorKey.Banana,
+        EventColorKey.Basil,
+        EventColorKey.Sage,
+        EventColorKey.Peacock,
+        EventColorKey.Blueberry,
+        EventColorKey.Lavender,
+        EventColorKey.Grape,
+        EventColorKey.Graphite
+    ];
+
+    public static List<string> ColorItems =>
+    [
+        AppResources.ColorDefault,
+        AppResources.ColorTomato,
+        AppResources.ColorTangerine,
+        AppResources.ColorBanana,
+        AppResources.ColorBasil,
+        AppResources.ColorSage,
+        AppResources.ColorPeacock,
+        AppResources.ColorBlueberry,
+        AppResources.ColorLavender,
+        AppResources.ColorGrape,
+        AppResources.ColorGraphite
     ];
 
     public ObservableCollection<string> AvailableCalendarNames { get; } = [];
@@ -549,6 +585,22 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set { _selectedCalendarIndex = value; OnPropertyChanged(); }
     }
 
+    // ── Color properties ────────────────────────────────────────
+
+    public int SelectedColorIndex
+    {
+        get => _selectedColorIndex;
+        set
+        {
+            _selectedColorIndex = Math.Clamp(value, 0, ColorKeys.Length - 1);
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(HasCustomColor));
+        }
+    }
+
+    public EventColorKey SelectedColorKey => ColorKeys[_selectedColorIndex];
+    public bool HasCustomColor => SelectedColorKey != EventColorKey.Default;
+
     // ── Alarm properties ────────────────────────────────────────
 
     public bool AlarmEnabled
@@ -755,7 +807,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newStart,
             newEnd,
             newRule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            ColorKey: SelectedColorKey));
     }
 
     private void SaveEntireSeries(string eventId)
@@ -788,7 +841,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             startTime,
             endTime,
             rule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            ColorKey: SelectedColorKey));
     }
 
     private void SaveThisOccurrence(string eventId)
@@ -837,7 +891,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newDate,
             newStartTime,
             newEndTime,
-            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            ColorKey: SelectedColorKey));
     }
 
     private void SaveSingle()
@@ -852,7 +907,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             DateOnly.FromDateTime(StartDate),
             AllDay ? TimeSpan.Zero : StartTime,
             AllDay ? TimeSpan.Zero : EndTime,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            ColorKey: SelectedColorKey));
     }
 
     private void SaveRecurring()
@@ -887,7 +943,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             AllDay,
             startDate, startTime, endTime,
             rule,
-            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null));
+            Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            ColorKey: SelectedColorKey));
     }
 
     private RecurrenceRule BuildRecurrenceRule()

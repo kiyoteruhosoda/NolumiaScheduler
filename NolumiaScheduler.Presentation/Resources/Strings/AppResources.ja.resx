@@ -301,6 +301,42 @@
   <data name="HolidayDateFormat" xml:space="preserve">
     <value>yyyy年M月d日 (ddd)</value>
   </data>
+  <data name="ColorLabel" xml:space="preserve">
+    <value>色</value>
+  </data>
+  <data name="ColorDefault" xml:space="preserve">
+    <value>既定</value>
+  </data>
+  <data name="ColorTomato" xml:space="preserve">
+    <value>トマト</value>
+  </data>
+  <data name="ColorTangerine" xml:space="preserve">
+    <value>ミカン</value>
+  </data>
+  <data name="ColorBanana" xml:space="preserve">
+    <value>バナナ</value>
+  </data>
+  <data name="ColorBasil" xml:space="preserve">
+    <value>バジル</value>
+  </data>
+  <data name="ColorSage" xml:space="preserve">
+    <value>セージ</value>
+  </data>
+  <data name="ColorPeacock" xml:space="preserve">
+    <value>ピーコック</value>
+  </data>
+  <data name="ColorBlueberry" xml:space="preserve">
+    <value>ブルーベリー</value>
+  </data>
+  <data name="ColorLavender" xml:space="preserve">
+    <value>ラベンダー</value>
+  </data>
+  <data name="ColorGrape" xml:space="preserve">
+    <value>ブドウ</value>
+  </data>
+  <data name="ColorGraphite" xml:space="preserve">
+    <value>グラファイト</value>
+  </data>
   <data name="FormatCultureName" xml:space="preserve">
     <value>ja-JP</value>
   </data>

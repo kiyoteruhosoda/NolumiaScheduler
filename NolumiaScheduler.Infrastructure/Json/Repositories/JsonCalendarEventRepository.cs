@@ -78,6 +78,8 @@ internal class CalendarEventDto
     public List<EventExceptionDto> Exceptions { get; set; } = [];
     public List<EventMoveDto> Moves { get; set; } = [];
     public AlarmDto? Alarm { get; set; }
+    // Named color key (e.g. "Tomato"); null means the default event color.
+    public string? Color { get; set; }
     public int Version { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
@@ -119,7 +121,10 @@ internal class CalendarEventDto
             exceptions,
             moves,
             new VersionNo(Version),
-            alarm: alarm);
+            alarm: alarm,
+            colorKey: Color != null && Enum.TryParse<EventColorKey>(Color, out var parsedColor)
+                ? parsedColor
+                : EventColorKey.Default);
     }
 
     public static CalendarEventDto FromDomain(CalendarEvent ev)
@@ -153,6 +158,7 @@ internal class CalendarEventDto
                 Notify1Min = ev.Alarm.Notify1Min,
                 NotifyAtStart = ev.Alarm.NotifyAtStart
             } : null,
+            Color = ev.ColorKey == EventColorKey.Default ? null : ev.ColorKey.ToString(),
             Version = ev.Version.Value,
             CreatedAt = ev.CreatedAt.ToString("O"),
             UpdatedAt = ev.UpdatedAt.ToString("O")
