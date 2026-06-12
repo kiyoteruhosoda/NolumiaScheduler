@@ -167,6 +167,7 @@ public static class AppResources
     public static string ThemeLight      => Get(nameof(ThemeLight));
     public static string ThemeDark       => Get(nameof(ThemeDark));
     public static string LanguageLabel   => Get(nameof(LanguageLabel));
+    public static string StartupViewLabel => Get(nameof(StartupViewLabel));
     public static string LanguageEnglish => Get(nameof(LanguageEnglish));
     public static string LanguageJapanese => Get(nameof(LanguageJapanese));
 

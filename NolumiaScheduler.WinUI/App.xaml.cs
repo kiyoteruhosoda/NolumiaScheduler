@@ -54,6 +54,10 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         try
         {
+            // A second launch is redirected here by Program.Main (single instance);
+            // respond by restoring/foregrounding the existing window.
+            Microsoft.Windows.AppLifecycle.AppInstance.GetCurrent().Activated += OnAppInstanceActivated;
+
             // Register for app (toast) notifications before the alarm service starts so the
             // first alarm can already send a notification.
             try
@@ -127,6 +131,13 @@ public partial class App : Microsoft.UI.Xaml.Application
             MainWindow.AppWindow.Show();
             MainWindow.Activate();
         }
+    }
+
+    private void OnAppInstanceActivated(object? sender, Microsoft.Windows.AppLifecycle.AppActivationArguments e)
+    {
+        // Raised on a background thread; restore the window the same way the tray
+        // "Show" action does so a tray-minimized instance also comes back.
+        MainWindow?.DispatcherQueue.TryEnqueue(OnTrayShowRequested);
     }
 
     private void OnAppNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)

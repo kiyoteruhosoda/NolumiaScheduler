@@ -39,13 +39,25 @@ public partial class WeekInteractionOverlayView : UserControl
         var height = bottom - top;
         var width = ActualWidth > 0 ? ActualWidth : 120;
 
-        // Mirror the event chip's horizontal sizing (see
-        // WeekCalendarView.ApplyChipHorizontalBounds) so the drag/resize ghost is the
-        // same size as the chip being manipulated.
-        const double chipMargin = 4;
-        var left = width * Preview.LeftRatio + chipMargin;
-        var rawWidth = width * Preview.WidthRatio;
-        var blockWidth = Math.Max(24, Math.Min(rawWidth - chipMargin, width * 0.8 - chipMargin));
+        double left;
+        double blockWidth;
+        if (Preview.EventId == null)
+        {
+            // Drag-create has no chip to mirror: span the full lane so the selection
+            // stays visible even when existing events occupy the dragged range.
+            left = 0;
+            blockWidth = width;
+        }
+        else
+        {
+            // Mirror the event chip's horizontal sizing (see
+            // WeekCalendarView.ApplyChipHorizontalBounds) so the drag/resize ghost is the
+            // same size as the chip being manipulated.
+            const double chipMargin = 4;
+            left = width * Preview.LeftRatio + chipMargin;
+            var rawWidth = width * Preview.WidthRatio;
+            blockWidth = Math.Max(24, Math.Min(rawWidth - chipMargin, width * 0.8 - chipMargin));
+        }
 
         var ghost = new Rectangle
         {

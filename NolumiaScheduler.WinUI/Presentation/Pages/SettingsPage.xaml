@@ -29,6 +29,15 @@
                           SelectionChanged="OnLanguageSelectionChanged"/>
             </StackPanel>
 
+            <!-- Startup view -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="StartupViewLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <ComboBox x:Name="StartupViewPicker"
+                          MinWidth="200"
+                          SelectionChanged="OnStartupViewSelectionChanged"/>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

@@ -466,6 +466,9 @@
   <data name="LanguageLabel" xml:space="preserve">
     <value>言語</value>
   </data>
+  <data name="StartupViewLabel" xml:space="preserve">
+    <value>起動時の表示</value>
+  </data>
   <data name="LanguageEnglish" xml:space="preserve">
     <value>English</value>
   </data>
