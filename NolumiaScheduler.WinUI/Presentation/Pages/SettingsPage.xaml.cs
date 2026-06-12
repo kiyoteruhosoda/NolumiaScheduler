@@ -18,6 +18,10 @@ public sealed partial class SettingsPage : Page
         ("ja",  "日本語"),
     ];
 
+    // Stored tags in fixed order matching StartupViewPicker indices; "Week" is the
+    // application default (see MainWindow's startup navigation).
+    private static readonly string[] StartupViewOptions = ["Month", "Week", "Weekdays"];
+
     private ThemeService? _themeService;
     private IAppSettingsRepository? _settingsRepo;
     private bool _suppress;
@@ -39,6 +43,7 @@ public sealed partial class SettingsPage : Page
         PageTitleText.Text    = AppResources.SettingsTitle;
         ThemeLabelText.Text   = AppResources.ThemeLabel;
         LanguageLabelText.Text = AppResources.LanguageLabel;
+        StartupViewLabelText.Text = AppResources.StartupViewLabel;
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -63,6 +68,15 @@ public sealed partial class SettingsPage : Page
         }
         LanguagePicker.SelectedIndex = selectedIdx;
 
+        // Startup view picker
+        StartupViewPicker.Items.Clear();
+        StartupViewPicker.Items.Add(AppResources.MonthViewLabel);
+        StartupViewPicker.Items.Add(AppResources.WeekViewLabel);
+        StartupViewPicker.Items.Add(AppResources.WeekdaysViewLabel);
+        var savedView = _settingsRepo.GetStartupView();
+        var viewIdx = Array.IndexOf(StartupViewOptions, savedView);
+        StartupViewPicker.SelectedIndex = viewIdx >= 0 ? viewIdx : Array.IndexOf(StartupViewOptions, "Week");
+
         _suppress = false;
     }
 
@@ -77,6 +91,16 @@ public sealed partial class SettingsPage : Page
             _ => ThemeMode.System,
         };
         _themeService.SetTheme(mode);
+    }
+
+    private void OnStartupViewSelectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppress || _settingsRepo == null) return;
+
+        var idx = StartupViewPicker.SelectedIndex;
+        if (idx < 0 || idx >= StartupViewOptions.Length) return;
+
+        _settingsRepo.SaveStartupView(StartupViewOptions[idx]);
     }
 
     private void OnLanguageSelectionChanged(object sender, SelectionChangedEventArgs e)
@@ -95,10 +119,15 @@ public sealed partial class SettingsPage : Page
         PageTitleText.Text     = AppResources.SettingsTitle;
         ThemeLabelText.Text    = AppResources.ThemeLabel;
         LanguageLabelText.Text = AppResources.LanguageLabel;
+        StartupViewLabelText.Text = AppResources.StartupViewLabel;
 
         ThemePicker.Items[0] = AppResources.ThemeSystem;
         ThemePicker.Items[1] = AppResources.ThemeLight;
         ThemePicker.Items[2] = AppResources.ThemeDark;
+
+        StartupViewPicker.Items[0] = AppResources.MonthViewLabel;
+        StartupViewPicker.Items[1] = AppResources.WeekViewLabel;
+        StartupViewPicker.Items[2] = AppResources.WeekdaysViewLabel;
         _suppress = false;
     }
 }

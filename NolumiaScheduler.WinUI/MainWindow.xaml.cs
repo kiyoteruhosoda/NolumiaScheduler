@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Application.Services;
+using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
@@ -53,9 +54,16 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         ContentFrame.Navigated += OnFrameNavigated;
 
-        // Default to week view
-        NavView.SelectedItem = WeekNavItem;
-        ContentFrame.Navigate(typeof(CalendarPage), "Week");
+        // Open the view chosen in Settings (Month / Week / Weekdays); Week is the default.
+        var startupView = App.Services.GetRequiredService<IAppSettingsRepository>().GetStartupView();
+        var (startupNavItem, startupParam) = startupView switch
+        {
+            "Month"    => (MonthNavItem, "Month"),
+            "Weekdays" => (WeekdaysNavItem, "Weekdays"),
+            _          => (WeekNavItem, "Week"),
+        };
+        NavView.SelectedItem = startupNavItem;
+        ContentFrame.Navigate(typeof(CalendarPage), startupParam);
 
         // Intercept close to minimize to tray instead
         AppWindow.Closing += OnAppWindowClosing;

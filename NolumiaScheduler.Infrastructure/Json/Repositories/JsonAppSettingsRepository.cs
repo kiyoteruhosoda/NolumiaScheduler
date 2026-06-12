@@ -41,6 +41,18 @@ public class JsonAppSettingsRepository : IAppSettingsRepository
         Save(dto);
     }
 
+    public string? GetStartupView()
+    {
+        return Load()?.StartupView;
+    }
+
+    public void SaveStartupView(string? view)
+    {
+        var dto = Load() ?? new AppSettingsDto();
+        dto.StartupView = view;
+        Save(dto);
+    }
+
     private void Save(AppSettingsDto dto)
         => File.WriteAllText(_filePath, JsonSerializer.Serialize(dto, AppJsonContext.Default.AppSettingsDto));
 
@@ -63,4 +75,5 @@ internal class AppSettingsDto
 {
     public string? Theme { get; set; }
     public string? Language { get; set; }
+    public string? StartupView { get; set; }
 }
