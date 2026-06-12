@@ -6,4 +6,6 @@ public interface IAppSettingsRepository
 {
     ThemeMode GetThemeMode();
     void SaveThemeMode(ThemeMode mode);
+    string? GetLanguage();
+    void SaveLanguage(string? languageTag);
 }

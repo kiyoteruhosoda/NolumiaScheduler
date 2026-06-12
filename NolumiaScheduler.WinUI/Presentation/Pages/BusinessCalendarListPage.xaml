@@ -12,7 +12,7 @@
             <ItemsControl x:Name="CalendarList" Background="{ThemeResource GCalSurface}">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BusinessCalendarSummary">
-                        <Grid Padding="16,14" MinHeight="64" ColumnDefinitions="*,24"
+                        <Grid Padding="16,18" MinHeight="80" ColumnDefinitions="*,24"
                               Background="{ThemeResource GCalSurface}"
                               Tapped="OnCalendarItemTapped">
                             <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">

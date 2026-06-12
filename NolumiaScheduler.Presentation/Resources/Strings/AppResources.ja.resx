@@ -465,4 +465,13 @@
   <data name="ThemeDark" xml:space="preserve">
     <value>ダーク</value>
   </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>言語</value>
+  </data>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="LanguageJapanese" xml:space="preserve">
+    <value>日本語</value>
+  </data>
 </root>

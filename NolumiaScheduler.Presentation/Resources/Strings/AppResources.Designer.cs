@@ -161,11 +161,14 @@ public static class AppResources
     public static string AlarmSnooze1MinBtn   => Get(nameof(AlarmSnooze1MinBtn));
 
     // Settings
-    public static string SettingsTitle => Get(nameof(SettingsTitle));
-    public static string ThemeLabel    => Get(nameof(ThemeLabel));
-    public static string ThemeSystem   => Get(nameof(ThemeSystem));
-    public static string ThemeLight    => Get(nameof(ThemeLight));
-    public static string ThemeDark     => Get(nameof(ThemeDark));
+    public static string SettingsTitle   => Get(nameof(SettingsTitle));
+    public static string ThemeLabel      => Get(nameof(ThemeLabel));
+    public static string ThemeSystem     => Get(nameof(ThemeSystem));
+    public static string ThemeLight      => Get(nameof(ThemeLight));
+    public static string ThemeDark       => Get(nameof(ThemeDark));
+    public static string LanguageLabel   => Get(nameof(LanguageLabel));
+    public static string LanguageEnglish => Get(nameof(LanguageEnglish));
+    public static string LanguageJapanese => Get(nameof(LanguageJapanese));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;

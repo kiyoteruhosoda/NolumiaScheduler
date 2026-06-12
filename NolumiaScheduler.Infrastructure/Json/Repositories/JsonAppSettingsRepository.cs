@@ -26,8 +26,23 @@ public class JsonAppSettingsRepository : IAppSettingsRepository
     {
         var dto = Load() ?? new AppSettingsDto();
         dto.Theme = mode.ToString();
-        File.WriteAllText(_filePath, JsonSerializer.Serialize(dto, AppJsonContext.Default.AppSettingsDto));
+        Save(dto);
     }
+
+    public string? GetLanguage()
+    {
+        return Load()?.Language;
+    }
+
+    public void SaveLanguage(string? languageTag)
+    {
+        var dto = Load() ?? new AppSettingsDto();
+        dto.Language = languageTag;
+        Save(dto);
+    }
+
+    private void Save(AppSettingsDto dto)
+        => File.WriteAllText(_filePath, JsonSerializer.Serialize(dto, AppJsonContext.Default.AppSettingsDto));
 
     private AppSettingsDto? Load()
     {
@@ -47,4 +62,5 @@ public class JsonAppSettingsRepository : IAppSettingsRepository
 internal class AppSettingsDto
 {
     public string? Theme { get; set; }
+    public string? Language { get; set; }
 }

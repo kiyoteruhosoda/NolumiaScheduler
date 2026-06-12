@@ -362,7 +362,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
 
         if (IsWeekdaysMode)
         {
-            _weekStartDate = _weekStartDate.AddDays(step * 5);
+            _weekStartDate = _weekStartDate.AddDays(step * 7);
             _month = new DateTime(_weekStartDate.Year, _weekStartDate.Month, 1);
             LoadWeek();
             MonthYearTitle = FormatWeekdaysRangeTitle(_weekStartDate);

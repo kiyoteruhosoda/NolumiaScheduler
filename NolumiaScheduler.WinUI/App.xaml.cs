@@ -7,6 +7,7 @@ using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure.Json.Repositories;
 using NolumiaScheduler.Infrastructure.Json.Seeder;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.WinUI.Helpers;
@@ -65,6 +66,12 @@ public partial class App : Microsoft.UI.Xaml.Application
             {
                 System.Diagnostics.Debug.WriteLine($"[App] AppNotificationManager.Register failed: {ex.Message}");
             }
+
+            // Apply persisted language before the window is created so all localized
+            // strings in MainWindow's constructor use the correct culture.
+            var savedLanguage = Services.GetRequiredService<IAppSettingsRepository>().GetLanguage();
+            if (savedLanguage != null)
+                AppResources.Culture = new System.Globalization.CultureInfo(savedLanguage);
 
             MainWindow = new MainWindow();
             Services.GetRequiredService<ThemeService>().Initialize(MainWindow);

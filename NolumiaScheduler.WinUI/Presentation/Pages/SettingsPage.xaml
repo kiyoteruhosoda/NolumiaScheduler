@@ -5,11 +5,11 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <ScrollViewer Padding="24">
-        <StackPanel Spacing="16" MaxWidth="480" HorizontalAlignment="Left">
+        <StackPanel Spacing="20" MaxWidth="480" HorizontalAlignment="Left">
 
             <TextBlock x:Name="PageTitleText"
                        Style="{StaticResource TitleTextBlockStyle}"
-                       Margin="0,0,0,8"/>
+                       Margin="0,0,0,4"/>
 
             <!-- Theme -->
             <StackPanel Spacing="8">
@@ -18,6 +18,15 @@
                 <ComboBox x:Name="ThemePicker"
                           MinWidth="200"
                           SelectionChanged="OnThemeSelectionChanged"/>
+            </StackPanel>
+
+            <!-- Language -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="LanguageLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <ComboBox x:Name="LanguagePicker"
+                          MinWidth="200"
+                          SelectionChanged="OnLanguageSelectionChanged"/>
             </StackPanel>
 
         </StackPanel>
