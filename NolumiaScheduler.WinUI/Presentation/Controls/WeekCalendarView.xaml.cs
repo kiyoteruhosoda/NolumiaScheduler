@@ -166,7 +166,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     // Remembered vertical scroll offset per week (keyed by week start date) so each week keeps
     // the time-of-day the user left it at while paging through < / >.
-    private readonly Dictionary<DateTime, double> _weekScrollOffsets = new();
+    private readonly Dictionary<DateTime, double> _weekScrollOffsets = [];
 
     // Monotonic token: a newer scroll request supersedes any in-flight one so overlapping async
     // scrolls (e.g. a week change immediately followed by Today) never fight each other.

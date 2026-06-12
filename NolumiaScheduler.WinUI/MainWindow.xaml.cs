@@ -110,7 +110,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
         _suppressNavChange = true;
         if (e.SourcePageType == typeof(CalendarPage))
-            NavView.SelectedItem = e.Parameter as string switch
+            NavView.SelectedItem = (e.Parameter as string) switch
             {
                 "Month"    => MonthNavItem,
                 "Weekdays" => WeekdaysNavItem,

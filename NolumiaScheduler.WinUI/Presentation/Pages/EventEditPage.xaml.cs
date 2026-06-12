@@ -356,7 +356,7 @@ public sealed partial class EventEditPage : Page
         _suppressYearlyWeekdayChanged = false;
     }
 
-    private void OnTimePickerDropDownOpened(object sender, object e)
+    private void OnTimePickerDropDownOpened(object? sender, object e)
     {
         if (sender is ComboBox picker && picker.SelectedIndex >= 0 && picker.Items.Count > 0)
             _ = CenterComboBoxSelectionAsync(picker, picker.SelectedIndex);
@@ -549,12 +549,12 @@ public sealed partial class EventEditPage : Page
 
     private void OnStartTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
         => HandleTimeTextSubmitted(sender, args, _startTimeItems,
-            t => { if (_vm != null) _vm.SetStartTimePreservingDuration(t); }, () => _vm?.StartTime,
+            t => _vm?.SetStartTimePreservingDuration(t), () => _vm?.StartTime,
             ref _suppressStartTimeChanged, ref _suppressStartTimePickerChanged);
 
     private void OnEndTimeTextSubmitted(ComboBox sender, ComboBoxTextSubmittedEventArgs args)
         => HandleTimeTextSubmitted(sender, args, _endTimeItems,
-            t => { if (_vm != null) _vm.EndTime = t; }, () => _vm?.EndTime,
+            t => _vm?.EndTime = t, () => _vm?.EndTime,
             ref _suppressEndTimeChanged, ref _suppressEndTimePickerChanged);
 
     private void HandleTimeTextSubmitted(ComboBox picker, ComboBoxTextSubmittedEventArgs args,
@@ -830,9 +830,6 @@ public sealed partial class EventEditPage : Page
             _vm.Save();
         }
     }
-
-    private void OnCancelClicked(object sender, RoutedEventArgs e)
-        => Dismiss();
 
     private async void OnDeleteClicked(object sender, RoutedEventArgs e)
     {
