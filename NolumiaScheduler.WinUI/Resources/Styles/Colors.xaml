@@ -70,5 +70,9 @@
     <SolidColorBrush x:Key="GCalEventMoved"     Color="#9c27b0"/>
     <SolidColorBrush x:Key="GCalWhite"          Color="#ffffff"/>
     <SolidColorBrush x:Key="GCalSelectedCircle" Color="#70757a"/>
+    <!-- Dim backdrop behind the full-screen alarm card -->
+    <SolidColorBrush x:Key="GCalAlarmScrim"     Color="#D9101014"/>
+    <!-- Soft accent tint for the alarm bell badge -->
+    <SolidColorBrush x:Key="GCalAlarmBadgeTint" Color="#221A73E8"/>
 
 </ResourceDictionary>
