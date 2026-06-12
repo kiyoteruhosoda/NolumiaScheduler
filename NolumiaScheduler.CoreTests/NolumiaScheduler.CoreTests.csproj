@@ -12,6 +12,9 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
+    <!-- Match the x64 platform of the referenced Domain/Application projects in the
+         x64 solution configuration (MSB3270). Plain `dotnet test` still builds AnyCPU. -->
+    <Platforms>AnyCPU;x64</Platforms>
   </PropertyGroup>
 
   <ItemGroup>

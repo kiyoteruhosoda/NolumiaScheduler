@@ -15,8 +15,8 @@ public sealed partial class AlarmDebugWindow : Window
     private readonly CalendarEventApplicationService _eventService;
     private readonly IOccurrenceExpander _expander;
     private readonly TimeProvider _clock;
-    private DispatcherQueueTimer? _refreshTimer;
-    private DispatcherQueueTimer? _clockTimer;
+    private readonly DispatcherQueueTimer? _refreshTimer;
+    private readonly DispatcherQueueTimer? _clockTimer;
 
     public AlarmDebugWindow(
         IAlarmService alarmService,
