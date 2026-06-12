@@ -4,6 +4,8 @@ using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Presentation.Services;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using Windows.Graphics;
+using WinRT;
 using WinRT.Interop;
 
 namespace NolumiaScheduler.WinUI.Presentation.Pages;
@@ -13,6 +15,7 @@ public sealed partial class AlarmNotificationWindow : Window
     private readonly TaskCompletionSource<AlarmNotificationResult> _tcs = new();
     private readonly string? _location;
     private bool _foregroundForced;
+    private bool _overlayConfigured;
 
     public AlarmNotificationWindow(string title, string message, string? location, DateTime? eventStartTime, TimeProvider clock)
     {
@@ -47,30 +50,18 @@ public sealed partial class AlarmNotificationWindow : Window
             BeforeEventGrid.Visibility = Visibility.Visible;
         }
 
-        // Configure window: full-screen on the active monitor, no titlebar, always on top
         if (AppWindow is not null)
         {
             AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
-
-            ExtendsContentIntoTitleBar = true;
-            AppWindow.TitleBar?.PreferredHeightOption = TitleBarHeightOption.Collapsed;
-
-            // Move to the monitor that currently has input focus so the alarm appears where
-            // the user is working, not necessarily on the primary display.
-            // SetPresenter(FullScreen) covers whichever monitor the window is currently on,
-            // so this must happen before the presenter switch.
-            MoveToActiveMonitor();
-
-            AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
         }
 
         // Disable other app windows to simulate system-modal
         DisableOtherWindows(true);
 
-        // Bring to the foreground once the window is actually activated, and re-assert top-most
-        // whenever it loses focus so it stays visible (mirrors WPF's maintained Topmost). The
-        // foreground push must run after Activate() — doing it in the constructor, before the
-        // hosting service calls Activate(), is too early and gets overridden.
+        // The translucent overlay setup and the foreground push must run after Activate() —
+        // doing them in the constructor, before the hosting service calls Activate(), is too
+        // early: the HWND styles get overridden. Re-assert top-most whenever the window loses
+        // focus so it stays visible (mirrors WPF's maintained Topmost).
         Activated += OnActivated;
 
         Closed += (_, _) =>
@@ -84,6 +75,12 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
+        if (!_overlayConfigured)
+        {
+            ConfigureOverlayWindow();
+            _overlayConfigured = true;
+        }
+
         if (args.WindowActivationState == WindowActivationState.Deactivated)
         {
             // Keep the alarm visually above other windows when it loses focus, without
@@ -96,21 +93,130 @@ public sealed partial class AlarmNotificationWindow : Window
         }
     }
 
-    private void MoveToActiveMonitor()
+    /// <summary>
+    /// Turns the window into a full-screen translucent overlay on the monitor the user is
+    /// currently working on: borderless, layered (WS_EX_LAYERED), top-most, with the XAML
+    /// background showing the desktop through the scrim. Clicks are NOT passed through —
+    /// the alarm stays interactive.
+    /// </summary>
+    private void ConfigureOverlayWindow()
     {
         try
         {
-            // Prefer the monitor that holds the current foreground window; fall back to
-            // the primary monitor if there is no foreground window.
-            var foreground = NativeMethods.GetForegroundWindow();
-            var source = foreground != nint.Zero ? foreground : WindowNative.GetWindowHandle(this);
-            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(source);
-            var displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Primary);
-            AppWindow.MoveAndResize(displayArea.OuterBounds);
+            var hwnd = WindowNative.GetWindowHandle(this);
+            var bounds = GetActiveMonitorBounds(hwnd);
+
+            // 1) Borderless via OverlappedPresenter (the FullScreen presenter paints an opaque
+            //    backdrop of its own, which defeats per-pixel transparency).
+            if (AppWindow is not null)
+            {
+                if (AppWindow.Presenter is OverlappedPresenter presenter)
+                {
+                    presenter.SetBorderAndTitleBar(false, false);
+                    presenter.IsResizable = false;
+                    presenter.IsMaximizable = false;
+                    presenter.IsMinimizable = false;
+                }
+
+                AppWindow.MoveAndResize(bounds);
+            }
+
+            // 2) Suppress Win11 rounded corners so the overlay reaches the screen edges.
+            var cornerPref = (int)NativeMethods.DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_DONOTROUND;
+            NativeMethods.DwmSetWindowAttribute(
+                hwnd,
+                NativeMethods.DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE,
+                ref cornerPref,
+                Marshal.SizeOf<int>());
+
+            // 3) Layered window (no click-through: WS_EX_TRANSPARENT is intentionally absent).
+            var exStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
+            exStyle |= NativeMethods.WS_EX_LAYERED | NativeMethods.WS_EX_TOOLWINDOW;
+            NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE, exStyle);
+
+            // 4) Window-wide alpha stays 255; the 50% dim comes from the semi-transparent
+            //    GCalAlarmScrim brush on the root Grid, so the card itself stays fully opaque.
+            NativeMethods.SetLayeredWindowAttributes(hwnd, 0, 255, NativeMethods.LWA_ALPHA);
+
+            // 5) Keep the overlay top-most at the monitor bounds.
+            NativeMethods.SetWindowPos(
+                hwnd,
+                NativeMethods.HWND_TOPMOST,
+                bounds.X,
+                bounds.Y,
+                bounds.Width,
+                bounds.Height,
+                NativeMethods.SWP_SHOWWINDOW);
+
+            // 6) Drop the opaque WinUI backdrop so the desktop shows through the scrim.
+            TryMakeWinUiBackgroundTransparent(hwnd);
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[AlarmNotificationWindow] MoveToActiveMonitor failed: {ex.Message}");
+            Debug.WriteLine($"[AlarmNotificationWindow] ConfigureOverlayWindow failed: {ex.Message}");
+        }
+    }
+
+    private void TryMakeWinUiBackgroundTransparent(nint hwnd)
+    {
+        try
+        {
+            // Swap the system backdrop for a fully transparent brush.
+            var brushHolder = this.As<Windows.UI.Composition.ICompositionSupportsSystemBackdrop>();
+            var compositor = new Windows.UI.Composition.Compositor();
+            var colorBrush = compositor.CreateColorBrush(Windows.UI.Color.FromArgb(0, 255, 255, 255));
+            brushHolder.SystemBackdrop = colorBrush;
+
+            // Enable DWM blur-behind with an empty region — required for the transparent
+            // backdrop to actually composite over the desktop instead of black.
+            var rgn = NativeMethods.CreateRectRgn(-2, -2, -1, -1);
+            try
+            {
+                var bb = new NativeMethods.DWM_BLURBEHIND
+                {
+                    dwFlags = NativeMethods.DWM_BB_ENABLE | NativeMethods.DWM_BB_BLURREGION,
+                    fEnable = 1,
+                    hRgnBlur = rgn,
+                    fTransitionOnMaximized = 0
+                };
+
+                NativeMethods.DwmEnableBlurBehindWindow(hwnd, ref bb);
+            }
+            finally
+            {
+                if (rgn != 0)
+                {
+                    NativeMethods.DeleteObject(rgn);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AlarmNotificationWindow] TryMakeWinUiBackgroundTransparent failed: {ex.Message}");
+        }
+    }
+
+    private static RectInt32 GetActiveMonitorBounds(nint fallbackHwnd)
+    {
+        try
+        {
+            // Prefer the monitor that holds the current foreground window so the alarm
+            // appears where the user is working, not necessarily on the primary display.
+            var foreground = NativeMethods.GetForegroundWindow();
+            var source = foreground != nint.Zero ? foreground : fallbackHwnd;
+
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(source);
+            var displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Primary);
+
+            return displayArea.OuterBounds;
+        }
+        catch
+        {
+            return new RectInt32(
+                0,
+                0,
+                NativeMethods.GetSystemMetrics(NativeMethods.SM_CXSCREEN),
+                NativeMethods.GetSystemMetrics(NativeMethods.SM_CYSCREEN));
         }
     }
 
@@ -223,6 +329,13 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private static partial class NativeMethods
     {
+        public const int GWL_EXSTYLE = -20;
+
+        public const int WS_EX_LAYERED    = 0x00080000;
+        public const int WS_EX_TOOLWINDOW = 0x00000080;
+
+        public const uint LWA_ALPHA = 0x00000002;
+
         public static readonly nint HWND_TOPMOST = -1;
         public const uint SWP_NOMOVE      = 0x0002;
         public const uint SWP_NOSIZE      = 0x0001;
@@ -232,6 +345,25 @@ public sealed partial class AlarmNotificationWindow : Window
         public const uint FLASHW_ALL       = 0x00000003;
         public const uint FLASHW_TIMERNOFG = 0x0000000C;
 
+        public const int SM_CXSCREEN = 0;
+        public const int SM_CYSCREEN = 1;
+
+        public const uint DWM_BB_ENABLE     = 0x00000001;
+        public const uint DWM_BB_BLURREGION = 0x00000002;
+
+        public enum DWM_WINDOW_CORNER_PREFERENCE
+        {
+            DWMWCP_DEFAULT = 0,
+            DWMWCP_DONOTROUND = 1,
+            DWMWCP_ROUND = 2,
+            DWMWCP_ROUNDSMALL = 3
+        }
+
+        public enum DWMWINDOWATTRIBUTE
+        {
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33
+        }
+
         [StructLayout(LayoutKind.Sequential)]
         public struct FLASHWINFO
         {
@@ -240,6 +372,15 @@ public sealed partial class AlarmNotificationWindow : Window
             public uint dwFlags;
             public uint uCount;
             public uint dwTimeout;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct DWM_BLURBEHIND
+        {
+            public uint dwFlags;
+            public int fEnable;                // BOOL marshalled as int (0 or 1)
+            public nint hRgnBlur;
+            public int fTransitionOnMaximized; // BOOL marshalled as int (0 or 1)
         }
 
         [LibraryImport("user32.dll")]
@@ -278,5 +419,35 @@ public sealed partial class AlarmNotificationWindow : Window
 
         [LibraryImport("kernel32.dll")]
         public static partial uint GetCurrentThreadId();
+
+        [LibraryImport("user32.dll", EntryPoint = "GetWindowLongW")]
+        public static partial int GetWindowLong(nint hWnd, int nIndex);
+
+        [LibraryImport("user32.dll", EntryPoint = "SetWindowLongW")]
+        public static partial int SetWindowLong(nint hWnd, int nIndex, int dwNewLong);
+
+        [LibraryImport("user32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool SetLayeredWindowAttributes(nint hwnd, uint crKey, byte bAlpha, uint dwFlags);
+
+        [LibraryImport("user32.dll")]
+        public static partial int GetSystemMetrics(int nIndex);
+
+        [LibraryImport("dwmapi.dll")]
+        public static partial int DwmSetWindowAttribute(
+            nint hwnd,
+            DWMWINDOWATTRIBUTE dwAttribute,
+            ref int pvAttribute,
+            int cbAttribute);
+
+        [LibraryImport("dwmapi.dll")]
+        public static partial int DwmEnableBlurBehindWindow(nint hWnd, ref DWM_BLURBEHIND pBlurBehind);
+
+        [LibraryImport("gdi32.dll")]
+        public static partial nint CreateRectRgn(int left, int top, int right, int bottom);
+
+        [LibraryImport("gdi32.dll")]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        public static partial bool DeleteObject(nint hObject);
     }
 }
