@@ -118,7 +118,21 @@ public sealed partial class AlarmNotificationWindow : Window
                 AppWindow.MoveAndResize(bounds);
             }
 
-            // 2) Suppress Win11 rounded corners so the overlay reaches the screen edges.
+            // 2) Strip the residual frame styles SetBorderAndTitleBar leaves behind, and
+            //    suppress the 1px outline + rounded corners DWM still draws around
+            //    borderless windows on Win11, so the overlay reaches the screen edges
+            //    with no visible border.
+            var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
+            style &= ~(NativeMethods.WS_CAPTION | NativeMethods.WS_THICKFRAME);
+            NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_STYLE, style);
+
+            var borderColor = unchecked((int)NativeMethods.DWMWA_COLOR_NONE);
+            _ = NativeMethods.DwmSetWindowAttribute(
+                hwnd,
+                NativeMethods.DWMWINDOWATTRIBUTE.DWMWA_BORDER_COLOR,
+                ref borderColor,
+                Marshal.SizeOf<int>());
+
             var cornerPref = (int)NativeMethods.DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_DONOTROUND;
             _ = NativeMethods.DwmSetWindowAttribute(
                 hwnd,
@@ -135,7 +149,8 @@ public sealed partial class AlarmNotificationWindow : Window
             //    GCalAlarmScrim brush on the root Grid, so the card itself stays fully opaque.
             NativeMethods.SetLayeredWindowAttributes(hwnd, 0, 255, NativeMethods.LWA_ALPHA);
 
-            // 5) Keep the overlay top-most at the monitor bounds.
+            // 5) Keep the overlay top-most at the monitor bounds. SWP_FRAMECHANGED makes
+            //    the style changes from step 2/3 take effect.
             NativeMethods.SetWindowPos(
                 hwnd,
                 NativeMethods.HWND_TOPMOST,
@@ -143,7 +158,7 @@ public sealed partial class AlarmNotificationWindow : Window
                 bounds.Y,
                 bounds.Width,
                 bounds.Height,
-                NativeMethods.SWP_SHOWWINDOW);
+                NativeMethods.SWP_SHOWWINDOW | NativeMethods.SWP_FRAMECHANGED);
 
             // 6) Drop the opaque WinUI backdrop so the desktop shows through the scrim.
             TryMakeWinUiBackgroundTransparent(hwnd);
@@ -326,7 +341,11 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private static partial class NativeMethods
     {
+        public const int GWL_STYLE   = -16;
         public const int GWL_EXSTYLE = -20;
+
+        public const int WS_CAPTION    = 0x00C00000;
+        public const int WS_THICKFRAME = 0x00040000;
 
         public const int WS_EX_LAYERED    = 0x00080000;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -334,9 +353,10 @@ public sealed partial class AlarmNotificationWindow : Window
         public const uint LWA_ALPHA = 0x00000002;
 
         public static readonly nint HWND_TOPMOST = -1;
-        public const uint SWP_NOMOVE      = 0x0002;
-        public const uint SWP_NOSIZE      = 0x0001;
-        public const uint SWP_SHOWWINDOW  = 0x0040;
+        public const uint SWP_NOMOVE       = 0x0002;
+        public const uint SWP_NOSIZE       = 0x0001;
+        public const uint SWP_FRAMECHANGED = 0x0020;
+        public const uint SWP_SHOWWINDOW   = 0x0040;
         public const int  SW_SHOW         = 5;
         public const int  SW_RESTORE      = 9;
         public const uint FLASHW_ALL       = 0x00000003;
@@ -358,8 +378,12 @@ public sealed partial class AlarmNotificationWindow : Window
 
         public enum DWMWINDOWATTRIBUTE
         {
-            DWMWA_WINDOW_CORNER_PREFERENCE = 33
+            DWMWA_WINDOW_CORNER_PREFERENCE = 33,
+            DWMWA_BORDER_COLOR = 34
         }
+
+        // Special DWMWA_BORDER_COLOR value: suppress the window border entirely.
+        public const uint DWMWA_COLOR_NONE = 0xFFFFFFFE;
 
         [StructLayout(LayoutKind.Sequential)]
         public struct FLASHWINFO
