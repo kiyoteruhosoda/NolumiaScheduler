@@ -288,12 +288,33 @@
   <data name="ErrorEndDateBeforeStart" xml:space="preserve">
     <value>終了日は開始日以降にしてください。</value>
   </data>
+  <data name="EditButton" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="ReplaceButton" xml:space="preserve">
+    <value>置換</value>
+  </data>
+  <data name="ReplaceHolidayMessage" xml:space="preserve">
+    <value>既存の祝日「{0}」を置換しますか？</value>
+  </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="DeleteEventTitle" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
   </data>
   <data name="DeleteOccurrence" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
+  </data>
+  <data name="DeleteAllOccurrences" xml:space="preserve">
+    <value>すべての予定を削除</value>
+  </data>
+  <data name="EditEventTitle" xml:space="preserve">
+    <value>イベント編集</value>
   </data>
   <data name="MonthYearFormat" xml:space="preserve">
     <value>yyyy年M月</value>
@@ -382,9 +403,6 @@
   <data name="AlarmNotifyAtStart" xml:space="preserve">
     <value>開始時刻</value>
   </data>
-  <data name="AlarmNotify0MinMsg" xml:space="preserve">
-    <value>まもなく開始です</value>
-  </data>
   <data name="AlarmDismiss" xml:space="preserve">
     <value>閉じる</value>
   </data>
@@ -406,11 +424,20 @@
   <data name="AlarmNotify1MinMsg" xml:space="preserve">
     <value>1分後に開始します</value>
   </data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve">
+    <value>まもなく開始です</value>
+  </data>
   <data name="AlarmWindowTitle" xml:space="preserve">
     <value>アラーム通知</value>
   </data>
   <data name="AlarmOpenLocation" xml:space="preserve">
-    <value>📍 ロケーションを開く</value>
+    <value>ロケーションを開く</value>
+  </data>
+  <data name="AlarmSnooze5MinBtn" xml:space="preserve">
+    <value>5分後に再通知</value>
+  </data>
+  <data name="AlarmSnooze1MinBtn" xml:space="preserve">
+    <value>1分後に再通知</value>
   </data>
   <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve">
     <value>イベント5分前に再通知</value>
@@ -421,35 +448,6 @@
   <data name="AlarmCancelAll" xml:space="preserve">
     <value>以降のアラームをすべてキャンセル</value>
   </data>
-  <data name="AlarmSnooze5MinBtn" xml:space="preserve">
-    <value>5分後に再通知</value>
-  </data>
-  <data name="AlarmSnooze1MinBtn" xml:space="preserve">
-    <value>1分後に再通知</value>
-  </data>
-  <data name="EditButton" xml:space="preserve">
-    <value>編集</value>
-  </data>
-  <data name="DeleteButton" xml:space="preserve">
-    <value>削除</value>
-  </data>
-  <data name="CancelButton" xml:space="preserve">
-    <value>キャンセル</value>
-  </data>
-  <data name="ReplaceButton" xml:space="preserve">
-    <value>置換</value>
-  </data>
-  <data name="ReplaceHolidayMessage" xml:space="preserve">
-    <value>既存の祝日「{0}」を置換しますか？</value>
-  </data>
-  <data name="DeleteAllOccurrences" xml:space="preserve">
-    <value>すべての予定を削除</value>
-  </data>
-  <data name="EditEventTitle" xml:space="preserve">
-    <value>イベント編集</value>
-  </data>
-
-  <!-- Settings -->
   <data name="SettingsTitle" xml:space="preserve">
     <value>設定</value>
   </data>

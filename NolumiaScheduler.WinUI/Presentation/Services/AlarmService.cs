@@ -69,7 +69,6 @@ public class AlarmService(
         if (_isShowingNotification) return;
 
         var now = _clock.GetLocalNow().DateTime;
-        Debug.WriteLine($"[AlarmService] CheckAlarms at {now:HH:mm:ss}");
 
         // The app lives in the tray for weeks, so a startup-only purge is not enough.
         if (DateOnly.FromDateTime(now) != _lastPurgeDate)
