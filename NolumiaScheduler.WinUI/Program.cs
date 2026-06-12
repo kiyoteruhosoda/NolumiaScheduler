@@ -12,7 +12,7 @@ public static class Program
     private const string InstanceKey = "NolumiaScheduler.WinUI.Main";
 
     [STAThread]
-    private static void Main(string[] args)
+    private static void Main()
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
