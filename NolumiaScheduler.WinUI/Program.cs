@@ -25,7 +25,7 @@ public static class Program
             return;
         }
 
-        Microsoft.UI.Xaml.Application.Start(_ =>
+        Microsoft.UI.Xaml.Application.Start(static p =>
         {
             var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
             SynchronizationContext.SetSynchronizationContext(context);
