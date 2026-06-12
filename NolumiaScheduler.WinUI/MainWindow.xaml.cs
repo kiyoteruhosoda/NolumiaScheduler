@@ -102,7 +102,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
 
     /// <summary>Raised when the window is hidden to tray (close or minimize).</summary>
     public event EventHandler? MinimizedToTray;
-    public event EventHandler? RestoredFromTray;
 
     private void OnFrameNavigated(object sender, NavigationEventArgs e)
     {

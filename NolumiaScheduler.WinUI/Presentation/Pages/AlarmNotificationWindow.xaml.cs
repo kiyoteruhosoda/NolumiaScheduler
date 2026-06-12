@@ -50,10 +50,7 @@ public sealed partial class AlarmNotificationWindow : Window
             BeforeEventGrid.Visibility = Visibility.Visible;
         }
 
-        if (AppWindow is not null)
-        {
-            AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
-        }
+        AppWindow?.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
 
         // Disable other app windows to simulate system-modal
         DisableOtherWindows(true);
@@ -123,7 +120,7 @@ public sealed partial class AlarmNotificationWindow : Window
 
             // 2) Suppress Win11 rounded corners so the overlay reaches the screen edges.
             var cornerPref = (int)NativeMethods.DWM_WINDOW_CORNER_PREFERENCE.DWMWCP_DONOTROUND;
-            NativeMethods.DwmSetWindowAttribute(
+            _ = NativeMethods.DwmSetWindowAttribute(
                 hwnd,
                 NativeMethods.DWMWINDOWATTRIBUTE.DWMWA_WINDOW_CORNER_PREFERENCE,
                 ref cornerPref,
@@ -180,7 +177,7 @@ public sealed partial class AlarmNotificationWindow : Window
                     fTransitionOnMaximized = 0
                 };
 
-                NativeMethods.DwmEnableBlurBehindWindow(hwnd, ref bb);
+                _ = NativeMethods.DwmEnableBlurBehindWindow(hwnd, ref bb);
             }
             finally
             {
