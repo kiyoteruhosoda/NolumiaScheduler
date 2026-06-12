@@ -7,25 +7,32 @@
       Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
     <Grid>
-        <!-- List -->
-        <ScrollViewer Background="{ThemeResource GCalSurface}">
-            <ItemsControl x:Name="CalendarList" Background="{ThemeResource GCalSurface}">
+        <!-- List: card layout — only a handful of calendars are expected, so each
+             entry gets a roomy card instead of a dense table row. -->
+        <ScrollViewer>
+            <ItemsControl x:Name="CalendarList" Padding="16,16,16,96" MaxWidth="560"
+                          HorizontalAlignment="Stretch">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BusinessCalendarSummary">
-                        <Grid Padding="16,18" MinHeight="80" ColumnDefinitions="*,24"
+                        <Grid Margin="0,0,0,12" Padding="20,18" MinHeight="88"
+                              ColumnDefinitions="Auto,*,24"
                               Background="{ThemeResource GCalSurface}"
+                              BorderBrush="{ThemeResource GCalBorder}" BorderThickness="1"
+                              CornerRadius="8"
                               Tapped="OnCalendarItemTapped">
-                            <StackPanel Grid.Column="0" Spacing="3" VerticalAlignment="Center">
-                                <TextBlock Text="{Binding Name}" FontSize="15" FontWeight="SemiBold"
+                            <FontIcon Grid.Column="0" Glyph="&#xE787;"
+                                      FontFamily="Segoe Fluent Icons" FontSize="22"
+                                      Foreground="{StaticResource GCalBlue}"
+                                      VerticalAlignment="Center" Margin="0,0,16,0"/>
+                            <StackPanel Grid.Column="1" Spacing="6" VerticalAlignment="Center">
+                                <TextBlock Text="{Binding Name}" FontSize="16" FontWeight="SemiBold"
                                            Foreground="{ThemeResource GCalTextPrimary}"/>
-                                <TextBlock Text="{Binding WorkdaysSummary}" FontSize="12"
+                                <TextBlock Text="{Binding WorkdaysSummary}" FontSize="13"
                                            Foreground="{ThemeResource GCalTextSecondary}"/>
                             </StackPanel>
-                            <TextBlock Grid.Column="1" Text="&#x203A;" FontSize="20"
+                            <TextBlock Grid.Column="2" Text="&#x203A;" FontSize="20"
                                        Foreground="{ThemeResource GCalTextSecondary}"
                                        VerticalAlignment="Center" HorizontalAlignment="Right"/>
-                            <Rectangle Grid.ColumnSpan="2" VerticalAlignment="Bottom"
-                                       Height="0.5" Fill="{ThemeResource GCalBorder}"/>
                         </Grid>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>

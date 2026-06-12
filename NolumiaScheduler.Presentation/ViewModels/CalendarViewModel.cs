@@ -380,16 +380,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         ClearSelection();
         var today = Today;
         _month = new DateTime(today.Year, today.Month, 1);
-        if (IsWeekdaysMode)
-        {
-            // Align to Monday
-            var daysFromMonday = ((int)today.DayOfWeek + 6) % 7;
-            _weekStartDate = today.AddDays(-daysFromMonday);
-        }
-        else
-        {
-            _weekStartDate = today.AddDays(-(int)today.DayOfWeek);
-        }
+        _weekStartDate = IsWeekdaysMode
+            ? AlignToMonday(today)
+            : today.AddDays(-(int)today.DayOfWeek);
         LoadMonth();
         LoadWeek();
         if (IsWeekMode)
@@ -414,9 +407,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     {
         if (mode == CalendarDisplayMode.Weekdays && _displayMode != CalendarDisplayMode.Weekdays)
         {
-            // Align weekStartDate to Monday of the current week
-            var daysFromMonday = ((int)_weekStartDate.DayOfWeek + 6) % 7;
-            _weekStartDate = _weekStartDate.AddDays(-daysFromMonday);
+            _weekStartDate = AlignToMonday(_weekStartDate);
         }
         DisplayMode = mode;
         if (mode == CalendarDisplayMode.Month)
@@ -541,6 +532,13 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         OnPropertyChanged(nameof(WeekStartDate));
         OnPropertyChanged(nameof(WeekAllDayLaneHeight));
     }
+
+    // Weeks run Sun..Sat internally; the weekdays view shows the Mon..Fri inside that
+    // same week, so a Sunday start moves FORWARD one day (not back to last week's Monday).
+    private static DateTime AlignToMonday(DateTime date) =>
+        date.DayOfWeek == DayOfWeek.Sunday
+            ? date.AddDays(1)
+            : date.AddDays(-(((int)date.DayOfWeek + 6) % 7));
 
     private static string FormatWeekdaysRangeTitle(DateTime weekStartDate)
     {
