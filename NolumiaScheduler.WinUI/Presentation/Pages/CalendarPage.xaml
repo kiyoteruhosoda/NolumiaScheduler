@@ -124,7 +124,8 @@
                                     <DataTemplate x:DataType="vm:CalendarEventChip">
                                         <Border Height="14" CornerRadius="3"
                                                 Margin="1,0" Padding="3,0"
-                                                Background="{x:Bind ChipColor, Converter={StaticResource ColorToBrush}}">
+                                                Background="{x:Bind ChipColor, Converter={StaticResource ColorToBrush}}"
+                                                ToolTipService.ToolTip="{x:Bind ToolTipText}">
                                             <TextBlock Text="{x:Bind Title}" FontSize="10"
                                                        Foreground="White" TextTrimming="CharacterEllipsis"/>
                                         </Border>

@@ -502,6 +502,7 @@ public sealed partial class WeekCalendarView : UserControl
                 Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
             };
             chip.Child = label;
+            ToolTipService.SetToolTip(chip, block.Title);
             chip.Tapped += OnAllDayBlockTapped;
             chip.DoubleTapped += OnAllDayBlockDoubleTapped;
             Canvas.SetLeft(chip, 0);
@@ -545,6 +546,8 @@ public sealed partial class WeekCalendarView : UserControl
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis
         };
+
+        ToolTipService.SetToolTip(border, $"{block.Title}\n{block.TimeLabel}");
 
         border.Tapped += OnEventBlockTapped;
         border.DoubleTapped += OnEventBlockDoubleTapped;

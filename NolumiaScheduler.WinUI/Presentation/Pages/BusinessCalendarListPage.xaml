@@ -10,8 +10,8 @@
         <!-- List: card layout — only a handful of calendars are expected, so each
              entry gets a roomy card instead of a dense table row. -->
         <ScrollViewer>
-            <ItemsControl x:Name="CalendarList" Padding="16,16,16,96" MaxWidth="560"
-                          HorizontalAlignment="Stretch">
+            <ItemsControl x:Name="CalendarList" Padding="16,16,16,96"
+                          HorizontalAlignment="Left" MinWidth="320" MaxWidth="560">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BusinessCalendarSummary">
                         <Grid Margin="0,0,0,12" Padding="20,18" MinHeight="88"
