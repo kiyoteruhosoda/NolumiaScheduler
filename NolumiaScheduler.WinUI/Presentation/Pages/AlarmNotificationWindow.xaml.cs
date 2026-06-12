@@ -47,14 +47,20 @@ public sealed partial class AlarmNotificationWindow : Window
             BeforeEventGrid.Visibility = Visibility.Visible;
         }
 
-        // Configure window: full-screen, no titlebar, always on top
+        // Configure window: full-screen on the active monitor, no titlebar, always on top
         if (AppWindow is not null)
         {
-            // Set taskbar icon
             AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
 
             ExtendsContentIntoTitleBar = true;
             AppWindow.TitleBar?.PreferredHeightOption = TitleBarHeightOption.Collapsed;
+
+            // Move to the monitor that currently has input focus so the alarm appears where
+            // the user is working, not necessarily on the primary display.
+            // SetPresenter(FullScreen) covers whichever monitor the window is currently on,
+            // so this must happen before the presenter switch.
+            MoveToActiveMonitor();
+
             AppWindow.SetPresenter(AppWindowPresenterKind.FullScreen);
         }
 
@@ -87,6 +93,24 @@ public sealed partial class AlarmNotificationWindow : Window
         else if (!_foregroundForced)
         {
             ForceToForeground();
+        }
+    }
+
+    private void MoveToActiveMonitor()
+    {
+        try
+        {
+            // Prefer the monitor that holds the current foreground window; fall back to
+            // the primary monitor if there is no foreground window.
+            var foreground = NativeMethods.GetForegroundWindow();
+            var source = foreground != nint.Zero ? foreground : WindowNative.GetWindowHandle(this);
+            var windowId = Microsoft.UI.Win32Interop.GetWindowIdFromWindow(source);
+            var displayArea = DisplayArea.GetFromWindowId(windowId, DisplayAreaFallback.Primary);
+            AppWindow.MoveAndResize(displayArea.OuterBounds);
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"[AlarmNotificationWindow] MoveToActiveMonitor failed: {ex.Message}");
         }
     }
 

@@ -14,7 +14,8 @@ public sealed record CreateSingleEventCommand(
     DateOnly StartDate,
     TimeSpan StartTime,
     TimeSpan EndTime,
-    EventAlarm? Alarm = null);
+    EventAlarm? Alarm = null,
+    EventColorKey ColorKey = EventColorKey.Default);
 
 public sealed record CreateRecurringEventCommand(
     string Title,
@@ -28,7 +29,8 @@ public sealed record CreateRecurringEventCommand(
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime,
     RecurrenceRule RecurrenceRule,
-    EventAlarm? Alarm = null);
+    EventAlarm? Alarm = null,
+    EventColorKey ColorKey = EventColorKey.Default);
 
 public sealed record UpdateEventCommand(
     string EventId,
@@ -39,7 +41,8 @@ public sealed record UpdateEventCommand(
     DateOnly? NewDate,
     TimeSpan? NewStartTime,
     TimeSpan? NewEndTime,
-    EventAlarm? Alarm);
+    EventAlarm? Alarm,
+    EventColorKey ColorKey = EventColorKey.Default);
 
 public sealed record SkipOccurrenceCommand(
     string EventId,
@@ -74,7 +77,8 @@ public sealed record UpdateRecurringSeriesCommand(
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime,
     RecurrenceRule RecurrenceRule,
-    EventAlarm? Alarm = null);
+    EventAlarm? Alarm = null,
+    EventColorKey ColorKey = EventColorKey.Default);
 
 public sealed record ChangeFollowingOccurrencesCommand(
     string EventId,
@@ -86,4 +90,5 @@ public sealed record ChangeFollowingOccurrencesCommand(
     LocalTimeValue? NewStartTime,
     LocalTimeValue? NewEndTime,
     RecurrenceRule NewRecurrenceRule,
-    EventAlarm? Alarm = null);
+    EventAlarm? Alarm = null,
+    EventColorKey ColorKey = EventColorKey.Default);

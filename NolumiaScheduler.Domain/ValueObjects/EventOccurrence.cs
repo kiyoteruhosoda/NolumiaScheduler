@@ -11,7 +11,8 @@ public sealed class EventOccurrence(
     Visibility visibility,
     bool isMoved = false,
     bool isOverridden = false,
-    OccurrenceLocalKey? seriesKey = null)
+    OccurrenceLocalKey? seriesKey = null,
+    EventColorKey colorKey = EventColorKey.Default)
 {
     public EventId EventId { get; } = eventId;
     public LocalDateValue Date { get; } = date;
@@ -23,6 +24,7 @@ public sealed class EventOccurrence(
     public Visibility Visibility { get; } = visibility;
     public bool IsMoved { get; } = isMoved;
     public bool IsOverridden { get; } = isOverridden;
+    public EventColorKey ColorKey { get; } = colorKey;
 
     // Original recurrence key (candidate date + scheduled start) this occurrence was
     // expanded from. Lets callers target the correct occurrence when moving/resizing a

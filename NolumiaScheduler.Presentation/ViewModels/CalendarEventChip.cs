@@ -7,7 +7,14 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 public sealed class CalendarEventChip(EventOccurrence occ)
 {
     public string Title { get; } = occ.Title.Value;
-    public Color ChipColor { get; } = occ.IsMoved ? WinColors.GCalEventMoved :
-                    occ.IsOverridden ? WinColors.GCalGreen :
-                                       WinColors.GCalBlue;
+    public string ToolTipText { get; } = occ.AllDay || occ.StartTime is null || occ.EndTime is null
+        ? occ.Title.Value
+        : $"{occ.Title.Value}\n{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2} – {occ.EndTime.Hour:D2}:{occ.EndTime.Minute:D2}";
+    // An explicitly assigned event color wins over the moved/overridden tints
+    // (those states stay visible through their badges in the detail views).
+    public Color ChipColor { get; } =
+        occ.ColorKey != EventColorKey.Default ? WinColors.ForEventColor(occ.ColorKey) :
+        occ.IsMoved      ? WinColors.GCalEventMoved :
+        occ.IsOverridden ? WinColors.GCalGreen :
+                           WinColors.GCalBlue;
 }

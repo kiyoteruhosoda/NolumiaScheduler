@@ -32,6 +32,8 @@ public class CalendarEvent
     private EventAlarm? _alarm;
     public EventAlarm? Alarm => _alarm;
 
+    public EventColorKey ColorKey { get; private set; }
+
     public VersionNo Version { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -52,7 +54,8 @@ public class CalendarEvent
         List<EventException>? exceptions = null,
         List<EventMove>? moves = null,
         VersionNo? version = null,
-        EventAlarm? alarm = null)
+        EventAlarm? alarm = null,
+        EventColorKey colorKey = EventColorKey.Default)
     {
         Id = id ?? throw new ArgumentNullException(nameof(id));
         Kind = kind;
@@ -71,6 +74,7 @@ public class CalendarEvent
         _moves = moves ?? [];
         Version = version ?? VersionNo.Initial();
         _alarm = alarm;
+        ColorKey = colorKey;
     }
 
     public static CalendarEvent CreateSingle(
@@ -84,7 +88,8 @@ public class CalendarEvent
         bool allDay,
         SingleEventSchedule schedule,
         DateTimeOffset createdAt,
-        EventAlarm? alarm = null)
+        EventAlarm? alarm = null,
+        EventColorKey colorKey = EventColorKey.Default)
     {
         return new CalendarEvent(
             id: id,
@@ -99,7 +104,8 @@ public class CalendarEvent
             singleSchedule: schedule,
             recurringSchedule: null,
             createdAt: createdAt,
-            alarm: alarm);
+            alarm: alarm,
+            colorKey: colorKey);
     }
 
     public static CalendarEvent CreateRecurring(
@@ -113,7 +119,8 @@ public class CalendarEvent
         bool allDay,
         RecurringEventSchedule schedule,
         DateTimeOffset createdAt,
-        EventAlarm? alarm = null)
+        EventAlarm? alarm = null,
+        EventColorKey colorKey = EventColorKey.Default)
     {
         return new CalendarEvent(
             id: id,
@@ -128,7 +135,8 @@ public class CalendarEvent
             singleSchedule: null,
             recurringSchedule: schedule,
             createdAt: createdAt,
-            alarm: alarm);
+            alarm: alarm,
+            colorKey: colorKey);
     }
 
     public static CalendarEvent Reconstitute(
@@ -148,12 +156,13 @@ public class CalendarEvent
         List<EventException> exceptions,
         List<EventMove> moves,
         VersionNo version,
-        EventAlarm? alarm = null)
+        EventAlarm? alarm = null,
+        EventColorKey colorKey = EventColorKey.Default)
     {
         var ev = new CalendarEvent(
             id, kind, title, location, visibility, eventType, description,
             timeZoneId, allDay, singleSchedule, recurringSchedule,
-            createdAt, exceptions, moves, version, alarm)
+            createdAt, exceptions, moves, version, alarm, colorKey)
         {
             UpdatedAt = updatedAt
         };
@@ -163,6 +172,13 @@ public class CalendarEvent
     public void SetAlarm(EventAlarm? alarm, DateTimeOffset updatedAt)
     {
         _alarm = alarm;
+        Touch(updatedAt);
+    }
+
+    public void SetColor(EventColorKey colorKey, DateTimeOffset updatedAt)
+    {
+        if (ColorKey == colorKey) return;
+        ColorKey = colorKey;
         Touch(updatedAt);
     }
 

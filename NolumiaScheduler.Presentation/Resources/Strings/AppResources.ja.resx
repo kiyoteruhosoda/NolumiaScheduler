@@ -150,6 +150,9 @@
   <data name="WeekViewLabel" xml:space="preserve">
     <value>週表示</value>
   </data>
+  <data name="WeekdaysViewLabel" xml:space="preserve">
+    <value>平日表示</value>
+  </data>
   <data name="WeekViewHint" xml:space="preserve">
     <value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value>
   </data>
@@ -285,6 +288,21 @@
   <data name="ErrorEndDateBeforeStart" xml:space="preserve">
     <value>終了日は開始日以降にしてください。</value>
   </data>
+  <data name="EditButton" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>削除</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
+  <data name="ReplaceButton" xml:space="preserve">
+    <value>置換</value>
+  </data>
+  <data name="ReplaceHolidayMessage" xml:space="preserve">
+    <value>既存の祝日「{0}」を置換しますか？</value>
+  </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="DeleteEventTitle" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
@@ -292,11 +310,56 @@
   <data name="DeleteOccurrence" type="System.Resources.ResXNullRef, System.Windows.Forms">
     <value />
   </data>
+  <data name="DeleteAllOccurrences" xml:space="preserve">
+    <value>すべての予定を削除</value>
+  </data>
+  <data name="EditEventTitle" xml:space="preserve">
+    <value>イベント編集</value>
+  </data>
   <data name="MonthYearFormat" xml:space="preserve">
     <value>yyyy年M月</value>
   </data>
   <data name="SelectedDayFormat" xml:space="preserve">
     <value>M月d日 (ddd)</value>
+  </data>
+  <data name="HolidayDateFormat" xml:space="preserve">
+    <value>yyyy年M月d日 (ddd)</value>
+  </data>
+  <data name="ColorLabel" xml:space="preserve">
+    <value>色</value>
+  </data>
+  <data name="ColorDefault" xml:space="preserve">
+    <value>既定</value>
+  </data>
+  <data name="ColorTomato" xml:space="preserve">
+    <value>トマト</value>
+  </data>
+  <data name="ColorTangerine" xml:space="preserve">
+    <value>ミカン</value>
+  </data>
+  <data name="ColorBanana" xml:space="preserve">
+    <value>バナナ</value>
+  </data>
+  <data name="ColorBasil" xml:space="preserve">
+    <value>バジル</value>
+  </data>
+  <data name="ColorSage" xml:space="preserve">
+    <value>セージ</value>
+  </data>
+  <data name="ColorPeacock" xml:space="preserve">
+    <value>ピーコック</value>
+  </data>
+  <data name="ColorBlueberry" xml:space="preserve">
+    <value>ブルーベリー</value>
+  </data>
+  <data name="ColorLavender" xml:space="preserve">
+    <value>ラベンダー</value>
+  </data>
+  <data name="ColorGrape" xml:space="preserve">
+    <value>ブドウ</value>
+  </data>
+  <data name="ColorGraphite" xml:space="preserve">
+    <value>グラファイト</value>
   </data>
   <data name="FormatCultureName" xml:space="preserve">
     <value>ja-JP</value>
@@ -340,9 +403,6 @@
   <data name="AlarmNotifyAtStart" xml:space="preserve">
     <value>開始時刻</value>
   </data>
-  <data name="AlarmNotify0MinMsg" xml:space="preserve">
-    <value>まもなく開始です</value>
-  </data>
   <data name="AlarmDismiss" xml:space="preserve">
     <value>閉じる</value>
   </data>
@@ -364,11 +424,20 @@
   <data name="AlarmNotify1MinMsg" xml:space="preserve">
     <value>1分後に開始します</value>
   </data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve">
+    <value>まもなく開始です</value>
+  </data>
   <data name="AlarmWindowTitle" xml:space="preserve">
     <value>アラーム通知</value>
   </data>
   <data name="AlarmOpenLocation" xml:space="preserve">
-    <value>📍 ロケーションを開く</value>
+    <value>ロケーションを開く</value>
+  </data>
+  <data name="AlarmSnooze5MinBtn" xml:space="preserve">
+    <value>5分後に再通知</value>
+  </data>
+  <data name="AlarmSnooze1MinBtn" xml:space="preserve">
+    <value>1分後に再通知</value>
   </data>
   <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve">
     <value>イベント5分前に再通知</value>
@@ -379,31 +448,28 @@
   <data name="AlarmCancelAll" xml:space="preserve">
     <value>以降のアラームをすべてキャンセル</value>
   </data>
-  <data name="AlarmSnooze5MinBtn" xml:space="preserve">
-    <value>5分後に再通知</value>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>設定</value>
   </data>
-  <data name="AlarmSnooze1MinBtn" xml:space="preserve">
-    <value>1分後に再通知</value>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>テーマ</value>
   </data>
-  <data name="EditButton" xml:space="preserve">
-    <value>編集</value>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>システム設定に従う</value>
   </data>
-  <data name="DeleteButton" xml:space="preserve">
-    <value>削除</value>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>ライト</value>
   </data>
-  <data name="CancelButton" xml:space="preserve">
-    <value>キャンセル</value>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>ダーク</value>
   </data>
-  <data name="ReplaceButton" xml:space="preserve">
-    <value>置換</value>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>言語</value>
   </data>
-  <data name="ReplaceHolidayMessage" xml:space="preserve">
-    <value>既存の祝日「{0}」を置換しますか？</value>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>English</value>
   </data>
-  <data name="DeleteAllOccurrences" xml:space="preserve">
-    <value>すべての予定を削除</value>
-  </data>
-  <data name="EditEventTitle" xml:space="preserve">
-    <value>イベント編集</value>
+  <data name="LanguageJapanese" xml:space="preserve">
+    <value>日本語</value>
   </data>
 </root>

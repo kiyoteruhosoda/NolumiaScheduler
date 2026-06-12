@@ -50,7 +50,8 @@ public class CalendarEventApplicationService(
             command.AllDay,
             schedule,
             _clock.GetUtcNow(),
-            alarm: command.Alarm);
+            alarm: command.Alarm,
+            colorKey: command.ColorKey);
 
         _repository.Save(ev);
     }
@@ -76,7 +77,8 @@ public class CalendarEventApplicationService(
             command.AllDay,
             schedule,
             _clock.GetUtcNow(),
-            alarm: command.Alarm);
+            alarm: command.Alarm,
+            colorKey: command.ColorKey);
 
         _repository.Save(ev);
     }
@@ -106,6 +108,7 @@ public class CalendarEventApplicationService(
         }
 
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
+        ev.SetColor(command.ColorKey, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 
@@ -136,6 +139,7 @@ public class CalendarEventApplicationService(
 
         ev.ChangeRecurrenceSchedule(newSchedule, _clock.GetUtcNow());
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
+        ev.SetColor(command.ColorKey, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 
@@ -233,7 +237,8 @@ public class CalendarEventApplicationService(
             command.NewAllDay,
             newSchedule,
             _clock.GetUtcNow(),
-            alarm: command.Alarm);
+            alarm: command.Alarm,
+            colorKey: command.ColorKey);
 
         _repository.Save(newEv);
     }

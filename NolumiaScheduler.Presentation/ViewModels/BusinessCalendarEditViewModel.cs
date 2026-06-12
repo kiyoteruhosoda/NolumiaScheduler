@@ -233,7 +233,7 @@ public sealed class HolidayDisplayItem
         Date = date;
         Name = name;
         var d = date.ToDateOnly();
-        FormattedDate = d.ToString(AppResources.SelectedDayFormat, AppResources.FormatCulture);
+        FormattedDate = d.ToString(AppResources.HolidayDateFormat, AppResources.FormatCulture);
         RemoveCommand = new RelayCommand(() => RemoveRequested?.Invoke());
     }
 }

@@ -1,11 +1,13 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Xaml;
+using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure.Json.Repositories;
 using NolumiaScheduler.Infrastructure.Json.Seeder;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
 using NolumiaScheduler.WinUI.Helpers;
@@ -22,6 +24,7 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     public static Window? MainWindow { get; private set; }
     private TrayIconManager? _trayIcon;
+    private AppNotificationManager? _notificationManager;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
@@ -51,7 +54,27 @@ public partial class App : Microsoft.UI.Xaml.Application
     {
         try
         {
+            // Register for app (toast) notifications before the alarm service starts so the
+            // first alarm can already send a notification.
+            try
+            {
+                _notificationManager = AppNotificationManager.Default;
+                _notificationManager.NotificationInvoked += OnAppNotificationInvoked;
+                _notificationManager.Register();
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"[App] AppNotificationManager.Register failed: {ex.Message}");
+            }
+
+            // Apply persisted language before the window is created so all localized
+            // strings in MainWindow's constructor use the correct culture.
+            var savedLanguage = Services.GetRequiredService<IAppSettingsRepository>().GetLanguage();
+            if (savedLanguage != null)
+                AppResources.Culture = new System.Globalization.CultureInfo(savedLanguage);
+
             MainWindow = new MainWindow();
+            Services.GetRequiredService<ThemeService>().Initialize(MainWindow);
             MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
             MainWindow.Activate();
             Services.GetRequiredService<IAlarmService>().Start();
@@ -106,8 +129,17 @@ public partial class App : Microsoft.UI.Xaml.Application
         }
     }
 
+    private void OnAppNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
+    {
+        // NotificationInvoked arrives on a background thread; hop to the UI thread and
+        // restore the window the same way the tray "Show" action does (incl. hiding the
+        // tray icon, otherwise it would linger after the window is back).
+        MainWindow?.DispatcherQueue.TryEnqueue(OnTrayShowRequested);
+    }
+
     private void OnTrayExitRequested()
     {
+        _notificationManager?.Unregister();
         _trayIcon?.Dispose();
         _trayIcon = null;
         if (MainWindow is MainWindow mw)
@@ -141,6 +173,14 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
         services.AddSingleton<ICalendarEventChanges>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
 
+        services.AddSingleton<IAppSettingsRepository>(_ =>
+        {
+            var dir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
+                "NolumiaScheduler");
+            return new JsonAppSettingsRepository(dir);
+        });
+
         services.AddSingleton<IBusinessCalendarRepository>(_ =>
         {
             var dir = Path.Combine(
@@ -157,6 +197,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Alarm
         services.AddSingleton<AlarmApplicationService>();
         services.AddSingleton<IAlarmService, AlarmService>();
+
+        // Theme (no UI yet; preference persisted in settings.json and applied at launch)
+        services.AddSingleton<ThemeService>();
 
         // Presentation services
         services.AddSingleton<IWeekEventLayoutStrategy, DefaultWeekEventLayoutStrategy>();

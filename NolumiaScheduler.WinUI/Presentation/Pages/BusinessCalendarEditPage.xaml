@@ -11,8 +11,10 @@
             <!-- Calendar Name -->
             <TextBlock x:Name="NameLabel" FontSize="12" Margin="4,16,0,4"
                        Foreground="{ThemeResource GCalTextSecondary}"/>
-            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2">
-                <TextBox x:Name="NameBox" BorderThickness="0" FontSize="15" MinHeight="48"
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0"
+                    Margin="0,0,0,2" MinHeight="48">
+                <TextBox x:Name="NameBox" BorderThickness="0" FontSize="15"
+                         VerticalAlignment="Center"
                          Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"/>
             </Border>
 
@@ -92,8 +94,10 @@
             <Border Background="{ThemeResource GCalSurfaceVariant}" CornerRadius="8" Padding="12,8">
                 <Grid ColumnDefinitions="*,*,56" ColumnSpacing="8">
                     <CalendarDatePicker x:Name="NewHolidayDatePicker" Grid.Column="0" FontSize="13" MinWidth="0"
+                                        VerticalAlignment="Center"
                                         DateFormat="{}{year.full}/{month.integer(2)}/{day.integer(2)}({dayofweek.abbreviated})"/>
                     <TextBox x:Name="NewHolidayNameBox" Grid.Column="1" FontSize="13"
+                             VerticalAlignment="Center"
                              Foreground="{ThemeResource GCalTextPrimary}"/>
                     <Button x:Name="AddHolidayBtn" Grid.Column="2" FontSize="13" Height="40"
                             Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"

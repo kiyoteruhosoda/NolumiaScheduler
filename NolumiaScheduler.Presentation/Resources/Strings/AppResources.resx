@@ -18,6 +18,7 @@
 
   <data name="MonthViewLabel" xml:space="preserve"><value>Month</value></data>
   <data name="WeekViewLabel" xml:space="preserve"><value>Week</value></data>
+  <data name="WeekdaysViewLabel" xml:space="preserve"><value>Weekdays</value></data>
   <data name="WeekViewHint" xml:space="preserve"><value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value></data>
 
   <data name="AllDay" xml:space="preserve"><value>All day</value></data>
@@ -86,6 +87,20 @@
 
   <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
   <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
+  <data name="HolidayDateFormat" xml:space="preserve"><value>MMMM d, yyyy (ddd)</value></data>
+
+  <data name="ColorLabel" xml:space="preserve"><value>Color</value></data>
+  <data name="ColorDefault" xml:space="preserve"><value>Default</value></data>
+  <data name="ColorTomato" xml:space="preserve"><value>Tomato</value></data>
+  <data name="ColorTangerine" xml:space="preserve"><value>Tangerine</value></data>
+  <data name="ColorBanana" xml:space="preserve"><value>Banana</value></data>
+  <data name="ColorBasil" xml:space="preserve"><value>Basil</value></data>
+  <data name="ColorSage" xml:space="preserve"><value>Sage</value></data>
+  <data name="ColorPeacock" xml:space="preserve"><value>Peacock</value></data>
+  <data name="ColorBlueberry" xml:space="preserve"><value>Blueberry</value></data>
+  <data name="ColorLavender" xml:space="preserve"><value>Lavender</value></data>
+  <data name="ColorGrape" xml:space="preserve"><value>Grape</value></data>
+  <data name="ColorGraphite" xml:space="preserve"><value>Graphite</value></data>
   <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>
   <data name="EditRecurringEventTitle" xml:space="preserve">
     <value>Edit recurring event</value>
@@ -125,10 +140,20 @@
   <data name="AlarmNotify1MinMsg" xml:space="preserve"><value>Starts in 1 minute</value></data>
   <data name="AlarmNotify0MinMsg" xml:space="preserve"><value>Starting now</value></data>
   <data name="AlarmWindowTitle" xml:space="preserve"><value>Alarm Notification</value></data>
-  <data name="AlarmOpenLocation" xml:space="preserve"><value>📍 Open Location</value></data>
+  <data name="AlarmOpenLocation" xml:space="preserve"><value>Open Location</value></data>
   <data name="AlarmSnooze5MinBtn" xml:space="preserve"><value>Remind in 5 min</value></data>
   <data name="AlarmSnooze1MinBtn" xml:space="preserve"><value>Remind in 1 min</value></data>
   <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve"><value>Remind 5 min before event</value></data>
   <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve"><value>Remind 1 min before event</value></data>
   <data name="AlarmCancelAll" xml:space="preserve"><value>Cancel all remaining alarms</value></data>
+
+  <!-- Settings -->
+  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
+  <data name="ThemeLabel" xml:space="preserve"><value>Theme</value></data>
+  <data name="ThemeSystem" xml:space="preserve"><value>System</value></data>
+  <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
+  <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
+  <data name="LanguageLabel" xml:space="preserve"><value>Language</value></data>
+  <data name="LanguageEnglish" xml:space="preserve"><value>English</value></data>
+  <data name="LanguageJapanese" xml:space="preserve"><value>日本語</value></data>
 </root>

@@ -41,9 +41,10 @@ public static class AppResources
     public static string DayFri => Get(nameof(DayFri));
     public static string DaySat => Get(nameof(DaySat));
 
-    public static string MonthViewLabel => Get(nameof(MonthViewLabel));
-    public static string WeekViewLabel  => Get(nameof(WeekViewLabel));
-    public static string WeekViewHint   => Get(nameof(WeekViewHint));
+    public static string MonthViewLabel    => Get(nameof(MonthViewLabel));
+    public static string WeekViewLabel     => Get(nameof(WeekViewLabel));
+    public static string WeekdaysViewLabel => Get(nameof(WeekdaysViewLabel));
+    public static string WeekViewHint      => Get(nameof(WeekViewHint));
 
     public static string AllDay         => Get(nameof(AllDay));
     public static string NoEventsLabel  => Get(nameof(NoEventsLabel));
@@ -52,6 +53,21 @@ public static class AppResources
 
     public static string MonthYearFormat   => Get(nameof(MonthYearFormat));
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
+    public static string HolidayDateFormat => Get(nameof(HolidayDateFormat));
+
+    // Event colors
+    public static string ColorLabel     => Get(nameof(ColorLabel));
+    public static string ColorDefault   => Get(nameof(ColorDefault));
+    public static string ColorTomato    => Get(nameof(ColorTomato));
+    public static string ColorTangerine => Get(nameof(ColorTangerine));
+    public static string ColorBanana    => Get(nameof(ColorBanana));
+    public static string ColorBasil     => Get(nameof(ColorBasil));
+    public static string ColorSage      => Get(nameof(ColorSage));
+    public static string ColorPeacock   => Get(nameof(ColorPeacock));
+    public static string ColorBlueberry => Get(nameof(ColorBlueberry));
+    public static string ColorLavender  => Get(nameof(ColorLavender));
+    public static string ColorGrape     => Get(nameof(ColorGrape));
+    public static string ColorGraphite  => Get(nameof(ColorGraphite));
 
     // Tabs
     public static string CalendarTab          => Get(nameof(CalendarTab));
@@ -143,6 +159,16 @@ public static class AppResources
     public static string AlarmCancelAll       => Get(nameof(AlarmCancelAll));
     public static string AlarmSnooze5MinBtn   => Get(nameof(AlarmSnooze5MinBtn));
     public static string AlarmSnooze1MinBtn   => Get(nameof(AlarmSnooze1MinBtn));
+
+    // Settings
+    public static string SettingsTitle   => Get(nameof(SettingsTitle));
+    public static string ThemeLabel      => Get(nameof(ThemeLabel));
+    public static string ThemeSystem     => Get(nameof(ThemeSystem));
+    public static string ThemeLight      => Get(nameof(ThemeLight));
+    public static string ThemeDark       => Get(nameof(ThemeDark));
+    public static string LanguageLabel   => Get(nameof(LanguageLabel));
+    public static string LanguageEnglish => Get(nameof(LanguageEnglish));
+    public static string LanguageJapanese => Get(nameof(LanguageJapanese));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
