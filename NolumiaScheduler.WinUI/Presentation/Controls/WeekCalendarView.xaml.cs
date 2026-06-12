@@ -412,6 +412,10 @@ public sealed partial class WeekCalendarView : UserControl
             };
             Canvas.SetLeft(overlay, 0);
             Canvas.SetTop(overlay, 0);
+            // Above event chips (ZIndex 0) so the ghost stays visible over existing
+            // events — RefreshLaneEvents re-adds chips after the overlay, so child
+            // order alone would hide it. Below the actively dragged chip (ZIndex 100).
+            Canvas.SetZIndex(overlay, 50);
             lane.Children.Add(overlay);
             // Keep the overlay (drag/resize ghost) the same width as the day column so its
             // ratio-based geometry resolves to the chip's actual pixel size.
