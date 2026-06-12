@@ -2,7 +2,6 @@
 <Page x:Class="NolumiaScheduler.WinUI.Presentation.Pages.BusinessCalendarListPage"
       xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-      xmlns:res="using:NolumiaScheduler.Resources.Strings"
       xmlns:vm="using:NolumiaScheduler.Presentation.ViewModels"
       Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
@@ -10,16 +9,23 @@
         <!-- List: card layout — only a handful of calendars are expected, so each
              entry gets a roomy card instead of a dense table row. -->
         <ScrollViewer>
-            <ItemsControl x:Name="CalendarList" Padding="16,16,16,96"
-                          HorizontalAlignment="Left" MinWidth="320" MaxWidth="560">
+            <ItemsControl x:Name="CalendarList"
+              Margin="16"
+              Padding="0,0,0,96"
+              HorizontalAlignment="Stretch">
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:BusinessCalendarSummary">
                         <Grid Margin="0,0,0,12" Padding="20,18" MinHeight="88"
-                              ColumnDefinitions="Auto,*,24"
                               Background="{ThemeResource GCalSurface}"
                               BorderBrush="{ThemeResource GCalBorder}" BorderThickness="1"
                               CornerRadius="8"
                               Tapped="OnCalendarItemTapped">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="24"/>
+                            </Grid.ColumnDefinitions>
+
                             <FontIcon Grid.Column="0" Glyph="&#xE787;"
                                       FontFamily="Segoe Fluent Icons" FontSize="22"
                                       Foreground="{StaticResource GCalBlue}"

@@ -94,6 +94,39 @@ public sealed partial class AlarmDebugWindow : Window
         Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
     }
 
+    private void OnOpenJsonFolderClicked(object sender, RoutedEventArgs e)
+    {
+        // Events are saved under LocalApplicationData\NolumiaScheduler\events
+        var dir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "NolumiaScheduler", "events");
+        try
+        {
+            if (!Directory.Exists(dir))
+            {
+                // If no events folder yet, create it so Explorer can open it.
+                Directory.CreateDirectory(dir);
+            }
+
+            // Open the containing folder in File Explorer.
+            var psi = new System.Diagnostics.ProcessStartInfo
+            {
+                FileName = dir,
+                UseShellExecute = true,
+                Verb = "open"
+            };
+            System.Diagnostics.Process.Start(psi);
+        }
+        catch (Exception ex)
+        {
+            var dlg = new Microsoft.UI.Xaml.Controls.ContentDialog
+            {
+                Title = "フォルダを開けません",
+                Content = ex.Message,
+                CloseButtonText = "閉じる"
+            };
+            _ = dlg.ShowAsync();
+        }
+    }
+
     private static void AppendSection(System.Text.StringBuilder sb, string title, string body)
     {
         sb.AppendLine();
