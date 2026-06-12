@@ -15,7 +15,6 @@ public sealed partial class AlarmNotificationWindow : Window
     private readonly TaskCompletionSource<AlarmNotificationResult> _tcs = new();
     private readonly string? _location;
     private bool _foregroundForced;
-    private bool _overlayConfigured;
 
     public AlarmNotificationWindow(string title, string message, string? location, DateTime? eventStartTime, TimeProvider clock)
     {
@@ -55,10 +54,15 @@ public sealed partial class AlarmNotificationWindow : Window
         // Disable other app windows to simulate system-modal
         DisableOtherWindows(true);
 
-        // The translucent overlay setup and the foreground push must run after Activate() —
-        // doing them in the constructor, before the hosting service calls Activate(), is too
-        // early: the HWND styles get overridden. Re-assert top-most whenever the window loses
-        // focus so it stays visible (mirrors WPF's maintained Topmost).
+        // Configure the overlay while the window is still hidden, so the very first frame
+        // the user sees is already the full-screen translucent overlay — configuring on
+        // first activation shows the bare window being moved/restyled.
+        ConfigureOverlayWindow();
+
+        // The foreground push must run after Activate() — doing it in the constructor,
+        // before the hosting service calls Activate(), is too early and gets overridden.
+        // Re-assert top-most whenever the window loses focus so it stays visible
+        // (mirrors WPF's maintained Topmost).
         Activated += OnActivated;
 
         Closed += (_, _) =>
@@ -72,12 +76,6 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
-        if (!_overlayConfigured)
-        {
-            ConfigureOverlayWindow();
-            _overlayConfigured = true;
-        }
-
         if (args.WindowActivationState == WindowActivationState.Deactivated)
         {
             // Keep the alarm visually above other windows when it loses focus, without
@@ -149,8 +147,10 @@ public sealed partial class AlarmNotificationWindow : Window
             //    GCalAlarmScrim brush on the root Grid, so the card itself stays fully opaque.
             NativeMethods.SetLayeredWindowAttributes(hwnd, 0, 255, NativeMethods.LWA_ALPHA);
 
-            // 5) Keep the overlay top-most at the monitor bounds. SWP_FRAMECHANGED makes
-            //    the style changes from step 2/3 take effect.
+            // 5) Pin the overlay top-most at the monitor bounds. SWP_FRAMECHANGED makes
+            //    the style changes from step 2/3 take effect. The window stays hidden here
+            //    (no SWP_SHOWWINDOW) — the hosting service's Activate() reveals it only
+            //    after it is fully configured, so no window transition is visible.
             NativeMethods.SetWindowPos(
                 hwnd,
                 NativeMethods.HWND_TOPMOST,
@@ -158,7 +158,7 @@ public sealed partial class AlarmNotificationWindow : Window
                 bounds.Y,
                 bounds.Width,
                 bounds.Height,
-                NativeMethods.SWP_SHOWWINDOW | NativeMethods.SWP_FRAMECHANGED);
+                NativeMethods.SWP_NOACTIVATE | NativeMethods.SWP_FRAMECHANGED);
 
             // 6) Drop the opaque WinUI backdrop so the desktop shows through the scrim.
             TryMakeWinUiBackgroundTransparent(hwnd);
@@ -355,6 +355,7 @@ public sealed partial class AlarmNotificationWindow : Window
         public static readonly nint HWND_TOPMOST = -1;
         public const uint SWP_NOMOVE       = 0x0002;
         public const uint SWP_NOSIZE       = 0x0001;
+        public const uint SWP_NOACTIVATE   = 0x0010;
         public const uint SWP_FRAMECHANGED = 0x0020;
         public const uint SWP_SHOWWINDOW   = 0x0040;
         public const int  SW_SHOW         = 5;
