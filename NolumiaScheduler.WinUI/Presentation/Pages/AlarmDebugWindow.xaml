@@ -16,6 +16,7 @@
                 <Button Content="更新" Click="OnRefreshClicked" />
                 <Button Content="テストアラーム表示" Click="OnTestAlarmClicked" />
                 <Button x:Name="CopyButton" Content="クリップボードにコピー" Click="OnCopyClicked" />
+                <Button Content="JSONフォルダを開く" Click="OnOpenJsonFolderClicked" />
             </StackPanel>
 
             <!-- ═══ Section 1: Summary ═══ -->
