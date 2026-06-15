@@ -26,6 +26,30 @@ public class WeekInteractionServicesTests
     }
 
     [TestMethod]
+    public void タップ作成は15分45分を0分30分に丸める()
+    {
+        var sut = new WeekInteractionMapper();
+
+        // 9:10 -> 9:00, 9:20 -> 9:30, 9:40 -> 9:30, 9:50 -> 10:00
+        Assert.AreEqual(9 * 60, sut.MapToHalfHourMinute(9 * 60 + 10));
+        Assert.AreEqual(9 * 60 + 30, sut.MapToHalfHourMinute(9 * 60 + 20));
+        Assert.AreEqual(9 * 60 + 30, sut.MapToHalfHourMinute(9 * 60 + 40));
+        Assert.AreEqual(10 * 60, sut.MapToHalfHourMinute(9 * 60 + 50));
+    }
+
+    [TestMethod]
+    public void タップ作成では15分45分の境界が生成されない()
+    {
+        var sut = new WeekInteractionMapper();
+        for (var minute = 0; minute <= 1439; minute++)
+        {
+            var snapped = sut.MapToHalfHourMinute(minute);
+            Assert.AreNotEqual(15, snapped % 60, $"{minute} 分が 15 分にスナップされました");
+            Assert.AreNotEqual(45, snapped % 60, $"{minute} 分が 45 分にスナップされました");
+        }
+    }
+
+    [TestMethod]
     public void エッジ近傍でオートスクロール量が発生する()
     {
         var sut = new WeekAutoScrollService();

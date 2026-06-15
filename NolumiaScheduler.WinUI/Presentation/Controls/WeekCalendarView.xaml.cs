@@ -622,7 +622,8 @@ public sealed partial class WeekCalendarView : UserControl
         if (DateTime.UtcNow < _suppressTapUntilUtc) return;
         if (sender is not Canvas canvas || canvas.Tag is not WeekDayColumn dayColumn) return;
         var pos = e.GetPosition(canvas);
-        var startMinute = _mapper.MapToMinute(pos.Y);
+        // Tap-to-create reservations land on :00 / :30 only (no :15 / :45).
+        var startMinute = _mapper.MapToHalfHourMinute(pos.Y);
         EmptySlotTapped?.Invoke(this, new WeekEmptySlotTappedEventArgs { Date = dayColumn.Date, StartMinute = startMinute });
     }
 
