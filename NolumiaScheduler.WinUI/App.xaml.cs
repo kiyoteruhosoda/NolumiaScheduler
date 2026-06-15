@@ -150,7 +150,11 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     private void OnTrayExitRequested()
     {
-        _notificationManager?.Unregister();
+        // Do NOT call _notificationManager.Unregister() here: it synchronously tears down the
+        // COM activator + registry registration and can block the UI thread for several
+        // seconds, which is what made app exit feel slow. Registration is meant to persist
+        // across runs (only unregister on uninstall/cleanup), so leave it in place.
+        Services.GetRequiredService<IAlarmService>().Stop();
         _trayIcon?.Dispose();
         _trayIcon = null;
         if (MainWindow is MainWindow mw)

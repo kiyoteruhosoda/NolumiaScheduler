@@ -12,6 +12,10 @@ public sealed class WeekInteractionMapper : IWeekInteractionMapper
 
     public int MapToMinute(double y) => Math.Clamp(SnapToQuarterHour((int)Math.Round(y)), 0, 1439);
 
+    // Tap-to-create snaps to the half hour: reservations are taken on :00 / :30 boundaries
+    // only, so :15 / :45 are intentionally rounded away.
+    public int MapToHalfHourMinute(double y) => Math.Clamp(SnapToHalfHour((int)Math.Round(y)), 0, 1439);
+
     public double MapToY(int minuteOfDay) => Math.Clamp(minuteOfDay, 0, 1439);
 
     public double MapToX(DateTime date, DateTime weekStartDate, double dayColumnWidth)
@@ -21,6 +25,8 @@ public sealed class WeekInteractionMapper : IWeekInteractionMapper
     }
 
     public int SnapToQuarterHour(int minuteOfDay) => (int)(Math.Round(minuteOfDay / 15d) * 15);
+
+    public int SnapToHalfHour(int minuteOfDay) => (int)(Math.Round(minuteOfDay / 30d) * 30);
 
     public DateTime MapToDateTime(Point point, DateTime weekStartDate, double dayColumnWidth)
     {
