@@ -17,6 +17,8 @@ try
     return parsed.Command.ToLowerInvariant() switch
     {
         "info" => Commands.Info(ctx),
+        "config" => Commands.ConfigShow(ctx),
+        "set-backend" => Commands.SetBackend(ctx, parsed.Positional(0)),
         "migrate" => Commands.Migrate(ctx, parsed.Positional(0), parsed.HasFlag("force")),
         "seed" => Commands.Seed(ctx, parsed.Positional(0)),
         "list" => Commands.List(ctx, parsed.Positional(0)),
@@ -46,7 +48,9 @@ static void PrintUsage()
           nolumia <command> [arguments] [--data-dir <dir>]
 
         Commands:
-          info                                 Show data location and per-backend counts
+          info                                 Show data location, active backend and counts
+          config                               Show the active backend and config file path
+          set-backend <backend>               Select the backend the app loads (restart to apply)
           migrate <direction> [--force]        Copy data between backends
                                                direction: json-to-sqlite | sqlite-to-json
                                                (skips when target has data unless --force)

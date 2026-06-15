@@ -10,6 +10,7 @@ internal static class Commands
     public static int Info(StorageContext ctx)
     {
         Console.WriteLine($"Data directory: {ctx.DataDirectory}");
+        Console.WriteLine($"Active backend: {ctx.Config.GetBackend()} (from {ctx.Config.FilePath})");
         Console.WriteLine();
 
         Console.WriteLine("JSON:");
@@ -105,6 +106,22 @@ internal static class Commands
             var (start, end) = ev.GetActiveDateSpan();
             Console.WriteLine($"  {ev.Kind,-9} {ev.Title.Value}  [{start} .. {end}]  ({ev.Id.Value})");
         }
+        return 0;
+    }
+
+    public static int ConfigShow(StorageContext ctx)
+    {
+        Console.WriteLine($"Active backend: {ctx.Config.GetBackend()}");
+        Console.WriteLine($"Config file:    {ctx.Config.FilePath}");
+        return 0;
+    }
+
+    public static int SetBackend(StorageContext ctx, string? backendName)
+    {
+        if (!TryParseBackend(backendName, out var backend)) return 1;
+
+        ctx.Config.SetBackend(backend);
+        Console.WriteLine($"Active backend set to {backend}. Restart the app to apply.");
         return 0;
     }
 

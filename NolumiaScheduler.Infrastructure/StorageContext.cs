@@ -32,6 +32,9 @@ public sealed class StorageContext
     public string BusinessCalendarsDirectory => Path.Combine(DataDirectory, "business-calendars");
     public string SqliteDatabasePath => Path.Combine(DataDirectory, "nolumia.db");
 
+    /// <summary>Bootstrap config that selects the active backend (see <see cref="StorageConfig"/>).</summary>
+    public StorageConfig Config => new(DataDirectory);
+
     /// <summary>
     /// Shared SQLite connection factory, created and schema-migrated on first use so a
     /// single context reuses one migrated database across repositories.

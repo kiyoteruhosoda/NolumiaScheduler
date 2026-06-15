@@ -171,10 +171,11 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
         services.AddSingleton<IEventExpirationService, EventExpirationService>();
 
-        // Repositories. The backend is selected here at the composition root; JSON is the
-        // default and SQLite is opt-in via the NOLUMIA_STORAGE environment variable.
-        // Data migration between backends is handled by the management CLI, not here.
-        RegisterRepositories(services, new StorageContext(StorageContext.DefaultDataDirectory), ResolveStorageBackend());
+        // Repositories. The backend is selected here at the composition root from the
+        // storage.json config (default JSON); switch it with the management CLI's
+        // `set-backend` command. Data migration between backends is also handled by the CLI.
+        var storage = new StorageContext(StorageContext.DefaultDataDirectory);
+        RegisterRepositories(services, storage, storage.Config.GetBackend());
 
         // Application services
         services.AddSingleton<CalendarEventApplicationService>();
@@ -209,18 +210,6 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddTransient<EventEditPage>();
 
         return services.BuildServiceProvider();
-    }
-
-    /// <summary>
-    /// Resolves the persistence backend. Defaults to <see cref="StorageBackend.Json"/>;
-    /// set the <c>NOLUMIA_STORAGE</c> environment variable to <c>Sqlite</c> to switch.
-    /// </summary>
-    private static StorageBackend ResolveStorageBackend()
-    {
-        var raw = Environment.GetEnvironmentVariable("NOLUMIA_STORAGE");
-        return Enum.TryParse<StorageBackend>(raw, ignoreCase: true, out var backend)
-            ? backend
-            : StorageBackend.Json;
     }
 
     private static void RegisterRepositories(ServiceCollection services, StorageContext storage, StorageBackend backend)
