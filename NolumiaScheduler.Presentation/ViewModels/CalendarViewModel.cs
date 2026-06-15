@@ -457,7 +457,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             return cal;
         }
 
-        foreach (var ev in _eventService.FindAll())
+        foreach (var ev in _eventService.FindByPeriod(from, to))
         {
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
@@ -509,12 +509,19 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         foreach (var block in _weekAllDayLayoutStrategy.Layout(allDayInput, _weekStartDate))
             WeekAllDayEventBlocks.Add(block);
 
+        // Collect holiday dates once instead of re-scanning every business calendar per day.
+        var holidayDates = _calendarService.FindAll()
+            .SelectMany(c => c.Holidays)
+            .Select(h => h.Date.ToString())
+            .ToHashSet();
+
         for (var i = 0; i < dayCount; i++)
         {
             var date = _weekStartDate.AddDays(i);
             var header = date.ToString("ddd M/d", AppResources.FormatCulture);
             WeekHeaderDays.Add(header);
-            var isHoliday = _calendarService.FindAll().SelectMany(c => c.Holidays).Any(h => h.Date.Equals(LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date))));
+            var isHoliday = holidayDates.Contains(
+                LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date)).ToString());
 
             var isToday = date.Date == _today;
             var col = new WeekDayColumn(header, date, isHoliday, isToday);
@@ -575,7 +582,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             return cal;
         }
 
-        foreach (var ev in _eventService.FindAll())
+        foreach (var ev in _eventService.FindByPeriod(monthFrom, monthTo))
         {
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);

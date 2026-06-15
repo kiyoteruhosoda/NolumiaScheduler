@@ -1,4 +1,5 @@
 using NolumiaScheduler.Domain.Aggregates;
+using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Infrastructure;
 using NolumiaScheduler.Infrastructure.Json.Repositories;
@@ -62,6 +63,36 @@ public class StorageMigratorTests
         Assert.HasCount(1, sqliteCalendars.FindAll());
         Assert.AreEqual(ThemeMode.Dark, sqliteSettings.GetThemeMode());
         Assert.AreEqual("ja", sqliteSettings.GetLanguage());
+    }
+
+    [TestMethod]
+    public void FindByPeriod_既定実装はJSONでも重なりで絞り込む()
+    {
+        // JSON does not override FindByPeriod, so this exercises the default
+        // interface implementation (FindAll + OverlapsPeriod) via the interface type.
+        ICalendarEventRepository repo = new JsonCalendarEventRepository(Path.Combine(_root, "events"));
+        repo.Save(NewSingleEventOn(new DateOnly(2026, 6, 12)));
+        repo.Save(NewSingleEventOn(new DateOnly(2026, 9, 1)));
+
+        var hits = repo.FindByPeriod(new LocalDateValue(2026, 6, 10), new LocalDateValue(2026, 6, 16));
+
+        Assert.HasCount(1, hits);
+    }
+
+    private static CalendarEvent NewSingleEventOn(DateOnly date)
+    {
+        var start = new DateTimeOffset(date.Year, date.Month, date.Day, 10, 0, 0, TimeSpan.Zero);
+        return CalendarEvent.CreateSingle(
+            new EventId(Guid.NewGuid().ToString()),
+            new EventTitle("Single"),
+            location: null,
+            Visibility.Public,
+            eventType: null,
+            description: null,
+            new TimeZoneId("UTC"),
+            allDay: false,
+            new SingleEventSchedule(start, start.AddHours(1)),
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     }
 
     private static CalendarEvent NewSingleEvent(string title)

@@ -30,6 +30,11 @@ public sealed class SqliteCalendarEventRepository : ICalendarEventRepository, IC
     public IReadOnlyList<CalendarEvent> FindAll()
         => [.. _dao.FindAll().Select(CalendarEventRowMapper.ToDomain)];
 
+    public IReadOnlyList<CalendarEvent> FindByPeriod(LocalDateValue from, LocalDateValue to)
+        => [.. _dao
+            .FindByPeriod(from.ToDateOnly().DayNumber, to.ToDateOnly().DayNumber)
+            .Select(CalendarEventRowMapper.ToDomain)];
+
     public void Save(CalendarEvent calendarEvent)
     {
         _dao.Upsert(CalendarEventRowMapper.FromDomain(calendarEvent));
