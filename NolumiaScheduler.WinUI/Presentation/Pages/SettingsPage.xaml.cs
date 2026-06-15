@@ -44,6 +44,8 @@ public sealed partial class SettingsPage : Page
         ThemeLabelText.Text   = AppResources.ThemeLabel;
         LanguageLabelText.Text = AppResources.LanguageLabel;
         StartupViewLabelText.Text = AppResources.StartupViewLabel;
+        VersionLabelText.Text = AppResources.SettingsVersionLabel;
+        VersionValueText.Text = Helpers.AppVersion.Display;
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -120,6 +122,7 @@ public sealed partial class SettingsPage : Page
         ThemeLabelText.Text    = AppResources.ThemeLabel;
         LanguageLabelText.Text = AppResources.LanguageLabel;
         StartupViewLabelText.Text = AppResources.StartupViewLabel;
+        VersionLabelText.Text  = AppResources.SettingsVersionLabel;
 
         ThemePicker.Items[0] = AppResources.ThemeSystem;
         ThemePicker.Items[1] = AppResources.ThemeLight;
