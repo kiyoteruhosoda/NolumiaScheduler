@@ -135,12 +135,12 @@
   </Target>
 
   <!-- Stamps the assembly with the git revision so every built binary maps back to an
-       exact source state. `git describe` gives a human-readable, tag-aware label
-       (e.g. v1.0.0-3-g1a2b3c4, or the short SHA when untagged) and the `--dirty`
-       suffix flags binaries built from uncommitted changes. The full commit SHA is set
-       as SourceRevisionId, which the SDK appends to AssemblyInformationalVersion
-       (1.0.0+<sha>). All values degrade to "unknown" when git is unavailable so builds
-       outside a working tree (e.g. a source archive) still succeed. -->
+       exact source state. "git describe" gives a human-readable, tag-aware label
+       (e.g. v1.0.0-3-g1a2b3c4, or the short SHA when untagged) and a "dirty" suffix
+       flags binaries built from uncommitted changes. The full commit SHA is set as
+       SourceRevisionId, which the SDK appends to AssemblyInformationalVersion
+       (1.0.0 + commit). All values degrade to "unknown" when git is unavailable so
+       builds outside a working tree (e.g. a source archive) still succeed. -->
   <Target Name="SetGitVersionInfo" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo"
           Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingForLiveUnitTesting)' != 'true'">
     <Exec Command="git describe --tags --always --long --dirty"
