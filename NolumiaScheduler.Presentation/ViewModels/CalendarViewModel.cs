@@ -114,7 +114,13 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private DateTime Now => _timeProvider.GetLocalNow().DateTime;
     private DateTime Today => _timeProvider.GetLocalNow().Date;
 
-    public bool IsCurrentWeek => _weekStartDate.Date <= Today && Today <= _weekStartDate.Date.AddDays(6);
+    public bool IsCurrentWeek => WeekContains(Today);
+
+    // True when the given date falls inside the currently displayed week window. Weeks run
+    // Sun..Sat internally (and the weekdays view's _weekStartDate is the Monday of that same
+    // week), so a seven-day window from _weekStartDate covers both view modes.
+    private bool WeekContains(DateTime date) =>
+        _weekStartDate.Date <= date.Date && date.Date <= _weekStartDate.Date.AddDays(6);
     public double CurrentTimeLineTop => (Now.Hour * 60) + Now.Minute;
 
     public string MonthYearTitle
@@ -240,10 +246,36 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         var today = Today;
         if (_today == today) return;
 
-        // The date changed (e.g. the app stayed open past midnight): rebuild so the "today"
-        // highlight lands on the new day. This keeps the same month/week in view — it only
-        // refreshes which cell/column is marked as today, not where the user navigated to.
+        // The date changed (e.g. the app stayed open past midnight).
+        var previousToday = _today;
         _today = today;
+
+        // In the week / weekdays view, when the display is still following the current week, a
+        // midnight rollover that crosses into a new week should advance the view to the new
+        // week so "today" stays visible. If the user has navigated to some other week we leave
+        // their position alone and only refresh the "today" markers below.
+        if ((IsWeekMode || IsWeekdaysMode) && WeekContains(previousToday))
+        {
+            var newWeekStart = IsWeekdaysMode
+                ? AlignToMonday(today)
+                : today.AddDays(-(int)today.DayOfWeek);
+            if (newWeekStart.Date != _weekStartDate.Date)
+            {
+                ClearSelection();
+                _weekStartDate = newWeekStart;
+                _month = new DateTime(_weekStartDate.Year, _weekStartDate.Month, 1);
+                LoadMonth();
+                LoadWeek();
+                MonthYearTitle = IsWeekdaysMode
+                    ? FormatWeekdaysRangeTitle(_weekStartDate)
+                    : FormatWeekRangeTitle(_weekStartDate);
+                return;
+            }
+        }
+
+        // The date changed but the displayed week did not (or we're in month mode): rebuild so
+        // the "today" highlight lands on the new day. This keeps the current view in place — it
+        // only refreshes which cell/column is marked as today, not where the user navigated to.
         RefreshAfterChange();
     }
 
