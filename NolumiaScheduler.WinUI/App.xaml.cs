@@ -175,7 +175,11 @@ public partial class App : Microsoft.UI.Xaml.Application
         // storage.json config (default JSON); switch it with the management CLI's
         // `set-backend` command. Data migration between backends is also handled by the CLI.
         var storage = new StorageContext(StorageContext.DefaultDataDirectory);
-        RegisterRepositories(services, storage, storage.Config.GetBackend());
+        var backend = storage.Config.GetBackend();
+        // Expose the storage location and the active backend so the UI can show them.
+        services.AddSingleton(storage);
+        services.AddSingleton(backend);
+        RegisterRepositories(services, storage, backend);
 
         // Application services
         services.AddSingleton<CalendarEventApplicationService>();

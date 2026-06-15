@@ -478,4 +478,10 @@
   <data name="SettingsVersionLabel" xml:space="preserve">
     <value>バージョン</value>
   </data>
+  <data name="SettingsStorageLabel" xml:space="preserve">
+    <value>ストレージ</value>
+  </data>
+  <data name="SettingsOpenDataFolderLink" xml:space="preserve">
+    <value>データフォルダを開く</value>
+  </data>
 </root>
