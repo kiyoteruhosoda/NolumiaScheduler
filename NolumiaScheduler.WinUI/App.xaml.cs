@@ -177,6 +177,9 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         // Repositories. The backend is selected here at the composition root; JSON is the
         // default and SQLite is opt-in via the NOLUMIA_STORAGE environment variable.
+        // A one-time data copy can be requested with NOLUMIA_MIGRATE (see docs/storage.md).
+        RunStorageMigrationIfRequested();
+
         if (ResolveStorageBackend() == StorageBackend.Sqlite)
             RegisterSqliteRepositories(services);
         else
@@ -233,11 +236,68 @@ public partial class App : Microsoft.UI.Xaml.Application
         Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
         "NolumiaScheduler");
 
+    private static string EventsDir => Path.Combine(AppDataDir, "events");
+    private static string BusinessCalendarsDir => Path.Combine(AppDataDir, "business-calendars");
+    private static string SqliteDbPath => Path.Combine(AppDataDir, "nolumia.db");
+
+    private readonly record struct RepositorySet(
+        ICalendarEventRepository Events,
+        IBusinessCalendarRepository BusinessCalendars,
+        IAppSettingsRepository Settings);
+
+    private static RepositorySet BuildJsonRepositories() => new(
+        new JsonCalendarEventRepository(EventsDir),
+        new JsonBusinessCalendarRepository(BusinessCalendarsDir),
+        new JsonAppSettingsRepository(AppDataDir));
+
+    private static RepositorySet BuildSqliteRepositories()
+    {
+        var factory = new SqliteConnectionFactory(SqliteDbPath);
+        SqliteMigrationRunner.Run(factory);
+        return new RepositorySet(
+            new SqliteCalendarEventRepository(factory),
+            new SqliteBusinessCalendarRepository(factory),
+            new SqliteAppSettingsRepository(factory));
+    }
+
+    /// <summary>
+    /// One-time data copy between backends, triggered by NOLUMIA_MIGRATE
+    /// (<c>json-to-sqlite</c> or <c>sqlite-to-json</c>). Skips when the target already
+    /// holds data so leaving the variable set cannot clobber newer edits. See
+    /// docs/storage.md.
+    /// </summary>
+    private static void RunStorageMigrationIfRequested()
+    {
+        var direction = Environment.GetEnvironmentVariable("NOLUMIA_MIGRATE");
+        if (string.IsNullOrWhiteSpace(direction)) return;
+
+        var json = BuildJsonRepositories();
+        var sqlite = BuildSqliteRepositories();
+
+        var (source, target) = direction.ToLowerInvariant() switch
+        {
+            "json-to-sqlite" => (json, sqlite),
+            "sqlite-to-json" => (sqlite, json),
+            _ => throw new InvalidOperationException(
+                $"Unknown NOLUMIA_MIGRATE value '{direction}'. Use 'json-to-sqlite' or 'sqlite-to-json'."),
+        };
+
+        if (target.Events.FindAll().Count > 0 || target.BusinessCalendars.FindAll().Count > 0)
+            return; // already migrated; nothing to do
+
+        var report = StorageMigrator.Migrate(
+            source.Events, source.BusinessCalendars, source.Settings,
+            target.Events, target.BusinessCalendars, target.Settings);
+
+        System.Diagnostics.Debug.WriteLine(
+            $"[Storage] Migrated {report.Events} events and {report.BusinessCalendars} business calendars ({direction}).");
+    }
+
     private static void RegisterJsonRepositories(ServiceCollection services)
     {
         services.AddSingleton<JsonCalendarEventRepository>(sp =>
         {
-            var repo = new JsonCalendarEventRepository(Path.Combine(AppDataDir, "events"));
+            var repo = new JsonCalendarEventRepository(EventsDir);
             DefaultEventSeeder.SeedIfEmpty(repo, sp.GetRequiredService<TimeProvider>());
             return repo;
         });
@@ -247,12 +307,12 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IAppSettingsRepository>(_ => new JsonAppSettingsRepository(AppDataDir));
 
         services.AddSingleton<IBusinessCalendarRepository>(_ =>
-            new JsonBusinessCalendarRepository(Path.Combine(AppDataDir, "business-calendars")));
+            new JsonBusinessCalendarRepository(BusinessCalendarsDir));
     }
 
     private static void RegisterSqliteRepositories(ServiceCollection services)
     {
-        var connectionFactory = new SqliteConnectionFactory(Path.Combine(AppDataDir, "nolumia.db"));
+        var connectionFactory = new SqliteConnectionFactory(SqliteDbPath);
         SqliteMigrationRunner.Run(connectionFactory);
         services.AddSingleton(connectionFactory);
 
