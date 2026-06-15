@@ -54,40 +54,59 @@ setx NOLUMIA_STORAGE Sqlite
 移行は `StorageMigrator`（`NolumiaScheduler.Infrastructure`）が、ドメインの
 リポジトリ経由で全件を読み出し、移行先へ `Save`（id でアップサート）します。
 
-手順（PowerShell）:
+移行は **管理 CLI（`NolumiaScheduler.Cli`）** で行います。アプリの起動とは独立した
+操作なので、環境変数を切り替える事故がありません。
 
 ```powershell
-# 1. 念のためバックアップ（フォルダごとコピー）
+# 0. CLI をビルド（または publish した実行ファイルを使用）
+dotnet build NolumiaScheduler.Cli/NolumiaScheduler.Cli.csproj
+
+# 1. 念のためバックアップ
 Copy-Item "$env:LOCALAPPDATA\NolumiaScheduler" "$env:LOCALAPPDATA\NolumiaScheduler.bak" -Recurse
 
-# 2. 移行先を SQLite に設定し、移行方向を指定
-$env:NOLUMIA_STORAGE = "Sqlite"
-$env:NOLUMIA_MIGRATE = "json-to-sqlite"
+# 2. 現状確認
+dotnet run --project NolumiaScheduler.Cli -- info
 
-# 3. アプリを一度起動 → JSON の全予定・営業日カレンダー・設定が nolumia.db にコピーされる
-#    （移行先に既にデータがある場合は安全のためスキップします）
+# 3. JSON → SQLite へコピー（全予定・営業日カレンダー・設定）
+dotnet run --project NolumiaScheduler.Cli -- migrate json-to-sqlite
 
-# 4. 移行フラグを外す。以後は SQLite で通常起動
-Remove-Item Env:\NOLUMIA_MIGRATE
+# 4. アプリを SQLite で起動するよう設定（選択は引き続き環境変数）
+setx NOLUMIA_STORAGE Sqlite
 ```
 
-逆方向（SQLite → JSON）も同様です:
+逆方向（SQLite → JSON）:
 
 ```powershell
-$env:NOLUMIA_STORAGE = "Json"
-$env:NOLUMIA_MIGRATE = "sqlite-to-json"
-# 起動 → フラグを外す
-Remove-Item Env:\NOLUMIA_MIGRATE
+dotnet run --project NolumiaScheduler.Cli -- migrate sqlite-to-json
 ```
 
 ### 移行の安全装置
 
-- **移行先が空のときだけ実行**します（予定・営業日カレンダーが 0 件）。
-  既にデータがあるとスキップするので、`NOLUMIA_MIGRATE` を外し忘れても
-  新しい編集を古いデータで上書きしません。
+- **移行先が空のときだけ実行**します（予定・営業日カレンダーが 0 件）。既にデータが
+  ある場合はスキップし、終了コード 2 で通知します。意図的に上書きする場合のみ
+  `--force` を付けます（id 単位のアップサート）。
 - 元データ（移行元）は変更しません。コピーのみです。
-- 不明な値を指定すると起動時に例外になります（`json-to-sqlite` /
-  `sqlite-to-json` のみ有効）。
+- 不明な方向を指定するとエラー（`json-to-sqlite` / `sqlite-to-json` のみ有効）。
+
+> バックエンドの**選択**（アプリ起動時にどちらを使うか）は引き続き
+> `NOLUMIA_STORAGE`（[2 章](#2-バックエンドの切り替え)）です。**データの移行**だけが
+> CLI に分離されています。
+
+### CLI のその他のコマンド
+
+```text
+nolumia <command> [arguments] [--data-dir <dir>]
+
+  info                            データ場所とバックエンド別の件数を表示
+  migrate <direction> [--force]   バックエンド間でデータをコピー
+  seed <backend>                  空のバックエンドにサンプル予定を投入
+  list <backend>                  予定を活動日スパン付きで一覧
+  db-migrate                      SQLite のスキーマ migration を適用
+  help                            ヘルプ
+
+backend: json | sqlite
+--data-dir <dir>   データフォルダを上書き（既定: ユーザーのアプリデータ）
+```
 
 ---
 
@@ -154,13 +173,15 @@ internal sealed class M0002_AddSomething : ISqliteMigration
   ファイル I/O は減りませんが、その後の発生展開コストは削減されます（JSON は
   「シンプルな既定」という位置づけ）。
 
-このほか、週ビューの祝日判定をループ外で 1 回だけ集計するよう修正済みです
-（以前は日ごとに全営業日カレンダーを再走査していました）。
+このほか:
+
+- **アラーム走査**（`AlarmApplicationService`）も `today..tomorrow` の期間クエリで
+  対象イベントだけを取得するよう変更済みです（展開は従来どおり厳密）。
+- 週ビューの祝日判定をループ外で 1 回だけ集計するよう修正済みです（以前は日ごとに
+  全営業日カレンダーを再走査していました）。
 
 ### まだ残っている改善余地（別タスク向け）
 
-- `AlarmApplicationService` はアラーム走査で全件 `FindAll` を使用（取りこぼし防止を
-  優先し本タスクでは未変更）。将来、近接ウィンドウの期間クエリ化が可能。
 - 読み込み結果のキャッシュ／差分更新による `FindXxx` 呼び出し回数のさらなる削減。
 - 起動の遅さには WinUI / Windows App SDK の初期化コストも含まれるため、体感が
   改善しない場合は起動時間の計測で切り分けるのが確実です。

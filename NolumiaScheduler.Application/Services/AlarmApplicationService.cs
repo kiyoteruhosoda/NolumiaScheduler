@@ -250,7 +250,9 @@ public class AlarmApplicationService
         var today = new LocalDateValue(now.Year, now.Month, now.Day);
         var tomorrow = today.AddDays(1);
 
-        foreach (var ev in _repository.FindAll())
+        // Only events whose active span overlaps today..tomorrow can have a due alarm in
+        // this window; the expander below still filters to exact occurrences.
+        foreach (var ev in _repository.FindByPeriod(today, tomorrow))
         {
             if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
 
