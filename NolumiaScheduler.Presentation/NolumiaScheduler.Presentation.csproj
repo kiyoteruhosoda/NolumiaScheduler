@@ -5,7 +5,7 @@
   </PropertyGroup>
 
   <PropertyGroup>
-    <TargetFramework>net10.0-windows10.0.19041.0</TargetFramework>
+    <TargetFramework>net10.0-windows10.0.22621.0</TargetFramework>
     <TargetPlatformMinVersion>10.0.17763.0</TargetPlatformMinVersion>
     <Platforms>x86;x64;ARM64</Platforms>
     <RuntimeIdentifiers>win-x86;win-x64;win-arm64</RuntimeIdentifiers>
@@ -16,7 +16,6 @@
     <UseWinUI>true</UseWinUI>
     <WinUISDKReferences>false</WinUISDKReferences>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
   </PropertyGroup>
 
   <ItemGroup>

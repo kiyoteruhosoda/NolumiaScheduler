@@ -341,6 +341,67 @@ public class CalendarEvent
     public bool HasOccurrenceCustomization(OccurrenceLocalKey occurrenceKey)
         => HasExceptionFor(occurrenceKey) || HasMoveFor(occurrenceKey);
 
+    /// <summary>
+    /// Extra days added on each side of the active span when testing period overlap.
+    /// A coarse filter must never drop an event that actually has an occurrence in the
+    /// window; business-day adjustments can shift an occurrence a few days past the
+    /// nominal span, so the margin keeps the filter conservative (false positives are
+    /// harmless because the occurrence expander still filters exactly).
+    /// </summary>
+    public const int PeriodOverlapMarginDays = 31;
+
+    /// <summary>
+    /// The inclusive local-date range over which this event can produce occurrences:
+    /// the single schedule's dates, or the recurrence start through its end date,
+    /// widened to cover any relocated (moved) occurrences. This is a coarse bound, not
+    /// an exact occurrence set.
+    /// </summary>
+    public (LocalDateValue Start, LocalDateValue End) GetActiveDateSpan()
+    {
+        if (IsSingle())
+        {
+            var tz = TimeZoneId.ToTimeZoneInfo();
+            var startLocal = TimeZoneInfo.ConvertTime(SingleSchedule!.Start, tz);
+            var endLocal = TimeZoneInfo.ConvertTime(SingleSchedule!.End, tz);
+            var start = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(startLocal.DateTime));
+            var end = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(endLocal.DateTime));
+            return start <= end ? (start, end) : (end, start);
+        }
+
+        var schedule = RecurringSchedule!;
+        var spanStart = schedule.StartDate;
+        var spanEnd = schedule.RecurrenceRule.EndDate;
+        foreach (var move in _moves)
+        {
+            if (move.NewDate < spanStart) spanStart = move.NewDate;
+            if (move.NewDate > spanEnd) spanEnd = move.NewDate;
+        }
+        return (spanStart, spanEnd);
+    }
+
+    /// <summary>
+    /// Day-number bounds (<see cref="DateOnly.DayNumber"/>) of the active span, widened
+    /// by <see cref="PeriodOverlapMarginDays"/>. Suitable for storing in an indexed
+    /// column so a store can pre-filter by period without expanding occurrences.
+    /// </summary>
+    public (int StartDay, int EndDay) GetIndexedDaySpan()
+    {
+        var (start, end) = GetActiveDateSpan();
+        return (start.ToDateOnly().DayNumber - PeriodOverlapMarginDays,
+                end.ToDateOnly().DayNumber + PeriodOverlapMarginDays);
+    }
+
+    /// <summary>
+    /// True when this event's active span (with margin) overlaps the inclusive window
+    /// [<paramref name="from"/>, <paramref name="to"/>]. A coarse pre-filter for callers
+    /// that then expand occurrences exactly.
+    /// </summary>
+    public bool OverlapsPeriod(LocalDateValue from, LocalDateValue to)
+    {
+        var (startDay, endDay) = GetIndexedDaySpan();
+        return startDay <= to.ToDateOnly().DayNumber && endDay >= from.ToDateOnly().DayNumber;
+    }
+
     private void EnsureSingleEvent()
     {
         if (Kind != EventKind.Single)

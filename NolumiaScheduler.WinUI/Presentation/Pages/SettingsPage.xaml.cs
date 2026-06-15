@@ -1,9 +1,12 @@
+using System.Diagnostics;
 using System.Globalization;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Infrastructure;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Presentation.Services;
 
@@ -46,6 +49,11 @@ public sealed partial class SettingsPage : Page
         StartupViewLabelText.Text = AppResources.StartupViewLabel;
         VersionLabelText.Text = AppResources.SettingsVersionLabel;
         VersionValueText.Text = Helpers.AppVersion.Display;
+
+        // Storage backend (which persistence the app is actually running on) + data folder
+        StorageLabelText.Text = AppResources.SettingsStorageLabel;
+        StorageValueText.Text = StorageBackendDisplayName(App.Services.GetRequiredService<ActiveStorageBackend>().Backend);
+        OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -123,6 +131,8 @@ public sealed partial class SettingsPage : Page
         LanguageLabelText.Text = AppResources.LanguageLabel;
         StartupViewLabelText.Text = AppResources.StartupViewLabel;
         VersionLabelText.Text  = AppResources.SettingsVersionLabel;
+        StorageLabelText.Text  = AppResources.SettingsStorageLabel;
+        OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
 
         ThemePicker.Items[0] = AppResources.ThemeSystem;
         ThemePicker.Items[1] = AppResources.ThemeLight;
@@ -132,5 +142,16 @@ public sealed partial class SettingsPage : Page
         StartupViewPicker.Items[1] = AppResources.WeekViewLabel;
         StartupViewPicker.Items[2] = AppResources.WeekdaysViewLabel;
         _suppress = false;
+    }
+
+    private static string StorageBackendDisplayName(StorageBackend backend)
+        => backend == StorageBackend.Sqlite ? "SQLite" : "JSON";
+
+    private void OnOpenDataFolderClick(object sender, RoutedEventArgs e)
+    {
+        var dir = App.Services.GetRequiredService<StorageContext>().DataDirectory;
+        Directory.CreateDirectory(dir);
+        // Unpackaged WinUI app: shell-execute the folder path to open it in Explorer.
+        Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
     }
 }

@@ -13,6 +13,7 @@ public static class SqliteMigrationRunner
     private static readonly ISqliteMigration[] Migrations =
     [
         new M0001_InitialSchema(),
+        new M0002_AddCalendarEventSpan(),
     ];
 
     public static void Run(SqliteConnectionFactory connectionFactory)

@@ -23,6 +23,12 @@ internal static class CalendarEventRowMapper
     {
         var dto = CalendarEventDto.FromDomain(calendarEvent);
         var payload = JsonSerializer.Serialize(dto, AppJsonContext.Default.CalendarEventDto);
-        return new CalendarEventRow(calendarEvent.Id.Value, payload, calendarEvent.UpdatedAt.ToString("O"));
+        var (spanStartDay, spanEndDay) = calendarEvent.GetIndexedDaySpan();
+        return new CalendarEventRow(
+            calendarEvent.Id.Value,
+            payload,
+            calendarEvent.UpdatedAt.ToString("O"),
+            spanStartDay,
+            spanEndDay);
     }
 }

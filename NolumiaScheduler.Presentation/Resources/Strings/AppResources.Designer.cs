@@ -171,6 +171,8 @@ public static class AppResources
     public static string LanguageEnglish => Get(nameof(LanguageEnglish));
     public static string LanguageJapanese => Get(nameof(LanguageJapanese));
     public static string SettingsVersionLabel => Get(nameof(SettingsVersionLabel));
+    public static string SettingsStorageLabel => Get(nameof(SettingsStorageLabel));
+    public static string SettingsOpenDataFolderLink => Get(nameof(SettingsOpenDataFolderLink));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;

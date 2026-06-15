@@ -6,11 +6,7 @@ using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure;
-using NolumiaScheduler.Infrastructure.Json.Repositories;
 using NolumiaScheduler.Infrastructure.Seeding;
-using NolumiaScheduler.Infrastructure.Sqlite.Db;
-using NolumiaScheduler.Infrastructure.Sqlite.Db.Migrations;
-using NolumiaScheduler.Infrastructure.Sqlite.Repositories;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
@@ -179,12 +175,15 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
         services.AddSingleton<IEventExpirationService, EventExpirationService>();
 
-        // Repositories. The backend is selected here at the composition root; JSON is the
-        // default and SQLite is opt-in via the NOLUMIA_STORAGE environment variable.
-        if (ResolveStorageBackend() == StorageBackend.Sqlite)
-            RegisterSqliteRepositories(services);
-        else
-            RegisterJsonRepositories(services);
+        // Repositories. The backend is selected here at the composition root from the
+        // storage.json config (default JSON); switch it with the management CLI's
+        // `set-backend` command. Data migration between backends is also handled by the CLI.
+        var storage = new StorageContext(StorageContext.DefaultDataDirectory);
+        var backend = storage.Config.GetBackend();
+        // Expose the storage location and the active backend so the UI can show them.
+        services.AddSingleton(storage);
+        services.AddSingleton(new ActiveStorageBackend(backend));
+        RegisterRepositories(services, storage, backend);
 
         // Application services
         services.AddSingleton<CalendarEventApplicationService>();
@@ -221,58 +220,16 @@ public partial class App : Microsoft.UI.Xaml.Application
         return services.BuildServiceProvider();
     }
 
-    /// <summary>
-    /// Resolves the persistence backend. Defaults to <see cref="StorageBackend.Json"/>;
-    /// set the <c>NOLUMIA_STORAGE</c> environment variable to <c>Sqlite</c> to switch.
-    /// </summary>
-    private static StorageBackend ResolveStorageBackend()
+    private static void RegisterRepositories(ServiceCollection services, StorageContext storage, StorageBackend backend)
     {
-        var raw = Environment.GetEnvironmentVariable("NOLUMIA_STORAGE");
-        return Enum.TryParse<StorageBackend>(raw, ignoreCase: true, out var backend)
-            ? backend
-            : StorageBackend.Json;
-    }
+        // Build the calendar event repository once and share the single instance for both
+        // its read/write contract and its change-notification contract.
+        var eventRepository = storage.CreateCalendarEventRepository(backend);
+        DefaultEventSeeder.SeedIfEmpty(eventRepository, TimeProvider.System);
 
-    private static string AppDataDir => Path.Combine(
-        Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-        "NolumiaScheduler");
-
-    private static void RegisterJsonRepositories(ServiceCollection services)
-    {
-        services.AddSingleton<JsonCalendarEventRepository>(sp =>
-        {
-            var repo = new JsonCalendarEventRepository(Path.Combine(AppDataDir, "events"));
-            DefaultEventSeeder.SeedIfEmpty(repo, sp.GetRequiredService<TimeProvider>());
-            return repo;
-        });
-        services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
-        services.AddSingleton<ICalendarEventChanges>(sp => sp.GetRequiredService<JsonCalendarEventRepository>());
-
-        services.AddSingleton<IAppSettingsRepository>(_ => new JsonAppSettingsRepository(AppDataDir));
-
-        services.AddSingleton<IBusinessCalendarRepository>(_ =>
-            new JsonBusinessCalendarRepository(Path.Combine(AppDataDir, "business-calendars")));
-    }
-
-    private static void RegisterSqliteRepositories(ServiceCollection services)
-    {
-        var connectionFactory = new SqliteConnectionFactory(Path.Combine(AppDataDir, "nolumia.db"));
-        SqliteMigrationRunner.Run(connectionFactory);
-        services.AddSingleton(connectionFactory);
-
-        services.AddSingleton<SqliteCalendarEventRepository>(sp =>
-        {
-            var repo = new SqliteCalendarEventRepository(sp.GetRequiredService<SqliteConnectionFactory>());
-            DefaultEventSeeder.SeedIfEmpty(repo, sp.GetRequiredService<TimeProvider>());
-            return repo;
-        });
-        services.AddSingleton<ICalendarEventRepository>(sp => sp.GetRequiredService<SqliteCalendarEventRepository>());
-        services.AddSingleton<ICalendarEventChanges>(sp => sp.GetRequiredService<SqliteCalendarEventRepository>());
-
-        services.AddSingleton<IAppSettingsRepository>(sp =>
-            new SqliteAppSettingsRepository(sp.GetRequiredService<SqliteConnectionFactory>()));
-
-        services.AddSingleton<IBusinessCalendarRepository>(sp =>
-            new SqliteBusinessCalendarRepository(sp.GetRequiredService<SqliteConnectionFactory>()));
+        services.AddSingleton(eventRepository);
+        services.AddSingleton((ICalendarEventChanges)eventRepository);
+        services.AddSingleton(storage.CreateBusinessCalendarRepository(backend));
+        services.AddSingleton(storage.CreateAppSettingsRepository(backend));
     }
 }

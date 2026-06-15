@@ -30,6 +30,13 @@ public class CalendarEventApplicationService(
     public IReadOnlyList<CalendarEvent> FindAll() =>
         _repository.FindAll();
 
+    /// <summary>
+    /// Events that may have an occurrence in the inclusive window [from, to]. A coarse
+    /// pre-filter for calendar rendering; callers still expand occurrences exactly.
+    /// </summary>
+    public IReadOnlyList<CalendarEvent> FindByPeriod(LocalDateValue from, LocalDateValue to) =>
+        _repository.FindByPeriod(from, to);
+
     public void CreateSingleEvent(CreateSingleEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());

@@ -47,6 +47,19 @@
                            Style="{StaticResource BodyTextBlockStyle}"/>
             </StackPanel>
 
+            <!-- Storage backend + data folder -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="StorageLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <TextBlock x:Name="StorageValueText"
+                           IsTextSelectionEnabled="True"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <HyperlinkButton x:Name="OpenDataFolderButton"
+                                 MinHeight="48"
+                                 Padding="0"
+                                 Click="OnOpenDataFolderClick"/>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </Page>
