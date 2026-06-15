@@ -25,6 +25,7 @@
   <ItemGroup>
     <ProjectReference Include="..\NolumiaScheduler.Application\NolumiaScheduler.Application.csproj" />
     <ProjectReference Include="..\NolumiaScheduler.Domain\NolumiaScheduler.Domain.csproj" />
+    <ProjectReference Include="..\NolumiaScheduler.Infrastructure\NolumiaScheduler.Infrastructure.csproj" />
   </ItemGroup>
 
   <ItemGroup>

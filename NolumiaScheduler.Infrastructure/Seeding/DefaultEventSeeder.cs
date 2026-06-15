@@ -2,9 +2,14 @@ using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 
-namespace NolumiaScheduler.Infrastructure.Json.Seeder;
+namespace NolumiaScheduler.Infrastructure.Seeding;
 
-public static class JsonEventSeeder
+/// <summary>
+/// Seeds a fresh store with sample events. Works against
+/// <see cref="ICalendarEventRepository"/> so it is independent of the backend
+/// (JSON or SQLite).
+/// </summary>
+public static class DefaultEventSeeder
 {
     public static void SeedIfEmpty(ICalendarEventRepository repo, TimeProvider clock)
     {
