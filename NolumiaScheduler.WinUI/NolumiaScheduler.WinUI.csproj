@@ -40,6 +40,16 @@
     <Version>1.0.0</Version>
   </PropertyGroup>
 
+  <!-- WinUI 3 cannot publish as 'Any CPU'. When a Windows RID is supplied (e.g.
+       `dotnet publish -r win-x64`) but no Platform was passed, derive the matching
+       Platform so the bare command works. Explicit -p:Platform or a VS publish profile
+       already set Platform, so this only fills the gap. -->
+  <PropertyGroup Condition="'$(Platform)' == 'AnyCPU' And '$(RuntimeIdentifier)' != ''">
+    <Platform Condition="'$(RuntimeIdentifier)' == 'win-x64'">x64</Platform>
+    <Platform Condition="'$(RuntimeIdentifier)' == 'win-x86'">x86</Platform>
+    <Platform Condition="'$(RuntimeIdentifier)' == 'win-arm64'">ARM64</Platform>
+  </PropertyGroup>
+
   <ItemGroup>
     <!-- Window/taskbar icon loaded at runtime via AppWindow.SetIcon(Assets\app.ico).
          Without an explicit Content entry it is not copied to the publish output, so
