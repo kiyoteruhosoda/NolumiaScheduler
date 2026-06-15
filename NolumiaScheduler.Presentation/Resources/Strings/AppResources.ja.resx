@@ -475,4 +475,7 @@
   <data name="LanguageJapanese" xml:space="preserve">
     <value>日本語</value>
   </data>
+  <data name="SettingsVersionLabel" xml:space="preserve">
+    <value>バージョン</value>
+  </data>
 </root>

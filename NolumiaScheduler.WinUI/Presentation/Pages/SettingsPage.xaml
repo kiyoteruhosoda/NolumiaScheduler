@@ -38,6 +38,15 @@
                           SelectionChanged="OnStartupViewSelectionChanged"/>
             </StackPanel>
 
+            <!-- Version (git describe + build time, stamped at build) -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="VersionLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <TextBlock x:Name="VersionValueText"
+                           IsTextSelectionEnabled="True"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

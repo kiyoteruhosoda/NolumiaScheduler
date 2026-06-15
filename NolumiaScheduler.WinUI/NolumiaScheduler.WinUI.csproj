@@ -35,6 +35,10 @@
          which requires replacing the XAML-generated entry point. -->
     <DefineConstants>$(DefineConstants);DISABLE_XAML_GENERATED_MAIN</DefineConstants>
 	<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <!-- Human-facing base version. The exact source<->binary link is the git commit
+         appended to AssemblyInformationalVersion at build time (see SetGitVersionInfo).
+         Bump this (or tag the repo) for a new release line. -->
+    <Version>1.0.0</Version>
   </PropertyGroup>
 
   <ItemGroup>
@@ -128,5 +132,39 @@
     <Copy SourceFiles="$(OutDir)resources.pri"
           DestinationFolder="$(PublishDir)"
           SkipUnchangedFiles="true" />
+  </Target>
+
+  <!-- Stamps the assembly with the git revision so every built binary maps back to an
+       exact source state. "git describe" gives a human-readable, tag-aware label
+       (e.g. v1.0.0-3-g1a2b3c4, or the short SHA when untagged) and a "dirty" suffix
+       flags binaries built from uncommitted changes. The full commit SHA is set as
+       SourceRevisionId, which the SDK appends to AssemblyInformationalVersion
+       (1.0.0 + commit). All values degrade to "unknown" when git is unavailable so
+       builds outside a working tree (e.g. a source archive) still succeed. -->
+  <Target Name="SetGitVersionInfo" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo"
+          Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingForLiveUnitTesting)' != 'true'">
+    <Exec Command="git describe --tags --always --long --dirty"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitDescribe" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitDescribeExit" />
+    </Exec>
+    <Exec Command="git rev-parse HEAD"
+          WorkingDirectory="$(MSBuildProjectDirectory)"
+          ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
+      <Output TaskParameter="ConsoleOutput" PropertyName="_GitCommit" />
+      <Output TaskParameter="ExitCode" PropertyName="_GitCommitExit" />
+    </Exec>
+
+    <PropertyGroup>
+      <_GitDescribe Condition="'$(_GitDescribeExit)' != '0' Or '$(_GitDescribe)' == ''">unknown</_GitDescribe>
+      <SourceRevisionId Condition="'$(_GitCommitExit)' == '0' And '$(_GitCommit)' != ''">$(_GitCommit)</SourceRevisionId>
+      <BuildTimestampUtc>$([System.DateTime]::UtcNow.ToString('yyyy-MM-ddTHH:mm:ssZ'))</BuildTimestampUtc>
+    </PropertyGroup>
+
+    <ItemGroup>
+      <AssemblyMetadata Include="GitDescribe" Value="$(_GitDescribe)" />
+      <AssemblyMetadata Include="BuildTimestampUtc" Value="$(BuildTimestampUtc)" />
+    </ItemGroup>
   </Target>
 </Project>

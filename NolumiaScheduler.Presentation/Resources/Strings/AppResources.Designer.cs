@@ -170,6 +170,7 @@ public static class AppResources
     public static string StartupViewLabel => Get(nameof(StartupViewLabel));
     public static string LanguageEnglish => Get(nameof(LanguageEnglish));
     public static string LanguageJapanese => Get(nameof(LanguageJapanese));
+    public static string SettingsVersionLabel => Get(nameof(SettingsVersionLabel));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
