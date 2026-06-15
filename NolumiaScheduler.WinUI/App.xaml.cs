@@ -178,7 +178,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         var backend = storage.Config.GetBackend();
         // Expose the storage location and the active backend so the UI can show them.
         services.AddSingleton(storage);
-        services.AddSingleton(backend);
+        services.AddSingleton(new ActiveStorageBackend(backend));
         RegisterRepositories(services, storage, backend);
 
         // Application services

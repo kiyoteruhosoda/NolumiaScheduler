@@ -7,6 +7,12 @@ using NolumiaScheduler.Infrastructure.Sqlite.Repositories;
 namespace NolumiaScheduler.Infrastructure;
 
 /// <summary>
+/// Reference-type holder for the backend the app actually resolved at startup, so it can
+/// be registered in DI (an enum cannot be) and surfaced in the UI.
+/// </summary>
+public sealed record ActiveStorageBackend(StorageBackend Backend);
+
+/// <summary>
 /// Single source of truth for where data lives and how to build repositories for a
 /// given <see cref="StorageBackend"/>. Used by the app's composition root and by the
 /// management CLI so both agree on file locations and SQLite schema setup.

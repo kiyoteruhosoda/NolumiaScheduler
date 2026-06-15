@@ -52,7 +52,7 @@ public sealed partial class SettingsPage : Page
 
         // Storage backend (which persistence the app is actually running on) + data folder
         StorageLabelText.Text = AppResources.SettingsStorageLabel;
-        StorageValueText.Text = StorageBackendDisplayName(App.Services.GetRequiredService<StorageBackend>());
+        StorageValueText.Text = StorageBackendDisplayName(App.Services.GetRequiredService<ActiveStorageBackend>().Backend);
         OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
 
         // Theme picker
