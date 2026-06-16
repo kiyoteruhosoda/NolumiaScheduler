@@ -273,6 +273,40 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
+    public void 残りアラート判定は将来の未発火通知があるときだけtrue()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms(); // 15分前を消化
+
+        Assert.IsTrue(_service.HasRemainingAlarms("ev"), "5分前/1分前/開始時刻がまだ将来に残る");
+
+        // 全オフセットを消化する
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart);
+        _service.CollectDueAlarms();
+
+        Assert.IsFalse(_service.HasRemainingAlarms("ev"), "全オフセット消化後は残りなし");
+    }
+
+    [TestMethod]
+    public void 未表示の発火中アラート判定は新しいアラートが来たときだけtrue()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms(); // 15分前を表示(発火済み)
+
+        Assert.IsFalse(_service.HasUnshownDueAlarm("ev"), "5分前の時刻前は未表示の発火中アラートなし");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.IsTrue(_service.HasUnshownDueAlarm("ev"), "5分前が発火中かつ未表示");
+        Assert.IsFalse(_service.HasUnshownDueAlarm("other"), "別イベントには反応しない");
+    }
+
+    [TestMethod]
     public void 発火済みキーを退避して復元すると再発火しない()
     {
         SaveEvent("ev");

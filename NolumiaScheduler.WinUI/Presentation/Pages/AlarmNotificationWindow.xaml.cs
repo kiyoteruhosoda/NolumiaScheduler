@@ -30,6 +30,7 @@ public sealed partial class AlarmNotificationWindow : Window
         DateTime? nextAlarmAt,
         bool notify5Min,
         bool notify1Min,
+        bool hasRemainingAlarms,
         TimeProvider clock)
     {
         InitializeComponent();
@@ -45,6 +46,9 @@ public sealed partial class AlarmNotificationWindow : Window
         DismissBtn.Content = AppResources.AlarmDismiss;
         OpenLocationBtn.Content = AppResources.AlarmOpenLocation;
         CancelAllBtn.Content = AppResources.AlarmCancelAll;
+
+        // "Cancel all remaining alarms" only makes sense when something is still scheduled.
+        CancelAllBtn.Visibility = hasRemainingAlarms ? Visibility.Visible : Visibility.Collapsed;
 
         // Pre-event offset toggles reflect the event's current settings.
         OffsetsHeaderLabel.Text = AppResources.AlarmOffsetsHeader;
@@ -118,6 +122,12 @@ public sealed partial class AlarmNotificationWindow : Window
     }
 
     public Task<AlarmNotificationResult> WaitForResultAsync() => _tcs.Task;
+
+    /// <summary>
+    /// Auto-dismisses this window because a newer alarm for the same event has become due. Any
+    /// untouched offset toggles are carried as usual, so nothing the user changed is lost.
+    /// </summary>
+    public void RequestClose() => Complete(AlarmNotificationAction.Dismiss);
 
     private static string FormatNextAlarm(DateTime? nextAlarmAt, DateTime now)
     {

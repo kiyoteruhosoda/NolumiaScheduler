@@ -28,6 +28,8 @@ public class AlarmService(
     private bool _isShowingNotification;
     private DispatcherQueue? _dispatcherQueue;
     private DateOnly _lastPurgeDate;
+    private AlarmNotificationWindow? _currentWindow;
+    private string? _currentDueEventId;
 
     public event Action? ScheduleChanged;
 
@@ -67,13 +69,21 @@ public class AlarmService(
 
     private async Task CheckAlarmsAsync()
     {
-        if (_isShowingNotification) return;
-
         var now = _clock.GetLocalNow().DateTime;
 
         // The app lives in the tray for weeks, so a startup-only purge is not enough.
         if (DateOnly.FromDateTime(now) != _lastPurgeDate)
             PurgeExpiredEvents();
+
+        if (_isShowingNotification)
+        {
+            // A newer alarm for the same event has become due while an old one is still on screen
+            // (e.g. the 15-min alarm left open until the 5-min fires). Close the stale window so the
+            // newer alarm replaces it on the next tick.
+            if (_currentDueEventId != null && _alarms.HasUnshownDueAlarm(_currentDueEventId))
+                _currentWindow?.RequestClose();
+            return;
+        }
 
         foreach (var due in _alarms.CollectDueAlarms())
         {
@@ -132,6 +142,7 @@ public class AlarmService(
     private async Task ShowAlarmAsync(DueAlarm due, string message)
     {
         _isShowingNotification = true;
+        _currentDueEventId = due.EventId;
         try
         {
             var now = _clock.GetLocalNow().DateTime;
@@ -142,6 +153,7 @@ public class AlarmService(
             var ev = _eventService.FindById(due.EventId);
             var alarm = ev?.Alarm ?? EventAlarm.Default;
             var nextAlarmAt = _alarms.GetNextAlarmAfter(now)?.NotifyAt;
+            var hasRemainingAlarms = _alarms.HasRemainingAlarms(due.EventId);
 
             var tcs = new TaskCompletionSource<AlarmNotificationResult>();
 
@@ -152,7 +164,8 @@ public class AlarmService(
                 {
                     var alarmWindow = new AlarmNotificationWindow(
                         due.Title, message, due.Location, due.OccurrenceStart,
-                        nextAlarmAt, alarm.Notify5Min, alarm.Notify1Min, _clock);
+                        nextAlarmAt, alarm.Notify5Min, alarm.Notify1Min, hasRemainingAlarms, _clock);
+                    _currentWindow = alarmWindow;
                     alarmWindow.Activate();
                     // Push to the foreground after Activate(); the window's own Activated handler
                     // also does this, but call it here as a safety net for activation timing.
@@ -199,6 +212,8 @@ public class AlarmService(
         }
         finally
         {
+            _currentWindow = null;
+            _currentDueEventId = null;
             _isShowingNotification = false;
         }
     }

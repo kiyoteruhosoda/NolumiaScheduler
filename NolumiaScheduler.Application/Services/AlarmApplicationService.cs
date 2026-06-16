@@ -164,6 +164,53 @@ public class AlarmApplicationService
     public AlarmScheduleEntry? GetNextAlarmAfter(DateTime after)
         => GetScheduledAlarms().FirstOrDefault(e => !e.AlreadyFired && e.NotifyAt > after);
 
+    /// <summary>
+    /// True when the event still has an alarm scheduled in the future (an unfired offset, or a
+    /// pending snooze/explicit next-alarm). Used to hide "cancel remaining alarms" when there is
+    /// nothing left to cancel.
+    /// </summary>
+    public bool HasRemainingAlarms(string eventId)
+    {
+        var now = LocalNow();
+        lock (_gate)
+        {
+            if (_snoozed.Any(s => s.EventId == eventId && s.NotifyAt > now)) return true;
+
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value == eventId
+                    && !_firedKeys.Contains(planned.Key)
+                    && planned.NotifyAt > now)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// True when another alarm for the event is due <em>now</em> and has not been shown yet (its key
+    /// is not fired, or a snooze for it is due). Because the alarm currently on screen is already
+    /// marked fired, this signals that a newer alarm for the same event is waiting — the host uses it
+    /// to auto-close the stale window.
+    /// </summary>
+    public bool HasUnshownDueAlarm(string eventId)
+    {
+        var now = LocalNow();
+        lock (_gate)
+        {
+            if (_snoozed.Any(s => s.EventId == eventId && s.NotifyAt <= now)) return true;
+
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value == eventId
+                    && !_firedKeys.Contains(planned.Key)
+                    && AlarmScheduleCalculator.IsDue(now, planned.NotifyAt))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>Marks every remaining notification of the event as fired and drops its snoozes.</summary>
     public void CancelRemainingAlarms(string eventId)
     {
