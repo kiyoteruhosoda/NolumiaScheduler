@@ -87,7 +87,8 @@
                                VerticalAlignment="Center"
                                Minimum="1" Maximum="1440" Value="5"
                                SmallChange="1" LargeChange="5"
-                               SpinButtonPlacementMode="Inline"/>
+                               SpinButtonPlacementMode="Inline"
+                               KeyDown="OnFromNowKeyDown"/>
                     <Button x:Name="FromNowSetBtn" Grid.Column="2" FontSize="13"
                             Height="48" MinWidth="72" CornerRadius="24"
                             VerticalAlignment="Center"
@@ -104,7 +105,8 @@
                                VerticalAlignment="Center"
                                Minimum="1" Maximum="1440" Value="5"
                                SmallChange="1" LargeChange="5"
-                               SpinButtonPlacementMode="Inline"/>
+                               SpinButtonPlacementMode="Inline"
+                               KeyDown="OnBeforeStartKeyDown"/>
                     <Button x:Name="BeforeStartSetBtn" Grid.Column="2" FontSize="13"
                             Height="48" MinWidth="72" CornerRadius="24"
                             VerticalAlignment="Center"

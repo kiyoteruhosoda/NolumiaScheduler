@@ -1,11 +1,14 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Presentation.Services;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Windows.Graphics;
+using Windows.System;
 using WinRT;
 using WinRT.Interop;
 
@@ -350,11 +353,38 @@ public sealed partial class AlarmNotificationWindow : Window
     private void OnSetFromNowClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmFromNow, ReadMinutes(FromNowInput));
     private void OnSetBeforeStartClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmBeforeStart, ReadMinutes(BeforeStartInput));
 
+    // Pressing Enter in a minute box sets that alarm instead of merely committing the number.
+    private void OnFromNowKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+        e.Handled = true;
+        Complete(AlarmNotificationAction.SetNextAlarmFromNow, ReadMinutes(FromNowInput));
+    }
+
+    private void OnBeforeStartKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+        e.Handled = true;
+        Complete(AlarmNotificationAction.SetNextAlarmBeforeStart, ReadMinutes(BeforeStartInput));
+    }
+
     private static int ReadMinutes(NumberBox box)
     {
-        var value = box.Value;
-        if (double.IsNaN(value)) return 1;
-        return Math.Clamp((int)Math.Round(value), 1, 1440);
+        // Bounds default to a sane 1..1440 (24h) when the box leaves them unset.
+        var min = double.IsNaN(box.Minimum) || box.Minimum < 1 ? 1 : box.Minimum;
+        var max = double.IsNaN(box.Maximum) ? 1440 : box.Maximum;
+
+        // Prefer the raw text so a value typed but not yet committed (the user clicked "Set"
+        // without pressing Enter or tabbing out) is honoured; fall back to the committed Value.
+        double raw;
+        if (double.TryParse(box.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var typed))
+            raw = typed;
+        else if (!double.IsNaN(box.Value))
+            raw = box.Value;
+        else
+            raw = min;
+
+        return (int)Math.Clamp(Math.Round(raw), min, max);
     }
 
     private void OnOpenLocationClicked(object sender, RoutedEventArgs e)
