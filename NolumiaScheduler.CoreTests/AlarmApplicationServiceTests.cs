@@ -194,24 +194,49 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 次のアラート設定_予定前の指定で全オフセットを抑止し開始前に一度だけ再通知する()
+    public void 次のアラート設定_指定時刻より前のオフセットだけ抑止し後のオフセットは残る()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         var due = _service.CollectDueAlarms().Single();
 
-        // 再通知時刻 = EventStart - 3
+        // 次のアラート = 開始3分前。これより前の5分前は抑止、後の1分前・開始時刻は残る。
         _service.SetNextAlarmBeforeStart(due, TimeSpan.FromMinutes(3));
 
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "5分前オフセットは抑止される");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "指定時刻より前の5分前は抑止される");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-3));
-        var reminder = _service.CollectDueAlarms();
-        Assert.IsTrue(reminder.Any(a => a.IsSnoozeReminder && a.EventId == "ev"));
+        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "開始3分前に明示アラートが鳴る");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "指定時刻より後の1分前は残る");
 
         _clock.SetUtcNow(EventStart);
-        Assert.HasCount(0, _service.CollectDueAlarms(), "開始時刻・1分前オフセットは抑止される");
+        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "開始時刻も残る");
+    }
+
+    [TestMethod]
+    public void スヌーズが残りオフセットより前なら5分前1分前開始時刻は発火し続ける()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms().Single(); // 15分前アラート
+
+        // 今から5分後 = 開始10分前。残りの5分前/1分前/開始時刻はすべて後なので発火済みにしない。
+        _service.SetNextAlarmFromNow(due, TimeSpan.FromMinutes(5));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-10));
+        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "5分後のスヌーズが鳴る");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.AreEqual(5, _service.CollectDueAlarms().Single().OffsetMinutes, "5分前は発火する");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "1分前は発火する");
+
+        _clock.SetUtcNow(EventStart);
+        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "開始時刻は発火する");
     }
 
     [TestMethod]

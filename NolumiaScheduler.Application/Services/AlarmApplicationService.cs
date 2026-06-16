@@ -119,26 +119,45 @@ public class AlarmApplicationService
     }
 
     /// <summary>
-    /// Replaces the event's remaining alarms with a single explicit reminder <paramref name="delay"/>
-    /// from now. The explicit next-alarm time wins: every offset alarm (15/5/1/0) of the event is
-    /// suppressed, so even with those offsets enabled they are all skipped in favour of this time.
+    /// Sets an explicit "next alarm" <paramref name="delay"/> from now. Only the offset alarms that
+    /// would otherwise fire <em>before</em> it are skipped — see <see cref="SetNextAlarmAt"/>.
     /// </summary>
     public void SetNextAlarmFromNow(DueAlarm alarm, TimeSpan delay)
-    {
-        CancelRemainingAlarms(alarm.EventId);
-        SnoozeFor(alarm, delay);
-    }
+        => SetNextAlarmAt(alarm, LocalNow().Add(delay));
 
     /// <summary>
-    /// Replaces the event's remaining alarms with a single explicit reminder <paramref name="lead"/>
-    /// before the occurrence start. Like <see cref="SetNextAlarmFromNow"/>, this suppresses every
-    /// offset alarm of the event. No-op when the alarm has no occurrence start time.
+    /// Sets an explicit "next alarm" <paramref name="lead"/> before the occurrence start. Only the
+    /// offset alarms that would otherwise fire <em>before</em> it are skipped (see
+    /// <see cref="SetNextAlarmAt"/>). No-op when the alarm has no occurrence start time.
     /// </summary>
     public void SetNextAlarmBeforeStart(DueAlarm alarm, TimeSpan lead)
     {
         if (alarm.OccurrenceStart == null) return;
-        CancelRemainingAlarms(alarm.EventId);
-        SnoozeUntilBeforeStart(alarm, lead);
+        SetNextAlarmAt(alarm, alarm.OccurrenceStart.Value - lead);
+    }
+
+    /// <summary>
+    /// Makes <paramref name="notifyAt"/> the event's next alarm: it replaces any earlier explicit
+    /// next-alarm and skips only the offset alarms that fall before it, so the explicit time is the
+    /// next thing to fire while later offsets still ring. A short snooze that lands before the
+    /// remaining offsets therefore keeps them; an explicit time past the event start skips them all.
+    /// </summary>
+    public void SetNextAlarmAt(DueAlarm alarm, DateTime notifyAt)
+    {
+        var now = LocalNow();
+        lock (_gate)
+        {
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value == alarm.EventId && planned.NotifyAt < notifyAt)
+                    _firedKeys.Add(planned.Key);
+            }
+
+            // The explicit next-alarm is single per event, so drop any earlier one before adding.
+            _snoozed.RemoveAll(s => s.EventId == alarm.EventId);
+            _snoozed.Add(new SnoozeEntry(
+                alarm.EventId, alarm.Title, notifyAt, alarm.Location, alarm.OccurrenceStart));
+        }
     }
 
     /// <summary>The soonest not-yet-fired alarm strictly after <paramref name="after"/>, or null.</summary>
