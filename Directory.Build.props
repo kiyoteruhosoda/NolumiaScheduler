@@ -1,0 +1,29 @@
+<Project>
+
+  <!--
+    Central version management for every project in the repo. Bump the .NET base TFM or the
+    Windows SDK projection here once and all projects follow, so a Windows-target project can
+    never drift out of sync with the WinUI projects it references (which previously caused the
+    "cannot be referenced by a project that targets ..." build error).
+
+    Projects opt in by referencing these properties in their own <TargetFramework>:
+      non-Windows  : <TargetFramework>$(DotNetTfm)</TargetFramework>
+      Windows/WinUI: <TargetFramework>$(WindowsTargetFramework)</TargetFramework>
+                     <TargetPlatformMinVersion>$(WindowsSdkMinVersion)</TargetPlatformMinVersion>
+  -->
+  <PropertyGroup>
+    <!-- Base .NET target framework moniker shared by all projects. -->
+    <DotNetTfm>net10.0</DotNetTfm>
+
+    <!-- Windows SDK projection used by the WinUI / Windows-only projects. 22621 is required for
+         Windows.UI.Composition.ICompositionSupportsSystemBackdrop (alarm overlay transparency). -->
+    <WindowsSdkTargetVersion>10.0.22621.0</WindowsSdkTargetVersion>
+
+    <!-- Minimum Windows version the app still runs on (call sites degrade gracefully below 22621). -->
+    <WindowsSdkMinVersion>10.0.17763.0</WindowsSdkMinVersion>
+
+    <!-- Convenience composite TFM for Windows projects. -->
+    <WindowsTargetFramework>$(DotNetTfm)-windows$(WindowsSdkTargetVersion)</WindowsTargetFramework>
+  </PropertyGroup>
+
+</Project>
