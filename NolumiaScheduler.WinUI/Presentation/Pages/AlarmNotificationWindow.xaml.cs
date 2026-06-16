@@ -52,6 +52,15 @@ public sealed partial class AlarmNotificationWindow : Window
         Toggle5Switch.IsOn = notify5Min;
         Toggle1Switch.IsOn = notify1Min;
 
+        // A pre-event offset only matters while its notify time (start − offset) is still ahead.
+        // Once it has passed it cannot fire for this occurrence, so hide it instead of showing a
+        // meaningless toggle (e.g. "5 minutes before" while the 1-minute alarm is already ringing).
+        var show5 = eventStartTime.HasValue && eventStartTime.Value.AddMinutes(-5) > now;
+        var show1 = eventStartTime.HasValue && eventStartTime.Value.AddMinutes(-1) > now;
+        Toggle5Row.Visibility = show5 ? Visibility.Visible : Visibility.Collapsed;
+        Toggle1Row.Visibility = show1 ? Visibility.Visible : Visibility.Collapsed;
+        OffsetsHeaderLabel.Visibility = show5 || show1 ? Visibility.Visible : Visibility.Collapsed;
+
         // Free numeric input to set the next alarm time.
         SetNextHeaderLabel.Text = AppResources.AlarmSetNextHeader;
         FromNowLabel.Text = AppResources.AlarmSetFromNowLabel;
@@ -67,9 +76,17 @@ public sealed partial class AlarmNotificationWindow : Window
             OpenLocationBtn.Visibility = Visibility.Visible;
         }
 
-        // "Minutes before event" only makes sense while the event start is still in the future.
-        if (eventStartTime.HasValue && eventStartTime.Value > now)
+        // "Minutes before event" is only meaningful when the start is far enough ahead that at
+        // least a 1-minute-before reminder still lands in the future. Cap the input so the chosen
+        // time can never be in the past; hide the whole row when nothing valid can be entered.
+        var maxBefore = eventStartTime.HasValue
+            ? (int)Math.Ceiling((eventStartTime.Value - now).TotalMinutes) - 1
+            : 0;
+        if (maxBefore >= 1)
         {
+            BeforeStartInput.Maximum = Math.Min(1440, maxBefore);
+            if (BeforeStartInput.Value > BeforeStartInput.Maximum)
+                BeforeStartInput.Value = BeforeStartInput.Maximum;
             BeforeStartGrid.Visibility = Visibility.Visible;
         }
 
