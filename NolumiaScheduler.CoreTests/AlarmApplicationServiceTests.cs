@@ -168,6 +168,99 @@ public class AlarmApplicationServiceTests
         Assert.HasCount(0, _service.GetScheduledAlarms().Where(e => e.IsSnoozed).ToList());
     }
 
+    // ── next-alarm override (explicit time wins over offsets) ───────────────
+
+    [TestMethod]
+    public void 次のアラート設定_今からの指定で全オフセットを抑止し指定時刻に一度だけ再通知する()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms().Single();
+
+        // 再通知時刻 = (EventStart-15) + 20 = EventStart+5
+        _service.SetNextAlarmFromNow(due, TimeSpan.FromMinutes(20));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "5分前オフセットは抑止される");
+
+        _clock.SetUtcNow(EventStart);
+        Assert.HasCount(0, _service.CollectDueAlarms(), "開始時刻オフセットも抑止される");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(5));
+        var reminder = _service.CollectDueAlarms();
+        Assert.HasCount(1, reminder);
+        Assert.IsTrue(reminder[0].IsSnoozeReminder);
+        Assert.AreEqual("ev", reminder[0].EventId);
+    }
+
+    [TestMethod]
+    public void 次のアラート設定_予定前の指定で全オフセットを抑止し開始前に一度だけ再通知する()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms().Single();
+
+        // 再通知時刻 = EventStart - 3
+        _service.SetNextAlarmBeforeStart(due, TimeSpan.FromMinutes(3));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "5分前オフセットは抑止される");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-3));
+        var reminder = _service.CollectDueAlarms();
+        Assert.IsTrue(reminder.Any(a => a.IsSnoozeReminder && a.EventId == "ev"));
+
+        _clock.SetUtcNow(EventStart);
+        Assert.HasCount(0, _service.CollectDueAlarms(), "開始時刻・1分前オフセットは抑止される");
+    }
+
+    [TestMethod]
+    public void 次のアラート設定は他のイベントへ影響しない()
+    {
+        SaveEvent("ev1");
+        SaveEvent("ev2");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due1 = _service.CollectDueAlarms().Single(a => a.EventId == "ev1");
+
+        _service.SetNextAlarmFromNow(due1, TimeSpan.FromMinutes(20));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        var due = _service.CollectDueAlarms();
+        Assert.HasCount(1, due, "ev2 の5分前は通常どおり発火する");
+        Assert.AreEqual("ev2", due[0].EventId);
+    }
+
+    [TestMethod]
+    public void 次のアラート取得は未発火の最も近い通知を返す()
+    {
+        SaveEvent("ev");
+
+        var next = _service.GetNextAlarmAfter(_clock.GetLocalNow().DateTime);
+        Assert.IsNotNull(next);
+        Assert.AreEqual(15, next!.MinutesBefore, "最も近い未来の通知は15分前");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms();
+
+        var next2 = _service.GetNextAlarmAfter(_clock.GetLocalNow().DateTime);
+        Assert.IsNotNull(next2);
+        Assert.AreEqual(5, next2!.MinutesBefore, "15分前を消化したら次は5分前");
+    }
+
+    [TestMethod]
+    public void 発火済みキーを退避して復元すると再発火しない()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        Assert.HasCount(1, _service.CollectDueAlarms());
+
+        var snapshot = _service.GetFiredKeys();
+        _service.ResetAllFiredKeys();
+        _service.RestoreFiredKeys(snapshot);
+
+        Assert.HasCount(0, _service.CollectDueAlarms(), "復元後は同じアラームが再発火しない");
+    }
+
     // ── cancelled ──────────────────────────────────────────────────────────
 
     [TestMethod]

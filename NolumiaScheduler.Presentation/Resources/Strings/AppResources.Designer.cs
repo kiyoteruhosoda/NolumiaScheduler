@@ -159,6 +159,13 @@ public static class AppResources
     public static string AlarmCancelAll       => Get(nameof(AlarmCancelAll));
     public static string AlarmSnooze5MinBtn   => Get(nameof(AlarmSnooze5MinBtn));
     public static string AlarmSnooze1MinBtn   => Get(nameof(AlarmSnooze1MinBtn));
+    public static string AlarmNextAlarmFormat => Get(nameof(AlarmNextAlarmFormat));
+    public static string AlarmNextAlarmNone   => Get(nameof(AlarmNextAlarmNone));
+    public static string AlarmOffsetsHeader   => Get(nameof(AlarmOffsetsHeader));
+    public static string AlarmSetNextHeader   => Get(nameof(AlarmSetNextHeader));
+    public static string AlarmSetFromNowLabel => Get(nameof(AlarmSetFromNowLabel));
+    public static string AlarmSetBeforeStartLabel => Get(nameof(AlarmSetBeforeStartLabel));
+    public static string AlarmSetButton       => Get(nameof(AlarmSetButton));
 
     // Settings
     public static string SettingsTitle   => Get(nameof(SettingsTitle));

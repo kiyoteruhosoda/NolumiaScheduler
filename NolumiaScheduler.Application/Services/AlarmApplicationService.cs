@@ -118,6 +118,33 @@ public class AlarmApplicationService
             _snoozed.Add(new SnoozeEntry(alarm.EventId, alarm.Title, notifyAt, alarm.Location, alarm.OccurrenceStart));
     }
 
+    /// <summary>
+    /// Replaces the event's remaining alarms with a single explicit reminder <paramref name="delay"/>
+    /// from now. The explicit next-alarm time wins: every offset alarm (15/5/1/0) of the event is
+    /// suppressed, so even with those offsets enabled they are all skipped in favour of this time.
+    /// </summary>
+    public void SetNextAlarmFromNow(DueAlarm alarm, TimeSpan delay)
+    {
+        CancelRemainingAlarms(alarm.EventId);
+        SnoozeFor(alarm, delay);
+    }
+
+    /// <summary>
+    /// Replaces the event's remaining alarms with a single explicit reminder <paramref name="lead"/>
+    /// before the occurrence start. Like <see cref="SetNextAlarmFromNow"/>, this suppresses every
+    /// offset alarm of the event. No-op when the alarm has no occurrence start time.
+    /// </summary>
+    public void SetNextAlarmBeforeStart(DueAlarm alarm, TimeSpan lead)
+    {
+        if (alarm.OccurrenceStart == null) return;
+        CancelRemainingAlarms(alarm.EventId);
+        SnoozeUntilBeforeStart(alarm, lead);
+    }
+
+    /// <summary>The soonest not-yet-fired alarm strictly after <paramref name="after"/>, or null.</summary>
+    public AlarmScheduleEntry? GetNextAlarmAfter(DateTime after)
+        => GetScheduledAlarms().FirstOrDefault(e => !e.AlreadyFired && e.NotifyAt > after);
+
     /// <summary>Marks every remaining notification of the event as fired and drops its snoozes.</summary>
     public void CancelRemainingAlarms(string eventId)
     {
@@ -144,6 +171,18 @@ public class AlarmApplicationService
     {
         lock (_gate)
             _firedKeys.Clear();
+    }
+
+    /// <summary>
+    /// Re-adds previously fired keys. Used to take a snapshot, persist an unrelated change that
+    /// resets all fired state (any repository write clears it), then restore so an alarm shown a
+    /// moment ago does not immediately re-fire within the catch-up grace.
+    /// </summary>
+    public void RestoreFiredKeys(IEnumerable<string> keys)
+    {
+        lock (_gate)
+            foreach (var key in keys)
+                _firedKeys.Add(key);
     }
 
     public IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms()
