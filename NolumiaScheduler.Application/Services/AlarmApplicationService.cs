@@ -161,13 +161,40 @@ public class AlarmApplicationService
     }
 
     /// <summary>
-    /// The soonest not-yet-fired alarm of the given event strictly after <paramref name="after"/>,
-    /// or null. Scoped to a single event so the notification can show "the next alarm for this
-    /// reservation" (a remaining offset or a pending snooze) rather than an unrelated event's alarm.
+    /// The soonest not-yet-fired alarm time of the same event <em>and the same occurrence</em>
+    /// strictly after <paramref name="after"/>, or null. Scoping to the occurrence keeps a recurring
+    /// reservation's "next alarm" within the current day — it never rolls over to the next
+    /// occurrence. A pending snooze/explicit next-alarm for that occurrence counts too. When
+    /// <paramref name="occurrenceStart"/> is null (an occurrence-less reminder) only the event is
+    /// matched.
     /// </summary>
-    public AlarmScheduleEntry? GetNextAlarmAfter(string eventId, DateTime after)
-        => GetScheduledAlarms().FirstOrDefault(
-            e => e.EventId == eventId && !e.AlreadyFired && e.NotifyAt > after);
+    public DateTime? GetNextAlarmTimeForOccurrence(string eventId, DateTime? occurrenceStart, DateTime after)
+    {
+        var now = LocalNow();
+        DateTime? best = null;
+
+        lock (_gate)
+        {
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value != eventId) continue;
+                if (occurrenceStart != null && planned.OccurrenceStart != occurrenceStart.Value) continue;
+                if (_firedKeys.Contains(planned.Key)) continue;
+                if (planned.NotifyAt <= after) continue;
+                if (best == null || planned.NotifyAt < best) best = planned.NotifyAt;
+            }
+
+            foreach (var snooze in _snoozed)
+            {
+                if (snooze.EventId != eventId) continue;
+                if (occurrenceStart != null && snooze.OccurrenceStart != occurrenceStart) continue;
+                if (snooze.NotifyAt <= after) continue;
+                if (best == null || snooze.NotifyAt < best) best = snooze.NotifyAt;
+            }
+        }
+
+        return best;
+    }
 
     /// <summary>
     /// True when the event still has an alarm scheduled in the future (an unfired offset, or a

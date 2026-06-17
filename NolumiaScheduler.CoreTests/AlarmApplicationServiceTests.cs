@@ -256,44 +256,65 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 次のアラート取得は未発火の最も近い通知を返す()
+    public void 次のアラート取得は同じ回の未消化通知時刻を返す()
     {
         SaveEvent("ev");
+        var occStart = EventStart.DateTime;
 
-        var next = _service.GetNextAlarmAfter("ev", _clock.GetLocalNow().DateTime);
-        Assert.IsNotNull(next);
-        Assert.AreEqual(15, next!.MinutesBefore, "最も近い未来の通知は15分前");
+        Assert.AreEqual(
+            occStart.AddMinutes(-15),
+            _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
+            "最も近い未消化は15分前");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         _service.CollectDueAlarms();
 
-        var next2 = _service.GetNextAlarmAfter("ev", _clock.GetLocalNow().DateTime);
-        Assert.IsNotNull(next2);
-        Assert.AreEqual(5, next2!.MinutesBefore, "15分前を消化したら次は5分前");
+        Assert.AreEqual(
+            occStart.AddMinutes(-5),
+            _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
+            "15分前を消化したら次は5分前");
     }
 
     [TestMethod]
-    public void 次のアラート取得は指定イベントだけを対象にし残りがなければnull()
+    public void 次のアラート取得は残りがなければnull()
     {
-        SaveEvent("ev1");
-        SaveEvent("ev2");
+        SaveEvent("ev");
+        var occStart = EventStart.DateTime;
 
-        var next = _service.GetNextAlarmAfter("ev1", _clock.GetLocalNow().DateTime);
-        Assert.IsNotNull(next);
-        Assert.AreEqual("ev1", next!.EventId, "別イベント(ev2)は対象にしない");
+        foreach (var minutes in new[] { -15, -5, -1, 0 })
+        {
+            _clock.SetUtcNow(EventStart.AddMinutes(minutes));
+            _service.CollectDueAlarms();
+        }
 
-        // ev1 の全オフセットを消化する
-        _clock.SetUtcNow(EventStart.AddMinutes(-15));
-        _service.CollectDueAlarms();
-        _clock.SetUtcNow(EventStart.AddMinutes(-5));
-        _service.CollectDueAlarms();
-        _clock.SetUtcNow(EventStart.AddMinutes(-1));
-        _service.CollectDueAlarms();
-        _clock.SetUtcNow(EventStart);
-        _service.CollectDueAlarms();
+        Assert.IsNull(
+            _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
+            "全オフセット消化後は null");
+    }
 
-        Assert.IsNull(_service.GetNextAlarmAfter("ev1", _clock.GetLocalNow().DateTime),
-            "ev1 に残りがなければ null");
+    [TestMethod]
+    public void 次のアラート取得は繰り返し予定でも当日の回だけを対象にする()
+    {
+        // 毎日(全曜日)繰り返しなので、今日(6/10)と明日(6/11)の両方に10:00の回がある。
+        SaveDailyRecurringEvent("daily");
+        var todayOccStart = EventStart.DateTime;
+
+        // 今日の全オフセットを消化する
+        foreach (var minutes in new[] { -15, -5, -1, 0 })
+        {
+            _clock.SetUtcNow(EventStart.AddMinutes(minutes));
+            _service.CollectDueAlarms();
+        }
+
+        // 翌日の回(6/11 10:00)の15分前が予定一覧には存在する
+        Assert.IsTrue(
+            _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddDays(1).AddMinutes(-15).DateTime),
+            "翌日の回は予定一覧には含まれる");
+
+        // しかし当日の回に絞った「次のアラート」は翌日へロールオーバーしない
+        Assert.IsNull(
+            _service.GetNextAlarmTimeForOccurrence("daily", todayOccStart, _clock.GetLocalNow().DateTime),
+            "当日の回を消化したら翌日の回は次のアラートにしない");
     }
 
     [TestMethod]
@@ -452,6 +473,32 @@ public class AlarmApplicationServiceTests
             new SingleEventSchedule(EventStart, EventStart.AddHours(1)),
             EventStart.AddDays(-1),
             alarm: alarm ?? EventAlarm.Default);
+        _repo.Save(ev);
+    }
+
+    /// <summary>A daily (every weekday) recurring event at the same time-of-day as <see cref="EventStart"/>.</summary>
+    private void SaveDailyRecurringEvent(string id)
+    {
+        var startDate = new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1, startDate.AddDays(30),
+            // Monday-first: GenerateWeekly walks weekdays in week order and stops at the first one
+            // past the range, so the list must be chronological within the (Monday-aligned) week.
+            weekly: new WeeklyRule(
+            [
+                Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday,
+                Weekday.Friday, Weekday.Saturday, Weekday.Sunday
+            ]));
+        var schedule = new RecurringEventSchedule(
+            startDate,
+            new LocalTimeValue(EventStart.Hour, EventStart.Minute, 0),
+            new LocalTimeValue(EventStart.Hour + 1, EventStart.Minute, 0),
+            rule, allDay: false);
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle($"Event {id}"), null,
+            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
+            schedule, EventStart.AddDays(-1),
+            alarm: EventAlarm.Default);
         _repo.Save(ev);
     }
 }

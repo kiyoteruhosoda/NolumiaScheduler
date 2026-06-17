@@ -152,7 +152,7 @@ public class AlarmService(
             // no backing event, so fall back to the defaults).
             var ev = _eventService.FindById(due.EventId);
             var alarm = ev?.Alarm ?? EventAlarm.Default;
-            var nextAlarmAt = _alarms.GetNextAlarmAfter(due.EventId, now)?.NotifyAt;
+            var nextAlarmAt = _alarms.GetNextAlarmTimeForOccurrence(due.EventId, due.OccurrenceStart, now);
             var hasRemainingAlarms = _alarms.HasRemainingAlarms(due.EventId);
 
             var tcs = new TaskCompletionSource<AlarmNotificationResult>();
