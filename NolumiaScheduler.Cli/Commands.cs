@@ -1,5 +1,6 @@
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Infrastructure;
+using NolumiaScheduler.Infrastructure.Migration;
 using NolumiaScheduler.Infrastructure.Seeding;
 
 namespace NolumiaScheduler.Cli;
@@ -78,6 +79,48 @@ internal static class Commands
             $"Migrated {report.Events} events and {report.BusinessCalendars} business calendars " +
             $"({sourceBackend} -> {targetBackend}).");
         return 0;
+    }
+
+    /// <summary>
+    /// Converts events from the legacy start/end + all-day schema to the current
+    /// DTSTART+TZID+duration model, in place. Business calendars and settings are unaffected.
+    /// </summary>
+    public static int MigrateSchema(StorageContext ctx, string? backendName, bool dryRun)
+    {
+        var backends = backendName?.ToLowerInvariant() switch
+        {
+            null or "all" => new[] { StorageBackend.Json, StorageBackend.Sqlite },
+            "json" => [StorageBackend.Json],
+            "sqlite" => [StorageBackend.Sqlite],
+            _ => Array.Empty<StorageBackend>(),
+        };
+
+        if (backends.Length == 0)
+        {
+            Console.Error.WriteLine("Usage: nolumia migrate-schema [json|sqlite|all] [--dry-run]");
+            return 1;
+        }
+
+        if (dryRun) Console.WriteLine("Dry run: no changes will be written.");
+        var failures = 0;
+
+        foreach (var backend in backends)
+        {
+            if (backend == StorageBackend.Json && !Directory.Exists(ctx.EventsDirectory)) continue;
+            if (backend == StorageBackend.Sqlite && !File.Exists(ctx.SqliteDatabasePath)) continue;
+
+            Console.WriteLine($"{backend}:");
+            var report = backend == StorageBackend.Sqlite
+                ? LegacySchemaMigrator.MigrateSqliteEvents(ctx.SqliteConnectionFactory, dryRun, Console.Out)
+                : LegacySchemaMigrator.MigrateJsonEvents(ctx.EventsDirectory, dryRun, Console.Out);
+
+            Console.WriteLine(
+                $"  {(dryRun ? "to migrate" : "migrated")}: {report.Migrated}, " +
+                $"already current: {report.AlreadyCurrent}, failed: {report.Failed}");
+            failures += report.Failed;
+        }
+
+        return failures > 0 ? 2 : 0;
     }
 
     public static int Seed(StorageContext ctx, string? backendName)

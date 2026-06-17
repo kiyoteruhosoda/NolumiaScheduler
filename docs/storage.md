@@ -100,6 +100,9 @@ nolumia <command> [arguments] [--data-dir <dir>]
 
   info                            データ場所とバックエンド別の件数を表示
   migrate <direction> [--force]   バックエンド間でデータをコピー
+  migrate-schema [json|sqlite|all] [--dry-run]
+                                  旧 start/end・終日スキーマ → 期間(duration)モデルへその場変換
+                                  （詳細は docs/time-model.md §8）
   seed <backend>                  空のバックエンドにサンプル予定を投入
   list <backend>                  予定を活動日スパン付きで一覧
   db-migrate                      SQLite のスキーマ migration を適用

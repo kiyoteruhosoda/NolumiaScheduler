@@ -147,8 +147,20 @@ end        = instant + DurationMinutes
 ## 8. 旧データの移行（互換なし・一回限りの CLI）
 
 - **アプリ本体は新スキーマのみを読む**（旧フィールドの読み替えロジックは持たない）。
-- 旧 → 新の変換は **管理 CLI（`NolumiaScheduler.Cli`）の専用サブコマンド** で一括実行する。
-  （既存の `migrate`（バックエンド間コピー）とは別系統の、スキーマ変換コマンドとして追加する。）
+- 旧 → 新の変換は **管理 CLI のサブコマンド `migrate-schema`** で一括実行する（実装済み。
+  既存の `migrate`〔バックエンド間コピー〕とは別系統。`NolumiaScheduler.Infrastructure`
+  の `LegacySchemaMigrator` が旧レコードをドメインに復元し、現行リポジトリ経由で再保存
+  するため、新JSON形と SQLite の span 列が同じコードで生成される）。
+
+  ```bash
+  # 変換対象を確認（書き込みなし）
+  dotnet run --project NolumiaScheduler.Cli -- migrate-schema all --dry-run
+  # JSON / SQLite 両方をその場で変換（既定は all）
+  dotnet run --project NolumiaScheduler.Cli -- migrate-schema
+  ```
+
+  - 冪等：新形式（`durationMinutes` を持つ）は「already current」としてスキップ。
+  - 営業日カレンダー・設定は時刻モデル非依存のため対象外。
 - 変換規則:
 
   | 旧 | 新 |
