@@ -42,13 +42,19 @@ public sealed partial class AlarmNotificationWindow : Window
         TitleLabel.Text = title;
         MessageLabel.Text = message;
         TimeLabel.Text = now.ToString("yyyy/MM/dd HH:mm");
-        NextAlarmLabel.Text = FormatNextAlarm(nextAlarmAt, now);
         DismissBtn.Content = AppResources.AlarmDismiss;
         OpenLocationBtn.Content = AppResources.AlarmOpenLocation;
         CancelAllBtn.Content = AppResources.AlarmCancelAll;
 
         // "Cancel all remaining alarms" only makes sense when something is still scheduled.
         CancelAllBtn.Visibility = hasRemainingAlarms ? Visibility.Visible : Visibility.Collapsed;
+
+        // Show when the next alarm for *this* reservation is; hide the line entirely when there
+        // is no further alarm for it (we deliberately do not show other events' alarms here).
+        if (nextAlarmAt is { } nextAt && nextAt > now)
+            NextAlarmLabel.Text = FormatNextAlarm(nextAt, now);
+        else
+            NextAlarmLabel.Visibility = Visibility.Collapsed;
 
         // Pre-event offset toggles reflect the event's current settings.
         OffsetsHeaderLabel.Text = AppResources.AlarmOffsetsHeader;
@@ -129,12 +135,10 @@ public sealed partial class AlarmNotificationWindow : Window
     /// </summary>
     public void RequestClose() => Complete(AlarmNotificationAction.Dismiss);
 
-    private static string FormatNextAlarm(DateTime? nextAlarmAt, DateTime now)
+    private static string FormatNextAlarm(DateTime nextAlarmAt, DateTime now)
     {
-        if (nextAlarmAt is null) return AppResources.AlarmNextAlarmNone;
-
-        var minutes = Math.Max(0, (int)Math.Ceiling((nextAlarmAt.Value - now).TotalMinutes));
-        var time = nextAlarmAt.Value.ToString("HH:mm", AppResources.FormatCulture);
+        var minutes = Math.Max(0, (int)Math.Ceiling((nextAlarmAt - now).TotalMinutes));
+        var time = nextAlarmAt.ToString("HH:mm", AppResources.FormatCulture);
         return string.Format(AppResources.FormatCulture, AppResources.AlarmNextAlarmFormat, time, minutes);
     }
 

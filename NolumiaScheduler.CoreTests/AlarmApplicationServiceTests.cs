@@ -260,16 +260,40 @@ public class AlarmApplicationServiceTests
     {
         SaveEvent("ev");
 
-        var next = _service.GetNextAlarmAfter(_clock.GetLocalNow().DateTime);
+        var next = _service.GetNextAlarmAfter("ev", _clock.GetLocalNow().DateTime);
         Assert.IsNotNull(next);
         Assert.AreEqual(15, next!.MinutesBefore, "最も近い未来の通知は15分前");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         _service.CollectDueAlarms();
 
-        var next2 = _service.GetNextAlarmAfter(_clock.GetLocalNow().DateTime);
+        var next2 = _service.GetNextAlarmAfter("ev", _clock.GetLocalNow().DateTime);
         Assert.IsNotNull(next2);
         Assert.AreEqual(5, next2!.MinutesBefore, "15分前を消化したら次は5分前");
+    }
+
+    [TestMethod]
+    public void 次のアラート取得は指定イベントだけを対象にし残りがなければnull()
+    {
+        SaveEvent("ev1");
+        SaveEvent("ev2");
+
+        var next = _service.GetNextAlarmAfter("ev1", _clock.GetLocalNow().DateTime);
+        Assert.IsNotNull(next);
+        Assert.AreEqual("ev1", next!.EventId, "別イベント(ev2)は対象にしない");
+
+        // ev1 の全オフセットを消化する
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart);
+        _service.CollectDueAlarms();
+
+        Assert.IsNull(_service.GetNextAlarmAfter("ev1", _clock.GetLocalNow().DateTime),
+            "ev1 に残りがなければ null");
     }
 
     [TestMethod]

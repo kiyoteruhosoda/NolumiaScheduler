@@ -147,7 +147,6 @@
   <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve"><value>Remind 1 min before event</value></data>
   <data name="AlarmCancelAll" xml:space="preserve"><value>Cancel all remaining alarms</value></data>
   <data name="AlarmNextAlarmFormat" xml:space="preserve"><value>Next alarm: {0} (in {1} min)</value></data>
-  <data name="AlarmNextAlarmNone" xml:space="preserve"><value>No upcoming alarms</value></data>
   <data name="AlarmOffsetsHeader" xml:space="preserve"><value>Pre-event alarms</value></data>
   <data name="AlarmSetNextHeader" xml:space="preserve"><value>Set next alarm time</value></data>
   <data name="AlarmSetFromNowLabel" xml:space="preserve"><value>Minutes from now</value></data>

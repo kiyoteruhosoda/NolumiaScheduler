@@ -160,9 +160,14 @@ public class AlarmApplicationService
         }
     }
 
-    /// <summary>The soonest not-yet-fired alarm strictly after <paramref name="after"/>, or null.</summary>
-    public AlarmScheduleEntry? GetNextAlarmAfter(DateTime after)
-        => GetScheduledAlarms().FirstOrDefault(e => !e.AlreadyFired && e.NotifyAt > after);
+    /// <summary>
+    /// The soonest not-yet-fired alarm of the given event strictly after <paramref name="after"/>,
+    /// or null. Scoped to a single event so the notification can show "the next alarm for this
+    /// reservation" (a remaining offset or a pending snooze) rather than an unrelated event's alarm.
+    /// </summary>
+    public AlarmScheduleEntry? GetNextAlarmAfter(string eventId, DateTime after)
+        => GetScheduledAlarms().FirstOrDefault(
+            e => e.EventId == eventId && !e.AlreadyFired && e.NotifyAt > after);
 
     /// <summary>
     /// True when the event still has an alarm scheduled in the future (an unfired offset, or a
