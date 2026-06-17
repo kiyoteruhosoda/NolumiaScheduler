@@ -11,85 +11,97 @@
 
 ## 1. 結論（1枚サマリ）
 
-- 単発・繰り返しを **一律で `DTSTART(ローカル壁時計) + TZID + DURATION` のデータモデル** で保持する
-  （RFC 5545 の DTSTART+TZID の **考え方** を採用。シリアライズ形式そのものは独自 JSON）。
-- **終了は保持しない**。常に `開始 + DURATION` で導出する。
+- 予定は **UTC の絶対時刻（instant）で保持**し、`TimeZoneId` は表示・繰り返し評価・業務日シフト用の
+  **メタデータ**として持つ。
+  - 単発: `StartUtc`（UTC instant）＋ `DurationMinutes`。
+  - 繰り返し: `AnchorUtc`（先頭オカレンスの UTC instant）＋ ルール ＋ `DurationMinutes`。
+- **終了は保持しない**。常に `開始instant + DURATION` で導出する。
 - **`AllDay` というドメイン概念は廃止**。終日は編集画面の入力トグル（当日 24h 限定）に過ぎない。
-- **`24:00` は表示専用**。値としては保持しない（`LocalTimeValue` は 0–23 のまま）。
+- **`24:00` は表示専用**。値としては保持しない。
+- **instant 優先**：制度（DST／政治的ルール）が変わって**ローカル時刻がずれるのは当たり前**。
+  ずらしたくなければ**再保存**する（＝制度変更の負担はその制度内の人が負い、外の人の表示は動かない）。
 - 旧データとの **互換は持たない**。変換は **一回限りの管理 CLI** で行う。
 
 ---
 
 ## 2. なぜこの形か（前提と制約）
 
-### 2-1. 一律化（単発も繰り返しも同じ表現）
+### 2-1. なぜ UTC 保持か（壁時計保持からの転換）
 
-単発＝UTC instant、繰り返し＝壁時計、のように種別で表現を変えると分岐が増える。
-両者を **`DTSTART + TZID + DURATION`** に揃えると、単発は「**RRULE 相当を持たない予定**」、
-繰り返しは「**繰り返しルールを持つ予定**」というだけの違いになり、展開・表示・検証が一本化する。
+予定の「絶対時刻」を真値とし、UTC で固定する。狙いは **制度変更の影響を、その制度の中の人だけに
+留め、外の人を巻き込まない**こと。
+
+- UTC 固定なら：絶対時刻が不変 → 外（例：日本）の人の表示は動かない。制度が変わった側（例：NY）の
+  ローカル表示だけが動く（＝当たり前）。ずらしたくなければ再保存。
+- 壁時計＋TZID で都度解決すると：tz データベース更新（制度変更）で**未来のオカレンスの instant が
+  再計算され**、外の人の表示まで動く。これを避ける。
+- トレードオフ：DST のあるゾーンでは、繰り返しの**ローカル時刻が季節で動く**（例「毎朝9:00」が
+  夏冬で 8:00/10:00）。これは instant 固定の当然の帰結として受け入れる。
+  **主ロケール JST は DST がないため、この差は生じない**（UTC 固定＝壁時計が完全一致）。
 
 ### 2-2. なぜ完全な iCalendar 化はしないのか
 
-本アプリには **ビジネスカレンダーによる営業日シフト**（`Adjustment` = Forward / Backward +
-`CalendarId`：祝日に当たったら前／翌営業日へ寄せる）がある。これは RFC 5545 の `RRULE` では
-表現できない（カスタム祝日カレンダー依存のシフトは仕様外で、非可逆）。
-したがって **RRULE 文字列や `.ics` への完全準拠は採用しない**。採用するのは
-DTSTART+TZID の **データモデル（ローカル壁時計 + 名前付きタイムゾーン）だけ** で、
-繰り返しルールは既存の構造体（`WeeklyRule` / `MonthlyRule` / `YearlyRule` ＋ `Adjustment`）の
-ままとする。
+本アプリには **ビジネスカレンダーによる営業日シフト**（`Adjustment`：祝日に当たったら前／翌営業日へ
+寄せる）がある。これは RFC 5545 の `RRULE` では表現できない（カスタム祝日カレンダー依存・非可逆）。
+よって `.ics`／RRULE 文字列への完全準拠は採用せず、繰り返しルールは既存の構造体
+（`WeeklyRule` / `MonthlyRule` / `YearlyRule` ＋ `Adjustment`）のまま持つ。
 
 ### 2-3. 表示は閲覧者ロケール
 
-予定は「絶対時刻（instant）」として意味を持ち、表示時刻は **見る人のロケール（タイムゾーン）**
-で変わる。「9:00 開始・1h は常に 10:00 終わり」ではない。instant は `DTSTART` を `TZID` で
-解決して **毎回導出** する。
+予定は instant が真値で、表示時刻は **見る人のロケール（タイムゾーン）** で変わる。表示は
+保持 UTC を閲覧者ロケールへ変換して導出する。
 
 ---
 
-## 3. 保持モデル（単発・繰り返し共通）
+## 3. 保持モデル
 
-| 役割 | 保持値 | 型 |
+| 種別 | 保持値 | 型 |
 |------|--------|----|
-| `DTSTART`（開始の壁時計） | `StartDate` + `StartTime` | `LocalDateValue` + `LocalTimeValue` |
-| `TZID`（タイムゾーン） | `TimeZoneId` | IANA タイムゾーン名（イベントに既存） |
-| `DURATION`（長さ） | `DurationMinutes` | `int`（分） |
-| 繰り返しルール | `Rule`（+ `Adjustment`） | 既存構造体。**単発は持たない** |
+| 単発 | `StartUtc` ＋ `DurationMinutes` | `DateTimeOffset`(UTC) ＋ `int`(分) |
+| 繰り返し | `AnchorUtc` ＋ `Rule`(+`Adjustment`) ＋ `DurationMinutes` | `DateTimeOffset`(UTC) ＋ 既存構造体 ＋ `int` |
+| 共通 | `TimeZoneId` | IANA タイムゾーン名（メタデータ） |
 
-- 既存の繰り返しは元々 `StartDate + StartTime + TimeZoneId` を持つため、実質 DTSTART+TZID。
-  単発を `DateTimeOffset Start/End` から **同じ `StartDate + StartTime + DurationMinutes`** に
-  寄せることで一律化する。
-- `End` は持たない。必要時に `開始 + DurationMinutes` で導出する。
+- `End` は持たない。必要時に `開始instant + DurationMinutes` で導出する。
+- `AnchorUtc` は先頭（基準）オカレンスの絶対時刻。各オカレンスは §4 の式で導出する。
 
 ---
 
 ## 4. 時刻セマンティクス
 
-### 4-1. instant の導出（単発・繰り返し共通）
+### 4-1. 単発
 
 ```
-localStart = StartDate + StartTime            // 壁時計（オフセットなし）
-instant    = TZID で localStart を解決          // 絶対時刻（DST も名前付きゾーンで正しく解決）
-end        = instant + DurationMinutes
-表示        = instant を「閲覧者ロケール」へ変換
+instant = StartUtc                       // 保持値そのもの（再解決しない）
+end     = StartUtc + DurationMinutes
+表示     = instant を閲覧者ロケールへ変換
 ```
 
-### 4-2. 繰り返しの曜日・日付・オカレンス時刻
+### 4-2. 繰り返し（instant 固定の展開）
 
-- 繰り返しの「曜日 / 日付」とオカレンス時刻は **登録時 TZID の壁時計** で評価する。
-  例: 「毎週月曜 6:00（登録 = JST）」は各月曜の 6:00 JST を組み立ててから instant 化する。
-  UTC 基準で評価すると深夜・早朝のオカレンスが別日へずれるため、必ず TZID の壁時計で鎖める。
-- DST のあるゾーンでも壁時計が一貫する（名前付きゾーンで各オカレンスを解決するため）。
+ルールは **ローカル日付パターン**（毎週月曜・毎月15日・毎年4/20・第n曜日…）を TZID 上で評価し、
+各オカレンスの instant を **アンカーからの整数日加算**でピン留めする：
+
+```
+anchorLocalDate = AnchorUtc を TZID でローカル化した日付
+occLocalDate    = ルール（＋営業日シフト）を TZID で評価して得た候補日
+occurrenceUtc   = AnchorUtc + (occLocalDate - anchorLocalDate).Days * 24h
+end             = occurrenceUtc + DurationMinutes
+```
+
+- tz データベースに依存しない整数日加算なので、**制度変更があっても各オカレンスの instant は不変**。
+- ローカル時刻は季節で動きうる（§2-1 のトレードオフ）。JST は DST なしのため動かない。
+- 日付パターン（曜日・日）は TZID 上で評価するので意図どおり（1h 程度のズレで曜日は跨がない）。
 
 ### 4-3. `TimeZoneId` の用途
 
-1. オカレンスの **壁時計 → instant 解決**（4-1 / 4-2）。
-2. **ビジネスカレンダーの営業日シフト判定**（どのローカル日に当たるか）。
+1. 繰り返しルールと**営業日シフト**の「どのローカル日か」の評価。
+2. アンカー／開始の**ローカル日付**の算出（§4-2）。
+3. **表示**：保持 UTC → 閲覧者ロケール変換。
 
-### 4-4. DURATION の加算規約
+### 4-4. DURATION
 
-- 繰り返しは **壁時計加算**（ローカル日時に加算してから TZID 解決）を既定とする。
-  主ロケール JST は DST がないため実害はない。
-- `DurationMinutes > 0` 必須（0 長・負値は不正）。24h（終日相当）は `1440`。
+- `end = 開始instant + DurationMinutes`（UTC 上の加算。DST 内包の曖昧さは発生しない）。
+- `DurationMinutes > 0` 必須。24h（終日相当）は `1440`。
 
 ---
 
@@ -102,11 +114,13 @@ end        = instant + DurationMinutes
 
 - イベントの `TimeZoneId` は **最終更新者のタイムゾーン**。作成時、および「すべて」スコープの
   編集時に編集者の TZ へ刻む。
-- 刻み方は **(A) 絶対時刻を保存する変換**：編集フォームは編集者 TZ に変換して表示し、保存時に
-  `TimeZoneId = 編集者TZ` ＋その壁時計（DTSTART）を書く。**時刻を変更しなければ指す瞬間は不変**
-  （保存される壁時計の数値だけが編集者 TZ 表現に変わる）。
-- 保持形は UTC ではなく DTSTART+TZID（§3）。瞬間の不変性は「データが UTC だから」ではなく
-  **(A) の変換が保証する**。単発は「UTC instant + ゾーン」と等価、繰り返しは壁時計が真値。
+- 保持は UTC（§3）なので、`TimeZoneId` の差し替えは **純粋なメタデータ再ラベル**であり、
+  `StartUtc` / `AnchorUtc` は触らない → **絶対時刻（瞬間）は本質的に不変**（＝「データが UTC だから
+  変わらない」が文字どおり成立）。
+- 編集フォームは保持 UTC を編集者 TZ に変換して表示し、保存時に `TimeZoneId = 編集者TZ`。**時刻を
+  変更しなければ `StartUtc` はそのまま**＝瞬間不変。時刻を変えたぶんだけ UTC が動く。
+- 注（繰り返し）：TZID を変えると、繰り返しの**ローカル日付評価の基準ゾーン**（§4-2）も変わるため、
+  「すべて」編集で系列が編集者 TZ の暦に乗り換わる（アンカー instant は保たれる）。
 
 ### 5-2. 編集スコープ × TZ
 
@@ -118,12 +132,11 @@ end        = instant + DurationMinutes
 
 ### 5-3. 「この回だけ」（per-occurrence）の TZ
 
-- `ExceptionOverride` / `EventMove` に **任意の `TimeZoneId`** を持たせる。その回の開始時刻は
-  この TZ で解釈する。
-- `null` のときは **系列の TZ に従う**（後方互換：既存の例外は系列 TZ 扱い）。
-- 一度刻んだ例外 TZ は **ピン留め**：以後の「すべて」編集で系列 TZ が変わっても、その回の
-  TZ・時刻は動かさない。
-- **識別キーは系列 TZ のまま**（候補日＋系列開始時刻）。例外の TZ はキーを動かさない＝
+- `ExceptionOverride` / `EventMove` は、その回の開始を **UTC instant ＋ 任意の `TimeZoneId`**（表示用）
+  として持つ。`TimeZoneId` が `null` のときは **系列の TZ** を表示に使う（後方互換）。
+- 一度確定した例外の instant は **ピン留め**：以後の「すべて」編集で系列 TZ が変わっても、その回の
+  instant・表示 TZ は動かさない。
+- **識別キーは系列基準のまま**（候補日＋系列の基準）。例外の TZ／instant はキーを動かさない＝
   移動 / スキップ / 上書きの同定が壊れない。
 
 ### 5-4. 業務日シフト
@@ -165,28 +178,44 @@ end        = instant + DurationMinutes
 
 ## 8. JSON スキーマ（新）
 
-> 旧フィールド `end` / `endTime` / `allDay` は廃止。`durationMinutes` を導入。
+> 旧フィールド `end` / `endTime` / `allDay` は廃止。開始は **UTC instant**、長さは `durationMinutes`。
 > 繰り返しルール（`rule` 等）の構造は従来どおり。
 
-予定（共通フィールド・抜粋）:
+単発:
 
 ```jsonc
 {
   "id": "…",
   "title": "…",
-  "timezone": "Asia/Tokyo",      // TZID
-  "startDate": "2026-06-15",      // DTSTART の日付（ローカル）
-  "startTime": "06:00:00",        // DTSTART の時刻（ローカル壁時計）。0:00–23:59
-  "durationMinutes": 60,          // DURATION。> 0
+  "timezone": "Asia/Tokyo",        // TZID（表示・業務日シフト用メタ）
+  "singleSchedule": {
+    "startUtc": "2026-06-15T01:00:00Z",  // 絶対時刻（UTC）
+    "durationMinutes": 60                 // > 0
+  },
   "visibility": "Public",
   "version": 1
-  // 繰り返しのみ: "rule": { … }（既存構造） / "adjustment": { … }
-  // 単発は rule を持たない
 }
 ```
 
-- `startTime` は常に `0:00:00`–`23:59:59`（`24:00` は保存しない）。
-- 終日: `startTime = "00:00:00"`, `durationMinutes = 1440`。
+繰り返し:
+
+```jsonc
+{
+  "id": "…", "title": "…", "timezone": "Asia/Tokyo",
+  "recurringSchedule": {
+    "anchorUtc": "2026-01-05T01:00:00Z",  // 先頭オカレンスの絶対時刻（UTC）
+    "durationMinutes": 30,
+    "rule": { /* 既存構造 */ }            // adjustment も従来どおり
+  },
+  "version": 1
+}
+```
+
+- 終日相当: `durationMinutes = 1440` かつアンカーが TZID ローカルの 00:00 に当たる UTC instant。
+
+> 実装状況: 現行コードは**移行段階の DTSTART(ローカル) + TZID + duration** 形
+> （`startDate`/`startTime`/`durationMinutes`）で保存しており、本節の **UTC 形（`startUtc`/
+> `anchorUtc`）への再実装は残課題**。§10 参照。
 
 ---
 
@@ -209,11 +238,14 @@ end        = instant + DurationMinutes
   - 営業日カレンダー・設定は時刻モデル非依存のため対象外。
 - 変換規則:
 
-  | 旧 | 新 |
+  | 旧 | 新（最終形 = UTC） |
   |----|----|
-  | 単発 `start` / `end`（DateTimeOffset） | `startDate`/`startTime` = `start` を TZID ローカル化、`durationMinutes` = `end − start` |
-  | 繰り返し `startTime` / `endTime` | `durationMinutes` = `endTime − startTime`（同日前提） |
-  | `allDay: true` | `startTime = 00:00`, `durationMinutes = 1440`（複数日終日は best-effort で `N × 1440`） |
+  | 単発 `start` / `end`（DateTimeOffset） | `startUtc` = `start` を UTC 化、`durationMinutes` = `end − start` |
+  | 繰り返し `startDate` / `startTime` / `endTime` | `anchorUtc` = `startDate+startTime` を TZID で UTC 化、`durationMinutes` = `endTime − startTime` |
+  | `allDay: true` | `durationMinutes = 1440`、アンカーは当日 00:00(ローカル) の UTC |
+
+  > 現行 CLI（`migrate-schema`）は移行段階の DTSTART(ローカル) 形へ変換する。UTC 形への
+  > 再実装時に、この表の最終形へ更新する（同 CLI を拡張）。
 
 - 移行は破壊的変更を伴うため、実行前のバックアップを前提とする（`docs/storage.md` のバックアップ手順に準ずる）。
 
@@ -234,14 +266,28 @@ end        = instant + DurationMinutes
 | `NolumiaScheduler.Cli` | 旧 → 新スキーマ変換サブコマンドを追加 |
 | `ValidationDifinication.md` ／各テスト | 本書に合わせて改訂（終日・日マタギ禁止・終了時刻の記述を更新） |
 
+### 10-1. UTC 保持への再実装（残課題）
+
+現行コードは DTSTART(ローカル)+TZID 形で実装済み。本書の **UTC 保持形（§3）** へ移すための差分：
+
+| 箇所 | 変更内容 |
+|------|---------|
+| `SingleEventSchedule` | `StartDate+StartTime` → `StartUtc`(UTC instant) ＋ `DurationMinutes` |
+| `RecurringEventSchedule` | `StartDate+StartTime` → `AnchorUtc`(UTC instant)。ルールは据え置き |
+| `OccurrenceExpander` | §4-2 の `AnchorUtc + (occLocalDate − anchorLocalDate)×24h` で instant 生成 |
+| `EventExpirationService` | 開始 instant を保持 UTC から直接利用 |
+| 例外 / 移動 | その回の開始を **UTC instant ＋ 任意表示 TZID** へ（§5-3） |
+| JSON / SQLite DTO | `startUtc` / `anchorUtc` フィールドへ |
+| `migrate-schema` | §9 の UTC 形へ変換するよう拡張 |
+| 表示（Presentation） | 保持 UTC → 閲覧者ロケール変換（§2-3）。DST 帯の繰り返しはローカル時刻が季節で動く |
+
 ---
 
 ## 11. バリデーション規則（更新後）
 
-- 共通: `durationMinutes > 0`。`startTime ∈ [00:00:00, 23:59:59]`。`timezone` は解決可能な IANA 名。
-- 単発: 日マタギ可（`開始 + Duration` が翌日以降に及んでよい）。
-- 繰り返し（時間付き）: 日マタギ可。旧「`endTime <= startTime` は不可」は撤廃。
-- 終日: ドメインに概念なし。入力上は `startTime = 00:00 && durationMinutes = 1440` の通常予定として表現。
+- 共通: `durationMinutes > 0`。`timezone` は解決可能な IANA 名。開始は UTC instant。
+- 単発・繰り返しとも日マタギ可（`開始instant + Duration` が翌日以降に及んでよい）。
+- 終日: ドメインに概念なし。入力上は当日 00:00(ローカル)起点 ＋ `durationMinutes = 1440` の通常予定。
 - アラーム: 従来どおり **開始時刻基準**（終了・Duration の変更の影響を受けない）。
 
 ---
@@ -258,3 +304,5 @@ end        = instant + DurationMinutes
 8. イベントの所属 TZ は **最終更新者の TZ**。刻みは **(A) 絶対時刻を保存する変換**（時刻を変えなければ瞬間不変）。
 9. 編集スコープに応じて TZ が及ぶ範囲が決まる：すべて＝系列全体、以降＝新系列のみ（元系列不変）、この回だけ＝その例外のみ。
 10. 「この回だけ」は **例外（override/move）が自身の TZ を持つ**（null は系列 TZ）。一度刻んだら **ピン留め**（後の全体編集でも不変）。
+11. **【方針転換】保持を壁時計から UTC へ**：制度変更でローカル時刻がずれるのは当たり前で、ずらしたくなければ再保存する前提。UTC 固定なら**制度変更の負担をその制度内に留め、外の人の表示を動かさない**。→ 4・5 を上書き（保持は UTC＋TZID メタ、繰り返しは §4-2 の整数日加算で instant をピン留め）。8 の「変換で瞬間保存」は、UTC 保持では **メタ TZID 再ラベルで本質的に不変** に簡素化。
+12. その代償として **DST 帯の繰り返しはローカル時刻が季節で動く**（JST は DST なしのため無影響）＝受容。
