@@ -118,19 +118,19 @@ public partial class WeekGridBackgroundView : UserControl
         if (IsToday)
         {
             var height = ActualHeight > 0 ? ActualHeight : 1440;
-            var rect = new Rectangle
+            // Bottom of the today column frame: left + right + bottom borders, open at the top so
+            // it continues down from the all-day lane above. Rounded bottom corners only.
+            var todayFrame = new Border
             {
-                Width = Math.Max(0, width - 3),
-                Height = Math.Max(0, height - 3),
-                Stroke = new SolidColorBrush(WinColors.GCalBlue),
-                StrokeThickness = 2,
-                Fill = new SolidColorBrush(Microsoft.UI.Colors.Transparent),
-                RadiusX = 6,
-                RadiusY = 6
+                Width = width,
+                Height = height,
+                BorderBrush = new SolidColorBrush(WinColors.GCalBlue),
+                BorderThickness = new Thickness(2, 0, 2, 2),
+                CornerRadius = new CornerRadius(0, 0, 6, 6)
             };
-            Canvas.SetLeft(rect, 1.5);
-            Canvas.SetTop(rect, 1.5);
-            _canvas.Children.Add(rect);
+            Canvas.SetLeft(todayFrame, 0);
+            Canvas.SetTop(todayFrame, 0);
+            _canvas.Children.Add(todayFrame);
         }
     }
 }
