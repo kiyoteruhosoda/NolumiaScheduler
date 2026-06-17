@@ -215,12 +215,28 @@ public class WeekViewPresentationTests
 
     private static CalendarEventItem CreateItem(string id, int? sh, int? sm, int? eh, int? em, bool allDay)
     {
+        // The duration model has no all-day flag: a full-day occurrence is 00:00 + 1440 minutes.
+        LocalTimeValue startTime;
+        int durationMinutes;
+        if (allDay)
+        {
+            startTime = new LocalTimeValue(0, 0, 0);
+            durationMinutes = 24 * 60;
+        }
+        else
+        {
+            startTime = new LocalTimeValue(sh!.Value, sm!.Value);
+            var startMin = (sh.Value * 60) + sm.Value;
+            var endMin = (eh!.Value * 60) + em!.Value;
+            // End on/before start is read as crossing midnight.
+            durationMinutes = endMin > startMin ? endMin - startMin : endMin - startMin + (24 * 60);
+        }
+
         var occ = new EventOccurrence(
             new EventId(id),
             new LocalDateValue(2026, 5, 4),
-            sh.HasValue && sm.HasValue ? new LocalTimeValue(sh.Value, sm.Value) : null,
-            eh.HasValue && em.HasValue ? new LocalTimeValue(eh.Value, em.Value) : null,
-            allDay,
+            startTime,
+            durationMinutes,
             new EventTitle("sample"),
             null,
             NolumiaScheduler.Domain.ValueObjects.Visibility.Public);

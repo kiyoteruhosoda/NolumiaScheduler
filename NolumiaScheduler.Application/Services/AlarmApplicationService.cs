@@ -349,14 +349,9 @@ public class AlarmApplicationService
 
             foreach (var occ in occurrences)
             {
-                if (occ.AllDay)
+                if (IsAllDay(occ))
                 {
-                    lines.Add($"    SKIP occ {occ.Date}: AllDay=true");
-                    continue;
-                }
-                if (occ.StartTime == null)
-                {
-                    lines.Add($"    SKIP occ {occ.Date}: StartTime=null");
+                    lines.Add($"    SKIP occ {occ.Date}: all-day (00:00 + 24h)");
                     continue;
                 }
 
@@ -395,7 +390,7 @@ public class AlarmApplicationService
 
             foreach (var occ in _expander.Expand(ev, today, tomorrow, null))
             {
-                if (occ.AllDay || occ.StartTime == null) continue;
+                if (IsAllDay(occ)) continue;
 
                 var occStart = ToOccurrenceStart(occ);
                 foreach (var min in AlarmScheduleCalculator.Offsets)
@@ -409,9 +404,14 @@ public class AlarmApplicationService
         }
     }
 
+    // An all-day occurrence (start 00:00, full 24h) carries no meaningful start instant, so it
+    // never raises an alarm — matching the original all-day behaviour.
+    private static bool IsAllDay(EventOccurrence occ)
+        => occ.StartMinuteOfDay == 0 && occ.DurationMinutes == 24 * 60;
+
     private static DateTime ToOccurrenceStart(EventOccurrence occ) => new(
         occ.Date.Year, occ.Date.Month, occ.Date.Day,
-        occ.StartTime!.Hour, occ.StartTime.Minute, occ.StartTime.Second);
+        occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
     private static string BuildKey(CalendarEvent ev, EventOccurrence occ, int offsetMinutes)
         => $"{ev.Id.Value}:{occ.Date}:{offsetMinutes}";

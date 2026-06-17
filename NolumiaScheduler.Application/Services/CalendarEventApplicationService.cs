@@ -40,11 +40,9 @@ public class CalendarEventApplicationService(
     public void CreateSingleEvent(CreateSingleEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
-        var (start, end) = ResolveSchedule(
-            command.StartDate, command.StartTime,
-            command.StartDate, command.EndTime,
-            command.AllDay, command.TimeZone);
-        var schedule = new SingleEventSchedule(start, end);
+        var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, command.AllDay);
+        var schedule = new SingleEventSchedule(
+            LocalDateValue.FromDateOnly(command.StartDate), startTime, duration);
 
         var ev = CalendarEvent.CreateSingle(
             id,
@@ -54,7 +52,6 @@ public class CalendarEventApplicationService(
             command.EventType != null ? new EventType(command.EventType) : null,
             command.Description != null ? new Description(command.Description) : null,
             new TimeZoneId(command.TimeZone),
-            command.AllDay,
             schedule,
             _clock.GetUtcNow(),
             alarm: command.Alarm,
@@ -66,12 +63,12 @@ public class CalendarEventApplicationService(
     public void CreateRecurringEvent(CreateRecurringEventCommand command)
     {
         var id = new EventId(Guid.NewGuid().ToString());
+        var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, command.AllDay);
         var schedule = new RecurringEventSchedule(
             command.StartDate,
-            command.StartTime,
-            command.EndTime,
-            command.RecurrenceRule,
-            command.AllDay);
+            startTime,
+            duration,
+            command.RecurrenceRule);
 
         var ev = CalendarEvent.CreateRecurring(
             id,
@@ -81,7 +78,6 @@ public class CalendarEventApplicationService(
             command.EventType != null ? new EventType(command.EventType) : null,
             command.Description != null ? new Description(command.Description) : null,
             new TimeZoneId(command.TimeZone),
-            command.AllDay,
             schedule,
             _clock.GetUtcNow(),
             alarm: command.Alarm,
@@ -107,11 +103,13 @@ public class CalendarEventApplicationService(
         if (canReschedule)
         {
             var newDate = command.NewDate!.Value;
-            var (start, end) = ResolveSchedule(
-                newDate, command.NewStartTime ?? TimeSpan.Zero,
-                newDate, command.NewEndTime ?? TimeSpan.Zero,
-                command.AllDay, ev.TimeZoneId.Value);
-            ev.RescheduleSingle(new SingleEventSchedule(start, end), _clock.GetUtcNow());
+            var (startTime, duration) = ResolveTimes(
+                command.NewStartTime ?? TimeSpan.Zero,
+                command.NewEndTime ?? TimeSpan.Zero,
+                command.AllDay);
+            ev.RescheduleSingle(
+                new SingleEventSchedule(LocalDateValue.FromDateOnly(newDate), startTime, duration),
+                _clock.GetUtcNow());
         }
 
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
@@ -134,15 +132,15 @@ public class CalendarEventApplicationService(
             _clock.GetUtcNow());
 
         // Preserve the original series start date so existing occurrence keys (exceptions and
-        // moves) stay aligned; only the rule and times are redefined for the whole series. The
-        // all-day status is structural and cannot change here, so derive times from ev.AllDay.
+        // moves) stay aligned; only the rule and times are redefined for the whole series. A null
+        // start/end pair denotes an all-day (00:00 + 24h) series.
         var old = ev.RecurringSchedule;
+        var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, allDay: false);
         var newSchedule = new RecurringEventSchedule(
             old.StartDate,
-            ev.AllDay ? null : command.StartTime,
-            ev.AllDay ? null : command.EndTime,
-            command.RecurrenceRule,
-            ev.AllDay);
+            startTime,
+            duration,
+            command.RecurrenceRule);
 
         ev.ChangeRecurrenceSchedule(newSchedule, _clock.GetUtcNow());
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
@@ -174,12 +172,13 @@ public class CalendarEventApplicationService(
         if (!ev.IsRecurring())
             throw new DomainException("OverrideOccurrence is only valid for recurring events.");
 
+        var (ovStart, ovDuration) = ResolveOptionalTimes(command.StartTime, command.EndTime, command.AllDay);
         var exceptionOverride = new ExceptionOverride(
             title: new EventTitle(command.Title),
             location: command.Location != null ? new Location(command.Location) : null,
             visibility: command.Visibility,
-            startTime: command.AllDay ? null : command.StartTime,
-            endTime: command.AllDay ? null : command.EndTime);
+            startTime: ovStart,
+            durationMinutes: ovDuration);
 
         ev.OverrideOccurrence(command.OccurrenceKey, exceptionOverride, _clock.GetUtcNow());
 
@@ -188,8 +187,8 @@ public class CalendarEventApplicationService(
             var move = new EventMove(
                 command.OccurrenceKey,
                 command.Date,
-                command.AllDay ? null : command.StartTime,
-                command.AllDay ? null : command.EndTime,
+                ovStart,
+                ovDuration,
                 new EventTitle(command.Title),
                 command.Location != null ? new Location(command.Location) : null,
                 command.Visibility);
@@ -203,11 +202,12 @@ public class CalendarEventApplicationService(
     {
         var ev = GetOrThrow(command.EventId);
 
+        var (mvStart, mvDuration) = ResolveOptionalTimes(command.NewStartTime, command.NewEndTime, allDay: false);
         var move = new EventMove(
             command.OccurrenceKey,
             command.NewDate,
-            command.NewStartTime,
-            command.NewEndTime,
+            mvStart,
+            mvDuration,
             command.Title != null ? new EventTitle(command.Title) : null,
             command.Location != null ? new Location(command.Location) : null,
             command.Visibility);
@@ -237,12 +237,12 @@ public class CalendarEventApplicationService(
         }
 
         var newId = new EventId(Guid.NewGuid().ToString());
+        var (newStartTime, newDuration) = ResolveTimes(command.NewStartTime, command.NewEndTime, command.NewAllDay);
         var newSchedule = new RecurringEventSchedule(
             command.FromOccurrenceKey.Date,
-            command.NewAllDay ? null : command.NewStartTime,
-            command.NewAllDay ? null : command.NewEndTime,
-            command.NewRecurrenceRule,
-            command.NewAllDay);
+            newStartTime,
+            newDuration,
+            command.NewRecurrenceRule);
 
         var newEv = CalendarEvent.CreateRecurring(
             newId,
@@ -252,7 +252,6 @@ public class CalendarEventApplicationService(
             ev.EventType,
             ev.Description,
             ev.TimeZoneId,
-            command.NewAllDay,
             newSchedule,
             _clock.GetUtcNow(),
             alarm: command.Alarm,
@@ -278,22 +277,41 @@ public class CalendarEventApplicationService(
             ?? throw new DomainException($"Event not found: {eventId}");
     }
 
-    private static (DateTimeOffset start, DateTimeOffset end) ResolveSchedule(
-        DateOnly startDate, TimeSpan startTime,
-        DateOnly endDate, TimeSpan endTime,
-        bool allDay, string timeZoneId)
+    // ── Time → (start, duration) translation ─────────────────────────────────────────────
+    // The UI contract still expresses a schedule as start/end times plus an all-day flag; the
+    // domain stores start + duration (docs/time-model.md). These helpers bridge the two. All-day
+    // maps to 00:00 + 24h. An end at or before the start is treated as crossing into the next day.
+
+    private const int MinutesPerDay = 24 * 60;
+    private static readonly LocalTimeValue Midnight = new(0, 0, 0);
+
+    private static (LocalTimeValue startTime, int durationMinutes) ResolveTimes(
+        TimeSpan startTime, TimeSpan endTime, bool allDay)
     {
-        var tz = TimeZoneInfo.FindSystemTimeZoneById(timeZoneId);
-        if (allDay)
-        {
-            var dt = startDate.ToDateTime(TimeOnly.MinValue);
-            var offset = tz.GetUtcOffset(dt);
-            var start = new DateTimeOffset(dt, offset);
-            return (start, start.AddDays(1));
-        }
-        var startDt = startDate.ToDateTime(TimeOnly.FromTimeSpan(startTime));
-        var endDt   = endDate.ToDateTime(TimeOnly.FromTimeSpan(endTime));
-        var off     = tz.GetUtcOffset(startDt);
-        return (new DateTimeOffset(startDt, off), new DateTimeOffset(endDt, off));
+        if (allDay) return (Midnight, MinutesPerDay);
+        var start = LocalTimeValue.FromTimeOnly(TimeOnly.FromTimeSpan(startTime));
+        var end = LocalTimeValue.FromTimeOnly(TimeOnly.FromTimeSpan(endTime));
+        return (start, DurationMinutes(start, end));
+    }
+
+    private static (LocalTimeValue startTime, int durationMinutes) ResolveTimes(
+        LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
+    {
+        if (allDay || startTime == null || endTime == null) return (Midnight, MinutesPerDay);
+        return (startTime, DurationMinutes(startTime, endTime));
+    }
+
+    private static (LocalTimeValue? startTime, int? durationMinutes) ResolveOptionalTimes(
+        LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
+    {
+        if (allDay || startTime == null || endTime == null) return (null, null);
+        return (startTime, DurationMinutes(startTime, endTime));
+    }
+
+    private static int DurationMinutes(LocalTimeValue start, LocalTimeValue end)
+    {
+        var minutes = ((end.Hour * 60) + end.Minute) - ((start.Hour * 60) + start.Minute);
+        // end == start means a full day; end < start crosses into the next day.
+        return minutes > 0 ? minutes : minutes + MinutesPerDay;
     }
 }

@@ -22,10 +22,9 @@ public class CalendarEventTests
             new EventTitle("チE��ト会議"),
             new Location("会議室A"),
             Visibility.Public,
-            null, null, Tokyo, false,
+            null, null, Tokyo,
             new SingleEventSchedule(
-                new DateTimeOffset(2026, 4, 20, 10, 0, 0, TimeSpan.FromHours(9)),
-                new DateTimeOffset(2026, 4, 20, 11, 0, 0, TimeSpan.FromHours(9))),
+                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
             Now);
 
         Assert.IsTrue(ev.IsSingle());
@@ -36,12 +35,11 @@ public class CalendarEventTests
     }
 
     [TestMethod]
-    public void CreateSingleEvent_StartAfterEnd_ShouldThrow()
+    public void CreateSingleEvent_NonPositiveDuration_ShouldThrow()
     {
         Assert.ThrowsExactly<DomainException>(() =>
             new SingleEventSchedule(
-                new DateTimeOffset(2026, 4, 20, 12, 0, 0, TimeSpan.FromHours(9)),
-                new DateTimeOffset(2026, 4, 20, 10, 0, 0, TimeSpan.FromHours(9))));
+                new LocalDateValue(2026, 4, 20), new LocalTimeValue(12, 0, 0), 0));
     }
 
     [TestMethod]
@@ -56,13 +54,13 @@ public class CalendarEventTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_002"),
             new EventTitle("定例会議"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         Assert.IsTrue(ev.IsRecurring());
@@ -70,20 +68,20 @@ public class CalendarEventTests
     }
 
     [TestMethod]
-    public void RecurringEvent_CrossDay_ShouldThrow()
+    public void RecurringEvent_CrossDay_IsAllowed()
     {
+        // Crossing midnight is now allowed: a 23:00 start lasting 2h ends at 01:00 the next day,
+        // expressed purely through the duration (docs/time-model.md).
         var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 12, 31),
             weekly: new WeeklyRule([Weekday.Monday]));
 
-        Assert.ThrowsExactly<DomainException>(() =>
-            new RecurringEventSchedule(
-                startDate,
-                new LocalTimeValue(23, 0, 0),
-                new LocalTimeValue(1, 0, 0),
-                rule, false));
+        var schedule = new RecurringEventSchedule(
+            startDate, new LocalTimeValue(23, 0, 0), 120, rule);
+
+        Assert.AreEqual(120, schedule.DurationMinutes);
     }
 
     [TestMethod]
@@ -119,7 +117,7 @@ public class CalendarEventTests
         var ev = CreateWeeklyRecurring();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
 
         ev.MoveOccurrence(move, Now);
 
@@ -137,7 +135,7 @@ public class CalendarEventTests
         ev.OverrideOccurrence(key, new ExceptionOverride(title: new EventTitle("短縮会議")), Now);
 
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
         ev.MoveOccurrence(move, Now);
 
         Assert.IsTrue(ev.HasMoveFor(key));
@@ -152,7 +150,7 @@ public class CalendarEventTests
         ev.SkipOccurrence(key, Now);
 
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
 
         Assert.ThrowsExactly<DomainException>(() => ev.MoveOccurrence(move, Now));
     }
@@ -163,7 +161,7 @@ public class CalendarEventTests
         var ev = CreateWeeklyRecurring();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
         ev.MoveOccurrence(move, Now);
 
         Assert.ThrowsExactly<DomainException>(() => ev.SkipOccurrence(key, Now));
@@ -200,10 +198,9 @@ public class CalendarEventTests
         var ev = CalendarEvent.CreateSingle(
             new EventId("evt_s01"),
             new EventTitle("単発"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             new SingleEventSchedule(
-                new DateTimeOffset(2026, 4, 20, 10, 0, 0, TimeSpan.FromHours(9)),
-                new DateTimeOffset(2026, 4, 20, 11, 0, 0, TimeSpan.FromHours(9))),
+                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
             Now);
 
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
@@ -237,7 +234,7 @@ public class CalendarEventTests
         var ev = CreateWeeklyRecurring();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
         ev.MoveOccurrence(move, Now);
 
         ev.RemoveOccurrenceMove(key, Now);
@@ -261,7 +258,7 @@ public class CalendarEventTests
         var ev = CreateWeeklyRecurring();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
         ev.MoveOccurrence(move, Now);
 
         var ov = new ExceptionOverride(title: new EventTitle("変更済み"));
@@ -286,15 +283,14 @@ public class CalendarEventTests
         var ev = CalendarEvent.CreateSingle(
             new EventId("evt_s02"),
             new EventTitle("単発"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             new SingleEventSchedule(
-                new DateTimeOffset(2026, 4, 20, 10, 0, 0, TimeSpan.FromHours(9)),
-                new DateTimeOffset(2026, 4, 20, 11, 0, 0, TimeSpan.FromHours(9))),
+                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
             Now);
 
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 21),
-            new LocalTimeValue(10, 0, 0), new LocalTimeValue(11, 0, 0));
+            new LocalTimeValue(10, 0, 0), 60);
         Assert.ThrowsExactly<DomainException>(() => ev.MoveOccurrence(move, Now));
     }
 
@@ -309,14 +305,14 @@ public class CalendarEventTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         return CalendarEvent.CreateRecurring(
             new EventId("evt_r01"),
             new EventTitle("定例会議"),
             new Location("会議室A"),
-            Visibility.Public, null, null, Tokyo, false,
+            Visibility.Public, null, null, Tokyo,
             schedule, Now);
     }
 }

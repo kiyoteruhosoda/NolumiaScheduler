@@ -7,36 +7,40 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 
 public sealed class CalendarEventItem
 {
+    private const int MinutesPerDay = 24 * 60;
+
     public CalendarEventItem(EventOccurrence occ)
     {
         Date = occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue);
         EventId = occ.EventId.Value;
-        OccurrenceKey = new OccurrenceLocalKey(occ.Date, occ.AllDay ? null : occ.StartTime);
+        // All-day is no longer a stored concept: it is derived as a midnight start spanning a full
+        // day (docs/time-model.md). The end-of-day is start + duration; 24:00 is shown rather than
+        // 00:00 when a block ends exactly at the day boundary.
+        IsAllDay = occ.StartMinuteOfDay == 0 && occ.DurationMinutes == MinutesPerDay;
+        OccurrenceKey = new OccurrenceLocalKey(occ.Date, IsAllDay ? null : occ.StartTime);
         SeriesKey = occ.SeriesKey;
         Title = occ.Title.Value;
         Location = occ.Location?.Value;
-        IsAllDay = occ.AllDay;
         IsMoved = occ.IsMoved;
         IsOverridden = occ.IsOverridden;
 
-        if (occ.AllDay)
+        StartMinuteOfDay = occ.StartMinuteOfDay;
+        var endFromStart = occ.StartMinuteOfDay + occ.DurationMinutes;
+        CrossesMidnight = endFromStart > MinutesPerDay;
+        EndMinuteOfDay = CrossesMidnight ? endFromStart - MinutesPerDay : endFromStart;
+
+        if (IsAllDay)
         {
             TimeRange = AppResources.AllDay;
-            StartMinuteOfDay = 0;
-            EndMinuteOfDay = 60;
-        }
-        else if (occ.StartTime != null && occ.EndTime != null)
-        {
-            TimeRange = $"{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2} – {occ.EndTime.Hour:D2}:{occ.EndTime.Minute:D2}";
-            StartMinuteOfDay = (occ.StartTime.Hour * 60) + occ.StartTime.Minute;
-            EndMinuteOfDay = (occ.EndTime.Hour * 60) + occ.EndTime.Minute;
-            CrossesMidnight = EndMinuteOfDay <= StartMinuteOfDay;
         }
         else
         {
-            TimeRange = "";
-            StartMinuteOfDay = 0;
-            EndMinuteOfDay = 60;
+            var startLabel = $"{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2}";
+            // A block ending exactly at the day boundary reads as 24:00, not 00:00.
+            var endLabel = !CrossesMidnight && endFromStart == MinutesPerDay
+                ? "24:00"
+                : $"{(EndMinuteOfDay / 60):D2}:{(EndMinuteOfDay % 60):D2}";
+            TimeRange = $"{startLabel} – {endLabel}";
         }
 
         if (EndMinuteOfDay <= StartMinuteOfDay)

@@ -16,17 +16,17 @@ namespace NolumiaScheduler.Domain.Entities
         Location? location = null,
         Visibility? visibility = null,
         LocalTimeValue? startTime = null,
-        LocalTimeValue? endTime = null)
+        int? durationMinutes = null)
     {
         public EventTitle? Title { get; } = title;
         public Location? Location { get; } = location;
         public Visibility? Visibility { get; } = visibility;
         public LocalTimeValue? StartTime { get; } = startTime;
-        public LocalTimeValue? EndTime { get; } = endTime;
+        public int? DurationMinutes { get; } = durationMinutes;
 
         public bool IsEmpty()
         {
-            return Title == null && Location == null && Visibility == null && StartTime == null && EndTime == null;
+            return Title == null && Location == null && Visibility == null && StartTime == null && DurationMinutes == null;
         }
     }
 

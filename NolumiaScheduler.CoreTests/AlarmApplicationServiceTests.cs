@@ -453,8 +453,10 @@ public class AlarmApplicationServiceTests
         var start = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero);
         var ev = CalendarEvent.CreateSingle(
             new EventId("allday"), new EventTitle("AllDay"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: true,
-            new SingleEventSchedule(start, start.AddDays(1)), start,
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            new SingleEventSchedule(
+                new LocalDateValue(2026, 6, 10), new LocalTimeValue(0, 0, 0), 24 * 60),
+            start,
             alarm: EventAlarm.Default);
         _repo.Save(ev);
 
@@ -469,8 +471,10 @@ public class AlarmApplicationServiceTests
     {
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle($"Event {id}"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
-            new SingleEventSchedule(EventStart, EventStart.AddHours(1)),
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            new SingleEventSchedule(
+                new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day),
+                new LocalTimeValue(EventStart.Hour, EventStart.Minute, EventStart.Second), 60),
             EventStart.AddDays(-1),
             alarm: alarm ?? EventAlarm.Default);
         _repo.Save(ev);
@@ -492,11 +496,11 @@ public class AlarmApplicationServiceTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(EventStart.Hour, EventStart.Minute, 0),
-            new LocalTimeValue(EventStart.Hour + 1, EventStart.Minute, 0),
-            rule, allDay: false);
+            60,
+            rule);
         var ev = CalendarEvent.CreateRecurring(
             new EventId(id), new EventTitle($"Event {id}"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
             schedule, EventStart.AddDays(-1),
             alarm: EventAlarm.Default);
         _repo.Save(ev);

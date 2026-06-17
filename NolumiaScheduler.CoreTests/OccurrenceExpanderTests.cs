@@ -20,10 +20,9 @@ public class OccurrenceExpanderTests
         var ev = CalendarEvent.CreateSingle(
             new EventId("evt_s01"),
             new EventTitle("テスト"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             new SingleEventSchedule(
-                new DateTimeOffset(2026, 4, 20, 10, 0, 0, TimeSpan.FromHours(9)),
-                new DateTimeOffset(2026, 4, 20, 11, 0, 0, TimeSpan.FromHours(9))),
+                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
             Now);
 
         var results = _expander.Expand(ev,
@@ -40,10 +39,9 @@ public class OccurrenceExpanderTests
         var ev = CalendarEvent.CreateSingle(
             new EventId("evt_s02"),
             new EventTitle("テスト"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             new SingleEventSchedule(
-                new DateTimeOffset(2026, 5, 20, 10, 0, 0, TimeSpan.FromHours(9)),
-                new DateTimeOffset(2026, 5, 20, 11, 0, 0, TimeSpan.FromHours(9))),
+                new LocalDateValue(2026, 5, 20), new LocalTimeValue(10, 0, 0), 60),
             Now);
 
         var results = _expander.Expand(ev,
@@ -104,7 +102,7 @@ public class OccurrenceExpanderTests
         var ev = CreateWeeklyMonday();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0));
+            new LocalTimeValue(14, 0, 0), 60);
         ev.MoveOccurrence(move, Now);
 
         var results = _expander.Expand(ev,
@@ -126,7 +124,7 @@ public class OccurrenceExpanderTests
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         ev.OverrideOccurrence(key, new ExceptionOverride(title: new EventTitle("変更済み")), Now);
         ev.MoveOccurrence(new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0)), Now);
+            new LocalTimeValue(14, 0, 0), 60), Now);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 20),
@@ -151,13 +149,13 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_m01"),
             new EventTitle("月例"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         var results = _expander.Expand(ev,
@@ -184,13 +182,13 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_adj01"),
             new EventTitle("調整テスト"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         // May 4 is a holiday in our test calendar
@@ -223,13 +221,13 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(9, 0, 0),
-            new LocalTimeValue(10, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_y01"),
             new EventTitle("年次レビュー"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         var results = _expander.Expand(ev,
@@ -252,15 +250,16 @@ public class OccurrenceExpanderTests
             new LocalDateValue(2026, 4, 30),
             weekly: new WeeklyRule([Weekday.Monday]));
 
+        // An "all-day" recurrence is now modeled as start 00:00 + 1440-minute duration.
         var schedule = new RecurringEventSchedule(
             startDate,
-            null, null,
-            rule, allDay: true);
+            new LocalTimeValue(0, 0, 0), 24 * 60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_allday01"),
             new EventTitle("終日イベント"),
-            null, Visibility.Public, null, null, Tokyo, true,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         var results = _expander.Expand(ev,
@@ -269,9 +268,8 @@ public class OccurrenceExpanderTests
 
         // Mondays in [4/20, 4/30]: 4/20, 4/27
         Assert.HasCount(2, results);
-        Assert.IsTrue(results.All(r => r.AllDay));
-        Assert.IsTrue(results.All(r => r.StartTime is null));
-        Assert.IsTrue(results.All(r => r.EndTime is null));
+        Assert.IsTrue(results.All(r => r.StartMinuteOfDay == 0 && r.DurationMinutes == 24 * 60));
+        Assert.IsTrue(results.All(r => r.StartTime.Equals(new LocalTimeValue(0, 0, 0))));
     }
 
     [TestMethod]
@@ -286,13 +284,13 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_w02"),
             new EventTitle("期限切れ会議"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         // Query after rule.EndDate
@@ -316,13 +314,13 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         var ev = CalendarEvent.CreateRecurring(
             new EventId("evt_adj02"),
             new EventTitle("非祝日テスト"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
 
         // May 1 is not a holiday in this calendar
@@ -350,7 +348,7 @@ public class OccurrenceExpanderTests
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         ev.MoveOccurrence(new EventMove(
             key, new LocalDateValue(2026, 5, 13),
-            new LocalTimeValue(14, 0, 0), new LocalTimeValue(15, 0, 0)), Now);
+            new LocalTimeValue(14, 0, 0), 60), Now);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 5, 10),
@@ -422,13 +420,13 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         return CalendarEvent.CreateRecurring(
             new EventId(id),
             new EventTitle("上限テスト"),
-            null, Visibility.Public, null, null, Tokyo, false,
+            null, Visibility.Public, null, null, Tokyo,
             schedule, Now);
     }
 
@@ -443,14 +441,14 @@ public class OccurrenceExpanderTests
         var schedule = new RecurringEventSchedule(
             startDate,
             new LocalTimeValue(10, 0, 0),
-            new LocalTimeValue(11, 0, 0),
-            rule, false);
+            60,
+            rule);
 
         return CalendarEvent.CreateRecurring(
             new EventId("evt_w01"),
             new EventTitle("週次会議"),
             new Location("会議室A"),
-            Visibility.Public, null, null, Tokyo, false,
+            Visibility.Public, null, null, Tokyo,
             schedule, Now);
     }
 }

@@ -51,12 +51,18 @@ internal static class JsonScenarioLoader
 
         if (string.Equals(dto.Kind, "Single", StringComparison.OrdinalIgnoreCase))
         {
+            // Scenario JSON keeps the legacy start/end shape; translate it into the duration model
+            // (docs/time-model.md). The wall-clock start is taken in the event's timezone.
             var start = ParseDateTimeOffset(Required(dto.Start, "start"));
             var end = ParseDateTimeOffset(Required(dto.End, "end"));
-            var schedule = new SingleEventSchedule(start, end);
+            var localStart = TimeZoneInfo.ConvertTime(start, tz.ToTimeZoneInfo());
+            var startDate = new LocalDateValue(localStart.Year, localStart.Month, localStart.Day);
+            var startTime = new LocalTimeValue(localStart.Hour, localStart.Minute, localStart.Second);
+            var duration = (int)(end - start).TotalMinutes;
+            var schedule = new SingleEventSchedule(startDate, startTime, duration);
             return CalendarEvent.Reconstitute(
                 id, EventKind.Single, title, location, visibility, eventType, description,
-                tz, dto.AllDay, schedule, recurringSchedule: null,
+                tz, schedule, recurringSchedule: null,
                 createdAt, updatedAt,
                 exceptions: [], moves: [], version);
         }
@@ -64,10 +70,10 @@ internal static class JsonScenarioLoader
         if (string.Equals(dto.Kind, "Recurring", StringComparison.OrdinalIgnoreCase))
         {
             var startDate = ParseLocalDate(Required(dto.StartDate, "startDate"));
-            var startTime = string.IsNullOrEmpty(dto.StartTime) ? null : ParseLocalTime(dto.StartTime);
-            var endTime = string.IsNullOrEmpty(dto.EndTime) ? null : ParseLocalTime(dto.EndTime);
+            var startTime = string.IsNullOrEmpty(dto.StartTime) ? new LocalTimeValue(0, 0, 0) : ParseLocalTime(dto.StartTime);
+            var duration = DurationFromTimes(dto.AllDay, dto.StartTime, dto.EndTime) ?? 24 * 60;
             var rule = MapRecurrenceRule(Required(dto.Recurrence, "recurrence"));
-            var schedule = new RecurringEventSchedule(startDate, startTime, endTime, rule, dto.AllDay);
+            var schedule = new RecurringEventSchedule(startDate, startTime, duration, rule);
 
             var exceptions = (dto.Exceptions ?? [])
                 .Select(e => MapException(e, dto.AllDay))
@@ -78,7 +84,7 @@ internal static class JsonScenarioLoader
 
             return CalendarEvent.Reconstitute(
                 id, EventKind.Recurring, title, location, visibility, eventType, description,
-                tz, dto.AllDay, singleSchedule: null, recurringSchedule: schedule,
+                tz, singleSchedule: null, recurringSchedule: schedule,
                 createdAt, updatedAt, exceptions, moves, version);
         }
 
@@ -213,12 +219,13 @@ internal static class JsonScenarioLoader
 
     private static ExceptionOverride MapOverride(OverrideDto dto, bool allDay)
     {
+        var hasTimes = !allDay && !string.IsNullOrEmpty(dto.StartTime) && !string.IsNullOrEmpty(dto.EndTime);
         return new ExceptionOverride(
             title: string.IsNullOrEmpty(dto.Title) ? null : new EventTitle(dto.Title),
             location: string.IsNullOrEmpty(dto.Location) ? null : new DomainLocation(dto.Location),
             visibility: string.IsNullOrEmpty(dto.Visibility) ? null : ParseVisibility(dto.Visibility),
-            startTime: allDay || string.IsNullOrEmpty(dto.StartTime) ? null : ParseLocalTime(dto.StartTime),
-            endTime: allDay || string.IsNullOrEmpty(dto.EndTime) ? null : ParseLocalTime(dto.EndTime));
+            startTime: hasTimes ? ParseLocalTime(dto.StartTime!) : null,
+            durationMinutes: hasTimes ? DurationFromTimes(false, dto.StartTime, dto.EndTime) : null);
     }
 
     private static EventMove MapMove(MoveDto dto, bool allDay)
@@ -227,14 +234,26 @@ internal static class JsonScenarioLoader
         var key = new OccurrenceLocalKey(date, time);
         var newDate = ParseLocalDate(Required(dto.NewDate, "move.newDate"));
 
+        var hasTimes = !allDay && !string.IsNullOrEmpty(dto.NewStartTime) && !string.IsNullOrEmpty(dto.NewEndTime);
         return new EventMove(
             occurrenceKey: key,
             newDate: newDate,
-            newStartTime: allDay || string.IsNullOrEmpty(dto.NewStartTime) ? null : ParseLocalTime(dto.NewStartTime),
-            newEndTime: allDay || string.IsNullOrEmpty(dto.NewEndTime) ? null : ParseLocalTime(dto.NewEndTime),
+            newStartTime: hasTimes ? ParseLocalTime(dto.NewStartTime!) : null,
+            newDurationMinutes: hasTimes ? DurationFromTimes(false, dto.NewStartTime, dto.NewEndTime) : null,
             title: string.IsNullOrEmpty(dto.Title) ? null : new EventTitle(dto.Title),
             location: string.IsNullOrEmpty(dto.Location) ? null : new DomainLocation(dto.Location),
             visibility: string.IsNullOrEmpty(dto.Visibility) ? null : ParseVisibility(dto.Visibility));
+    }
+
+    // Translates a legacy start/end time pair into a duration in minutes. Returns null when the
+    // pair is absent (all-day or unspecified); end on/before start is read as crossing midnight.
+    private static int? DurationFromTimes(bool allDay, string? startStr, string? endStr)
+    {
+        if (allDay || string.IsNullOrEmpty(startStr) || string.IsNullOrEmpty(endStr)) return null;
+        var s = ParseLocalTime(startStr);
+        var e = ParseLocalTime(endStr);
+        var minutes = ((e.Hour * 60) + e.Minute) - ((s.Hour * 60) + s.Minute);
+        return minutes > 0 ? minutes : minutes + (24 * 60);
     }
 
     private static BusinessCalendar MapCalendar(CalendarDto dto)

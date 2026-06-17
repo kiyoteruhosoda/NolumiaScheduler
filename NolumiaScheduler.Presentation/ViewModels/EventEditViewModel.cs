@@ -152,33 +152,34 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         _timeZoneId = ev.TimeZoneId.Value;
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
-        AllDay = ev.AllDay;
 
         _wasRecurringAtLoad = ev.IsRecurring();
 
+        const int minutesPerDay = 24 * 60;
+
         if (ev.IsSingle() && ev.SingleSchedule != null)
         {
-            var tz = ev.TimeZoneId.ToTimeZoneInfo();
-            var startLocal = TimeZoneInfo.ConvertTime(ev.SingleSchedule.Start, tz);
-            var endLocal   = TimeZoneInfo.ConvertTime(ev.SingleSchedule.End, tz);
-            StartDate = startLocal.DateTime.Date;
-            StartTime = startLocal.TimeOfDay;
-            EndTime   = endLocal.TimeOfDay;
+            var sched = ev.SingleSchedule;
+            // All-day is derived from a midnight start spanning a full day (docs/time-model.md).
+            AllDay = sched.StartTime.Hour == 0 && sched.StartTime.Minute == 0 && sched.DurationMinutes == minutesPerDay;
+            StartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
+            StartTime = new TimeSpan(sched.StartTime.Hour, sched.StartTime.Minute, 0);
+            EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(sched.DurationMinutes));
             RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.None;
         }
         else if (ev.IsRecurring() && ev.RecurringSchedule != null)
         {
             var sched = ev.RecurringSchedule;
+            AllDay = sched.StartTime.Hour == 0 && sched.StartTime.Minute == 0 && sched.DurationMinutes == minutesPerDay;
+
             var effectiveDate = occurrenceKey?.Date ?? sched.StartDate;
             var effectiveStart = occurrenceKey?.Time ?? sched.StartTime;
 
             _seriesStartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
             StartDate = new DateTime(effectiveDate.Year, effectiveDate.Month, effectiveDate.Day);
-            StartTime = effectiveStart != null ? new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0) : new TimeSpan(9, 0, 0);
+            StartTime = new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0);
 
-            var durationMinutes = sched.StartTime != null && sched.EndTime != null
-                ? Math.Max(EventEditDefaults.MinEventDurationMinutes, (sched.EndTime.Hour * 60 + sched.EndTime.Minute) - (sched.StartTime.Hour * 60 + sched.StartTime.Minute))
-                : 60;
+            var durationMinutes = Math.Max(EventEditDefaults.MinEventDurationMinutes, sched.DurationMinutes);
             EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(durationMinutes));
 
             LoadRecurrenceRule(sched.RecurrenceRule);

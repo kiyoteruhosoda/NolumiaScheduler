@@ -72,7 +72,6 @@ internal class CalendarEventDto
     public string? EventType { get; set; }
     public string? Description { get; set; }
     public string TimeZoneId { get; set; } = "";
-    public bool AllDay { get; set; }
     public SingleScheduleDto? SingleSchedule { get; set; }
     public RecurringScheduleDto? RecurringSchedule { get; set; }
     public List<EventExceptionDto> Exceptions { get; set; } = [];
@@ -89,13 +88,8 @@ internal class CalendarEventDto
         var kind = Enum.Parse<EventKind>(Kind);
         var visibility = Enum.Parse<Visibility>(Visibility);
 
-        SingleEventSchedule? single = SingleSchedule != null
-            ? new SingleEventSchedule(
-                DateTimeOffset.Parse(SingleSchedule.Start),
-                DateTimeOffset.Parse(SingleSchedule.End))
-            : null;
-
-        RecurringEventSchedule? recurring = RecurringSchedule?.ToDomain(AllDay);
+        SingleEventSchedule? single = SingleSchedule?.ToDomain();
+        RecurringEventSchedule? recurring = RecurringSchedule?.ToDomain();
 
         var exceptions = Exceptions.Select(e => e.ToDomain()).ToList();
         var moves = Moves.Select(m => m.ToDomain()).ToList();
@@ -113,7 +107,6 @@ internal class CalendarEventDto
             EventType != null ? new EventType(EventType) : null,
             Description != null ? new Description(Description) : null,
             new TimeZoneId(TimeZoneId),
-            AllDay,
             single,
             recurring,
             DateTimeOffset.Parse(CreatedAt),
@@ -139,12 +132,9 @@ internal class CalendarEventDto
             EventType = ev.EventType?.Value,
             Description = ev.Description?.Value,
             TimeZoneId = ev.TimeZoneId.Value,
-            AllDay = ev.AllDay,
-            SingleSchedule = ev.SingleSchedule != null ? new SingleScheduleDto
-            {
-                Start = ev.SingleSchedule.Start.ToString("O"),
-                End = ev.SingleSchedule.End.ToString("O")
-            } : null,
+            SingleSchedule = ev.SingleSchedule != null
+                ? SingleScheduleDto.FromDomain(ev.SingleSchedule)
+                : null,
             RecurringSchedule = ev.RecurringSchedule != null
                 ? RecurringScheduleDto.FromDomain(ev.RecurringSchedule)
                 : null,
@@ -178,45 +168,51 @@ internal class AlarmDto
 
 internal class SingleScheduleDto
 {
-    public string Start { get; set; } = "";
-    public string End { get; set; } = "";
+    public string StartDate { get; set; } = "";
+    public string StartTime { get; set; } = "";
+    public int DurationMinutes { get; set; }
+
+    public SingleEventSchedule ToDomain()
+        => new(ScheduleParse.Date(StartDate), ScheduleParse.Time(StartTime), DurationMinutes);
+
+    public static SingleScheduleDto FromDomain(SingleEventSchedule schedule)
+        => new()
+        {
+            StartDate = schedule.StartDate.ToString(),
+            StartTime = schedule.StartTime.ToString(),
+            DurationMinutes = schedule.DurationMinutes
+        };
 }
 
 internal class RecurringScheduleDto
 {
     public string StartDate { get; set; } = "";
-    public string? StartTime { get; set; }
-    public string? EndTime { get; set; }
+    public string StartTime { get; set; } = "";
+    public int DurationMinutes { get; set; }
     public RecurrenceRuleDto Rule { get; set; } = new();
 
-    public RecurringEventSchedule ToDomain(bool allDay)
-    {
-        var startDate = ParseDate(StartDate);
-        var startTime = StartTime != null ? ParseTime(StartTime) : null;
-        var endTime = EndTime != null ? ParseTime(EndTime) : null;
-        var rule = Rule.ToDomain();
-
-        return new RecurringEventSchedule(startDate, startTime, endTime, rule, allDay);
-    }
+    public RecurringEventSchedule ToDomain()
+        => new(ScheduleParse.Date(StartDate), ScheduleParse.Time(StartTime), DurationMinutes, Rule.ToDomain());
 
     public static RecurringScheduleDto FromDomain(RecurringEventSchedule schedule)
-    {
-        return new RecurringScheduleDto
+        => new()
         {
             StartDate = schedule.StartDate.ToString(),
-            StartTime = schedule.StartTime?.ToString(),
-            EndTime = schedule.EndTime?.ToString(),
+            StartTime = schedule.StartTime.ToString(),
+            DurationMinutes = schedule.DurationMinutes,
             Rule = RecurrenceRuleDto.FromDomain(schedule.RecurrenceRule)
         };
-    }
+}
 
-    private static LocalDateValue ParseDate(string s)
+internal static class ScheduleParse
+{
+    public static LocalDateValue Date(string s)
     {
         var d = DateOnly.Parse(s);
         return new LocalDateValue(d.Year, d.Month, d.Day);
     }
 
-    private static LocalTimeValue ParseTime(string s)
+    public static LocalTimeValue Time(string s)
     {
         var t = TimeOnly.Parse(s);
         return new LocalTimeValue(t.Hour, t.Minute, t.Second);
@@ -371,7 +367,7 @@ internal class ExceptionOverrideDto
     public string? Location { get; set; }
     public string? Visibility { get; set; }
     public string? StartTime { get; set; }
-    public string? EndTime { get; set; }
+    public int? DurationMinutes { get; set; }
 
     public ExceptionOverride ToDomain()
     {
@@ -379,8 +375,8 @@ internal class ExceptionOverrideDto
             Title != null ? new EventTitle(Title) : null,
             Location != null ? new Location(Location) : null,
             Visibility != null ? Enum.Parse<Visibility>(Visibility) : null,
-            StartTime != null ? ParseTime(StartTime) : null,
-            EndTime != null ? ParseTime(EndTime) : null);
+            StartTime != null ? ScheduleParse.Time(StartTime) : null,
+            DurationMinutes);
     }
 
     public static ExceptionOverrideDto FromDomain(ExceptionOverride ov)
@@ -391,14 +387,8 @@ internal class ExceptionOverrideDto
             Location = ov.Location?.Value,
             Visibility = ov.Visibility?.ToString(),
             StartTime = ov.StartTime?.ToString(),
-            EndTime = ov.EndTime?.ToString()
+            DurationMinutes = ov.DurationMinutes
         };
-    }
-
-    private static LocalTimeValue ParseTime(string s)
-    {
-        var t = TimeOnly.Parse(s);
-        return new LocalTimeValue(t.Hour, t.Minute, t.Second);
     }
 }
 
@@ -408,25 +398,19 @@ internal class EventMoveDto
     public string? Time { get; set; }
     public string NewDate { get; set; } = "";
     public string? NewStartTime { get; set; }
-    public string? NewEndTime { get; set; }
+    public int? NewDurationMinutes { get; set; }
     public string? Title { get; set; }
     public string? Location { get; set; }
     public string? Visibility { get; set; }
 
     public EventMove ToDomain()
     {
-        var date = DateOnly.Parse(Date);
-        var dateValue = new LocalDateValue(date.Year, date.Month, date.Day);
-        LocalTimeValue? time = Time != null ? ParseTime(Time) : null;
-        var key = new OccurrenceLocalKey(dateValue, time);
-
-        var newDate = DateOnly.Parse(NewDate);
-        var newDateValue = new LocalDateValue(newDate.Year, newDate.Month, newDate.Day);
+        var key = new OccurrenceLocalKey(ScheduleParse.Date(Date), Time != null ? ScheduleParse.Time(Time) : null);
 
         return new EventMove(
-            key, newDateValue,
-            NewStartTime != null ? ParseTime(NewStartTime) : null,
-            NewEndTime != null ? ParseTime(NewEndTime) : null,
+            key, ScheduleParse.Date(NewDate),
+            NewStartTime != null ? ScheduleParse.Time(NewStartTime) : null,
+            NewDurationMinutes,
             Title != null ? new EventTitle(Title) : null,
             Location != null ? new Location(Location) : null,
             Visibility != null ? Enum.Parse<Visibility>(Visibility) : null);
@@ -440,16 +424,10 @@ internal class EventMoveDto
             Time = move.OccurrenceKey.Time?.ToString(),
             NewDate = move.NewDate.ToString(),
             NewStartTime = move.NewStartTime?.ToString(),
-            NewEndTime = move.NewEndTime?.ToString(),
+            NewDurationMinutes = move.NewDurationMinutes,
             Title = move.Title?.Value,
             Location = move.Location?.Value,
             Visibility = move.Visibility?.ToString()
         };
-    }
-
-    private static LocalTimeValue ParseTime(string s)
-    {
-        var t = TimeOnly.Parse(s);
-        return new LocalTimeValue(t.Hour, t.Minute, t.Second);
     }
 }

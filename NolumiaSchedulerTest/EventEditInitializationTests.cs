@@ -146,7 +146,7 @@ public class EventEditInitializationTests
         Assert.AreEqual("future", future.Title.Value);
         Assert.AreEqual("room B", future.Location!.Value);
         Assert.AreEqual(new LocalDateValue(2026, 5, 6), future.RecurringSchedule!.StartDate);
-        Assert.AreEqual(13, future.RecurringSchedule.StartTime!.Hour);
+        Assert.AreEqual(13, future.RecurringSchedule!.StartTime.Hour);
     }
 
     [TestMethod]
@@ -316,7 +316,7 @@ public class EventEditInitializationTests
         var tz = new TimeZoneId("Asia/Tokyo");
         var now = DateTimeOffset.UtcNow;
         var start = new DateTimeOffset(2026,5,6,9,30,0,TimeSpan.FromHours(9));
-        return CalendarEvent.CreateSingle(new EventId(id), new EventTitle("x"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false, new SingleEventSchedule(start, start.AddHours(1)), now);
+        return CalendarEvent.CreateSingle(new EventId(id), new EventTitle("x"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, new SingleEventSchedule(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0), 60), now);
     }
 
 
@@ -325,9 +325,9 @@ public class EventEditInitializationTests
         var tz = new TimeZoneId("Asia/Tokyo");
         var now = DateTimeOffset.UtcNow;
         return CalendarEvent.CreateRecurring(
-            new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false,
-            new RecurringEventSchedule(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), new LocalTimeValue(10, 30, 0),
-                new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31), weekly: new WeeklyRule([Weekday.Wednesday])), false),
+            new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz,
+            new RecurringEventSchedule(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), 60,
+                new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31), weekly: new WeeklyRule([Weekday.Wednesday]))),
             now);
     }
 
@@ -339,9 +339,9 @@ public class EventEditInitializationTests
         var tz = new TimeZoneId("Asia/Tokyo");
         var now = DateTimeOffset.UtcNow;
         return CalendarEvent.CreateRecurring(
-            new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz, false,
-            new RecurringEventSchedule(start, new LocalTimeValue(9, 30, 0), new LocalTimeValue(10, 30, 0),
-                new RecurrenceRule(RecurrenceType.Weekly, 1, end, weekly: new WeeklyRule([.. days])), false),
+            new EventId(id), new EventTitle("rec"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz,
+            new RecurringEventSchedule(start, new LocalTimeValue(9, 30, 0), 60,
+                new RecurrenceRule(RecurrenceType.Weekly, 1, end, weekly: new WeeklyRule([.. days]))),
             now);
     }
 

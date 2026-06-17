@@ -24,9 +24,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
         CalendarEvent ev, LocalDateValue fromDate, LocalDateValue toDate)
     {
         var schedule = ev.SingleSchedule!;
-        var tz = ev.TimeZoneId.ToTimeZoneInfo();
-        var startLocal = TimeZoneInfo.ConvertTime(schedule.Start, tz);
-        var startDate = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(startLocal.DateTime));
+        var startDate = schedule.StartDate;
 
         if (startDate < fromDate || startDate > toDate)
             return [];
@@ -35,10 +33,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
         [
             new EventOccurrence(
                 ev.Id, startDate,
-                ev.AllDay ? null : LocalTimeValue.FromTimeOnly(TimeOnly.FromDateTime(startLocal.DateTime)),
-                ev.AllDay ? null : LocalTimeValue.FromTimeOnly(TimeOnly.FromDateTime(
-                    TimeZoneInfo.ConvertTime(schedule.End, tz).DateTime)),
-                ev.AllDay, ev.Title, ev.Location, ev.Visibility,
+                schedule.StartTime, schedule.DurationMinutes,
+                ev.Title, ev.Location, ev.Visibility,
                 colorKey: ev.ColorKey)
         ];
     }
@@ -76,8 +72,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     results.Add(new EventOccurrence(
                         ev.Id, move.NewDate,
                         move.NewStartTime ?? movedOverride?.StartTime ?? schedule.StartTime,
-                        move.NewEndTime ?? movedOverride?.EndTime ?? schedule.EndTime,
-                        ev.AllDay,
+                        move.NewDurationMinutes ?? movedOverride?.DurationMinutes ?? schedule.DurationMinutes,
                         move.Title ?? movedOverride?.Title ?? ev.Title,
                         move.Location ?? movedOverride?.Location ?? ev.Location,
                         move.Visibility ?? movedOverride?.Visibility ?? ev.Visibility,
@@ -105,8 +100,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 results.Add(new EventOccurrence(
                     ev.Id, adjustedDate,
                     ov.StartTime ?? schedule.StartTime,
-                    ov.EndTime ?? schedule.EndTime,
-                    ev.AllDay,
+                    ov.DurationMinutes ?? schedule.DurationMinutes,
                     ov.Title ?? ev.Title,
                     ov.Location ?? ev.Location,
                     ov.Visibility ?? ev.Visibility,
@@ -118,8 +112,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
 
             results.Add(new EventOccurrence(
                 ev.Id, adjustedDate,
-                schedule.StartTime, schedule.EndTime,
-                ev.AllDay, ev.Title, ev.Location, ev.Visibility,
+                schedule.StartTime, schedule.DurationMinutes,
+                ev.Title, ev.Location, ev.Visibility,
                 seriesKey: key,
                 colorKey: ev.ColorKey));
         }

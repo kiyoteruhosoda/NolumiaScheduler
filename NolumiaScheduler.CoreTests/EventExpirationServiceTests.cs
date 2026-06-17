@@ -49,12 +49,13 @@ public class EventExpirationServiceTests
     [TestMethod]
     public void 単発終日_当日中は有効で翌日0時に期限切れへ遷移する()
     {
-        // All-day single events are stored as [00:00, next day 00:00).
-        var start = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero);
+        // All-day single events are modeled as start 00:00 + 1440-minute duration.
         var ev = CalendarEvent.CreateSingle(
             new EventId("allday"), new EventTitle("AllDay"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: true,
-            new SingleEventSchedule(start, start.AddDays(1)), CreatedAt);
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            new SingleEventSchedule(
+                new LocalDateValue(2026, 6, 10), new LocalTimeValue(0, 0, 0), 24 * 60),
+            CreatedAt);
 
         Assert.IsFalse(_service.IsExpired(ev, null, new DateTimeOffset(2026, 6, 10, 23, 59, 59, TimeSpan.Zero)));
         Assert.IsTrue(_service.IsExpired(ev, null, new DateTimeOffset(2026, 6, 11, 0, 0, 0, TimeSpan.Zero)));
@@ -83,7 +84,7 @@ public class EventExpirationServiceTests
             new OccurrenceLocalKey(new LocalDateValue(2026, 6, 15), new LocalTimeValue(9, 0, 0)),
             new LocalDateValue(2026, 7, 20),
             new LocalTimeValue(9, 0, 0),
-            new LocalTimeValue(10, 0, 0)), CreatedAt);
+            60), CreatedAt);
 
         var movedEnd = new DateTimeOffset(2026, 7, 20, 10, 0, 0, TimeSpan.Zero);
         Assert.AreEqual(movedEnd, _service.GetLastOccurrenceEnd(ev, null));
@@ -114,8 +115,9 @@ public class EventExpirationServiceTests
             weekly: new WeeklyRule([Weekday.Monday]));
         var ev = CalendarEvent.CreateRecurring(
             new EventId("rec-allday"), new EventTitle("Rec AllDay"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: true,
-            new RecurringEventSchedule(new LocalDateValue(2026, 6, 1), null, null, rule, allDay: true),
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            new RecurringEventSchedule(
+                new LocalDateValue(2026, 6, 1), new LocalTimeValue(0, 0, 0), 24 * 60, rule),
             CreatedAt);
 
         Assert.IsFalse(_service.IsExpired(ev, null, new DateTimeOffset(2026, 6, 15, 23, 0, 0, TimeSpan.Zero)));
@@ -148,10 +150,10 @@ public class EventExpirationServiceTests
             adjustment: new AdjustmentRule(AdjustmentDirection.Forward));
         var ev = CalendarEvent.CreateRecurring(
             new EventId("adj"), new EventTitle("Adjusted"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 6, 15), new LocalTimeValue(9, 0, 0), new LocalTimeValue(10, 0, 0),
-                rule, allDay: false),
+                new LocalDateValue(2026, 6, 15), new LocalTimeValue(9, 0, 0), 60,
+                rule),
             CreatedAt);
 
         Assert.AreEqual(
@@ -178,10 +180,16 @@ public class EventExpirationServiceTests
 
     private static CalendarEvent SingleEvent(DateTimeOffset end, string timeZone = "UTC")
     {
+        // Schedule is start + duration: start one hour before the given end (60-minute event).
+        var start = end.AddHours(-1);
         return CalendarEvent.CreateSingle(
             new EventId("single"), new EventTitle("Single"), null,
-            Visibility.Public, null, null, new TimeZoneId(timeZone), allDay: false,
-            new SingleEventSchedule(end.AddHours(-1), end), CreatedAt);
+            Visibility.Public, null, null, new TimeZoneId(timeZone),
+            new SingleEventSchedule(
+                new LocalDateValue(start.Year, start.Month, start.Day),
+                new LocalTimeValue(start.Hour, start.Minute, start.Second),
+                (int)(end - start).TotalMinutes),
+            CreatedAt);
     }
 
     private static CalendarEvent WeeklyMondayEvent(
@@ -194,11 +202,11 @@ public class EventExpirationServiceTests
             weekly: new WeeklyRule([Weekday.Monday]));
         return CalendarEvent.CreateRecurring(
             new EventId("weekly"), new EventTitle("Weekly"), null,
-            Visibility.Public, null, null, new TimeZoneId(timeZone), allDay: false,
+            Visibility.Public, null, null, new TimeZoneId(timeZone),
             new RecurringEventSchedule(
                 startDate ?? new LocalDateValue(2026, 6, 1),
-                new LocalTimeValue(9, 0, 0), new LocalTimeValue(10, 0, 0),
-                rule, allDay: false),
+                new LocalTimeValue(9, 0, 0), 60,
+                rule),
             CreatedAt);
     }
 }

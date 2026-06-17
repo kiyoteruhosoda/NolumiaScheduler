@@ -503,12 +503,17 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                 var item = new CalendarEventItem(occ);
                 if (!item.IsAllDay && item.CrossesMidnight && dayIdx < dayCount - 1)
                 {
+                    // Split at the local 24:00 boundary: the first day runs start → 24:00, the
+                    // remainder spills onto the next day from 00:00 (docs/time-model.md).
+                    const int minutesPerDay = 24 * 60;
+                    var firstDuration = minutesPerDay - occ.StartMinuteOfDay;
+                    var secondDuration = occ.StartMinuteOfDay + occ.DurationMinutes - minutesPerDay;
+
                     var firstOccurrence = new EventOccurrence(
                         occ.EventId,
                         occ.Date,
                         occ.StartTime,
-                        new LocalTimeValue(23, 59, 0),
-                        false,
+                        firstDuration,
                         occ.Title,
                         occ.Location,
                         occ.Visibility,
@@ -522,8 +527,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                         occ.EventId,
                         LocalDateValue.FromDateOnly(occ.Date.ToDateOnly().AddDays(1)),
                         new LocalTimeValue(0, 0, 0),
-                        occ.EndTime,
-                        false,
+                        secondDuration,
                         occ.Title,
                         occ.Location,
                         occ.Visibility,
@@ -631,15 +635,16 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             }
         }
 
-        // Sort: all-day first, then by start time
+        // Sort: all-day first (00:00 + 24h), then by start time
+        static bool IsAllDay(EventOccurrence o) => o.StartMinuteOfDay == 0 && o.DurationMinutes == 24 * 60;
         foreach (var list in byDate.Values)
         {
             list.Sort((a, b) =>
             {
-                if (a.AllDay != b.AllDay) return a.AllDay ? -1 : 1;
-                if (a.StartTime != null && b.StartTime != null)
-                    return a.StartTime.CompareTo(b.StartTime);
-                return 0;
+                var aAllDay = IsAllDay(a);
+                var bAllDay = IsAllDay(b);
+                if (aAllDay != bAllDay) return aAllDay ? -1 : 1;
+                return a.StartTime.CompareTo(b.StartTime);
             });
         }
 

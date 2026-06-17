@@ -63,9 +63,10 @@ public class CalendarEventApplicationServiceTests
             EndTime: TimeSpan.Zero));
 
         var ev = _repo.FindAll()[0];
-        Assert.IsTrue(ev.AllDay);
-        var duration = ev.SingleSchedule!.End - ev.SingleSchedule.Start;
-        Assert.AreEqual(TimeSpan.FromDays(1), duration);
+        // All-day is now modeled as start 00:00 + a full-day (1440-minute) duration.
+        Assert.AreEqual(new LocalDateValue(2026, 5, 20), ev.SingleSchedule!.StartDate);
+        Assert.AreEqual(new LocalTimeValue(0, 0, 0), ev.SingleSchedule.StartTime);
+        Assert.AreEqual(24 * 60, ev.SingleSchedule.DurationMinutes);
     }
 
     [TestMethod]
@@ -164,7 +165,7 @@ public class CalendarEventApplicationServiceTests
     public void UpdateEvent_単発予定は日時を変更できる()
     {
         var ev = CreateAndSaveSingleEvent("upd2");
-        var originalStart = ev.SingleSchedule!.Start;
+        var originalStartDate = ev.SingleSchedule!.StartDate;
 
         _svc.UpdateEvent(new UpdateEventCommand(
             EventId: "upd2",
@@ -178,8 +179,10 @@ public class CalendarEventApplicationServiceTests
             Alarm: null));
 
         var saved = _repo.FindById(new EventId("upd2"))!;
-        Assert.AreNotEqual(originalStart, saved.SingleSchedule!.Start);
-        Assert.AreEqual(14, saved.SingleSchedule.Start.ToOffset(TimeSpan.FromHours(9)).Hour);
+        Assert.AreNotEqual(originalStartDate, saved.SingleSchedule!.StartDate);
+        Assert.AreEqual(new LocalDateValue(2026, 6, 1), saved.SingleSchedule.StartDate);
+        Assert.AreEqual(14, saved.SingleSchedule.StartTime.Hour);
+        Assert.AreEqual(60, saved.SingleSchedule.DurationMinutes);
     }
 
     [TestMethod]
@@ -193,7 +196,7 @@ public class CalendarEventApplicationServiceTests
             StartTime: TimeSpan.Zero, EndTime: TimeSpan.Zero));
 
         var ev = _repo.FindAll()[0];
-        var originalStart = ev.SingleSchedule!.Start;
+        var originalStartDate = ev.SingleSchedule!.StartDate;
 
         _svc.UpdateEvent(new UpdateEventCommand(
             EventId: ev.Id.Value,
@@ -205,8 +208,11 @@ public class CalendarEventApplicationServiceTests
             Alarm: null));
 
         var saved = _repo.FindById(ev.Id)!;
-        Assert.AreNotEqual(originalStart, saved.SingleSchedule!.Start);
-        Assert.AreEqual(25, saved.SingleSchedule.Start.ToOffset(TimeSpan.FromHours(9)).Day);
+        Assert.AreNotEqual(originalStartDate, saved.SingleSchedule!.StartDate);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 25), saved.SingleSchedule.StartDate);
+        // Remains a full-day occurrence: start 00:00 + 1440 minutes.
+        Assert.AreEqual(new LocalTimeValue(0, 0, 0), saved.SingleSchedule.StartTime);
+        Assert.AreEqual(24 * 60, saved.SingleSchedule.DurationMinutes);
     }
 
     // ── SkipOccurrence / DeleteOccurrence ──────────────────────────────────
@@ -394,11 +400,11 @@ public class CalendarEventApplicationServiceTests
     private CalendarEvent CreateAndSaveSingleEvent(string id)
     {
         var tz = new TimeZoneId("Asia/Tokyo");
-        var start = new DateTimeOffset(2026, 5, 20, 9, 0, 0, TimeSpan.FromHours(9));
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle("sample"), null,
-            Visibility.Public, null, null, tz, false,
-            new SingleEventSchedule(start, start.AddHours(1)),
+            Visibility.Public, null, null, tz,
+            new SingleEventSchedule(
+                new LocalDateValue(2026, 5, 20), new LocalTimeValue(9, 0, 0), 60),
             DateTimeOffset.UtcNow);
         _repo.Save(ev);
         return ev;
@@ -414,11 +420,11 @@ public class CalendarEventApplicationServiceTests
         var schedule = new RecurringEventSchedule(
             new LocalDateValue(2026, 5, 1),
             new LocalTimeValue(9, 30, 0),
-            new LocalTimeValue(10, 30, 0),
-            rule, false);
+            60,
+            rule);
         var ev = CalendarEvent.CreateRecurring(
             new EventId(id), new EventTitle("rec"), null,
-            Visibility.Public, null, null, tz, false,
+            Visibility.Public, null, null, tz,
             schedule, DateTimeOffset.UtcNow);
         _repo.Save(ev);
     }
