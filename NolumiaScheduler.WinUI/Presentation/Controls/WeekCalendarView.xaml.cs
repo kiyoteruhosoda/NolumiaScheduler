@@ -342,7 +342,10 @@ public sealed partial class WeekCalendarView : UserControl
             var headerBorder = new Border
             {
                 Background = new SolidColorBrush(WeekDayColumn.HeaderBackgroundColor),
-                Padding = new Thickness(0, 2, 0, 6)
+                Padding = new Thickness(0, 2, 0, 6),
+                // Left divider so the day separator continues up through the header row.
+                BorderBrush = DayDividerBrush(),
+                BorderThickness = new Thickness(1.3, 0, 0, 0)
             };
             var headerText = new TextBlock
             {
@@ -469,7 +472,12 @@ public sealed partial class WeekCalendarView : UserControl
         }
     }
 
-    private Canvas BuildAllDayLane(DateTime day)
+    // Theme-aware brush for the day-separating vertical line; matches the body grid divider
+    // (WeekGridBackgroundView) so header, all-day lane and time grid line up.
+    private static SolidColorBrush DayDividerBrush()
+        => new(ThemeHelper.IsDark ? WinColors.GCalGridLineDark : WinColors.GCalGridLine);
+
+    private Border BuildAllDayLane(DateTime day)
     {
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
@@ -514,7 +522,13 @@ public sealed partial class WeekCalendarView : UserControl
             canvas.Children.Add(chip);
         }
 
-        return canvas;
+        // Wrap in a left-bordered host so the day divider continues through the all-day lane.
+        return new Border
+        {
+            BorderBrush = DayDividerBrush(),
+            BorderThickness = new Thickness(1.3, 0, 0, 0),
+            Child = canvas
+        };
     }
 
     private static Windows.UI.Color DarkenColor(Windows.UI.Color color, double factor)
