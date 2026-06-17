@@ -363,6 +363,11 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private static LocalTimeValue ToLocalTime(int minuteOfDay)
         => new(minuteOfDay / 60, minuteOfDay % 60, 0);
 
+    // Projects a canonical occurrence (event-timezone wall-clock) into the device's local
+    // timezone for display, preserving the canonical key for editing/moving (docs/time-model.md §4).
+    private static EventOccurrence ProjectForDisplay(CalendarEvent ev, EventOccurrence occ)
+        => OccurrenceDisplayProjection.ToDisplayTimeZone(occ, ev.TimeZoneId.ToTimeZoneInfo(), TimeZoneInfo.Local);
+
     private void RefreshAfterChange()
     {
         var previousDate = _selectedCell?.Date;
@@ -496,8 +501,12 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         {
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
-            foreach (var occ in _expander.Expand(ev, from, to, calendar))
+            foreach (var canonical in _expander.Expand(ev, from, to, calendar))
             {
+                // Render in the viewer's (device) timezone while keeping the canonical key for
+                // editing/moving (docs/time-model.md §4). Bucketing and the 24:00 split are done
+                // in viewer-local coordinates.
+                var occ = ProjectForDisplay(ev, canonical);
                 var dayIdx = (int)(occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue).Date - _weekStartDate.Date).TotalDays;
                 if (dayIdx < 0 || dayIdx >= dayCount) continue;
                 var item = new CalendarEventItem(occ);
@@ -626,8 +635,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
 
-            foreach (var occ in _expander.Expand(ev, monthFrom, monthTo, calendar))
+            foreach (var canonical in _expander.Expand(ev, monthFrom, monthTo, calendar))
             {
+                var occ = ProjectForDisplay(ev, canonical);
                 var key = occ.Date.ToString();
                 if (!byDate.TryGetValue(key, out var list))
                     byDate[key] = list = [];
