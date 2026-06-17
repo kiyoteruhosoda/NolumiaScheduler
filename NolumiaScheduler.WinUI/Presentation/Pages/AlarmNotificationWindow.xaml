@@ -12,8 +12,9 @@
                 BorderBrush="{ThemeResource GCalBorder}" BorderThickness="1"
                 CornerRadius="24" Padding="40,44,40,32"
                 HorizontalAlignment="Center" VerticalAlignment="Center"
-                MaxWidth="440" MinWidth="380">
+                MaxWidth="440" MinWidth="380" MaxHeight="900">
 
+            <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollMode="Disabled">
             <StackPanel Spacing="0" HorizontalAlignment="Stretch">
 
                 <!-- Bell in a soft accent circle -->
@@ -42,6 +43,11 @@
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                            Foreground="{ThemeResource GCalTextSecondary}"/>
 
+                <!-- Next alarm countdown -->
+                <TextBlock x:Name="NextAlarmLabel" FontSize="13" Margin="0,12,0,0"
+                           HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
+                           Foreground="{ThemeResource GCalTextSecondary}"/>
+
                 <!-- Location (only when set) -->
                 <Button x:Name="OpenLocationBtn" FontSize="13" Margin="0,16,0,0"
                         Height="40" HorizontalAlignment="Center" Padding="20,0"
@@ -50,41 +56,71 @@
                         Click="OnOpenLocationClicked"
                         Visibility="Collapsed"/>
 
+                <!-- Pre-event offset toggles (5 min / 1 min) -->
+                <TextBlock x:Name="OffsetsHeaderLabel" FontSize="12" FontWeight="SemiBold"
+                           Margin="0,24,0,6" CharacterSpacing="40"
+                           Foreground="{ThemeResource GCalTextSecondary}"/>
+                <Grid x:Name="Toggle5Row" ColumnDefinitions="*,Auto" Margin="0,2,0,0" MinHeight="48">
+                    <TextBlock x:Name="Toggle5Label" Grid.Column="0" FontSize="14"
+                               VerticalAlignment="Center"
+                               Foreground="{ThemeResource GCalTextPrimary}"/>
+                    <ToggleSwitch x:Name="Toggle5Switch" Grid.Column="1" MinWidth="0"
+                                  VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                </Grid>
+                <Grid x:Name="Toggle1Row" ColumnDefinitions="*,Auto" Margin="0,2,0,0" MinHeight="48">
+                    <TextBlock x:Name="Toggle1Label" Grid.Column="0" FontSize="14"
+                               VerticalAlignment="Center"
+                               Foreground="{ThemeResource GCalTextPrimary}"/>
+                    <ToggleSwitch x:Name="Toggle1Switch" Grid.Column="1" MinWidth="0"
+                                  VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                </Grid>
+
+                <!-- Set next alarm time via free numeric input -->
+                <TextBlock x:Name="SetNextHeaderLabel" FontSize="12" FontWeight="SemiBold"
+                           Margin="0,20,0,6" CharacterSpacing="40"
+                           Foreground="{ThemeResource GCalTextSecondary}"/>
+                <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10" Margin="0,2,0,0">
+                    <TextBlock x:Name="FromNowLabel" Grid.Column="0" FontSize="14"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               Foreground="{ThemeResource GCalTextPrimary}"/>
+                    <NumberBox x:Name="FromNowInput" Grid.Column="1" Width="110" Height="48"
+                               VerticalAlignment="Center"
+                               Minimum="1" Maximum="1440" Value="5"
+                               SmallChange="1" LargeChange="5"
+                               SpinButtonPlacementMode="Inline"
+                               KeyDown="OnFromNowKeyDown"/>
+                    <Button x:Name="FromNowSetBtn" Grid.Column="2" FontSize="13"
+                            Height="48" MinWidth="72" CornerRadius="24"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource GCalSurfaceVariant}"
+                            BorderBrush="{ThemeResource GCalBorder}"
+                            Click="OnSetFromNowClicked"/>
+                </Grid>
+                <Grid x:Name="BeforeStartGrid" ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10"
+                      Margin="0,10,0,0" Visibility="Collapsed">
+                    <TextBlock x:Name="BeforeStartLabel" Grid.Column="0" FontSize="14"
+                               VerticalAlignment="Center" TextWrapping="Wrap"
+                               Foreground="{ThemeResource GCalTextPrimary}"/>
+                    <NumberBox x:Name="BeforeStartInput" Grid.Column="1" Width="110" Height="48"
+                               VerticalAlignment="Center"
+                               Minimum="1" Maximum="1440" Value="5"
+                               SmallChange="1" LargeChange="5"
+                               SpinButtonPlacementMode="Inline"
+                               KeyDown="OnBeforeStartKeyDown"/>
+                    <Button x:Name="BeforeStartSetBtn" Grid.Column="2" FontSize="13"
+                            Height="48" MinWidth="72" CornerRadius="24"
+                            VerticalAlignment="Center"
+                            Background="{ThemeResource GCalSurfaceVariant}"
+                            BorderBrush="{ThemeResource GCalBorder}"
+                            Click="OnSetBeforeStartClicked"/>
+                </Grid>
+
                 <!-- Primary action -->
                 <Button x:Name="DismissBtn" FontSize="16" FontWeight="SemiBold"
                         Margin="0,28,0,0" Height="52" CornerRadius="26"
                         HorizontalAlignment="Stretch"
                         Click="OnDismissClicked"
                         Style="{ThemeResource AccentButtonStyle}"/>
-
-                <!-- Snooze row -->
-                <Grid ColumnDefinitions="*,*" ColumnSpacing="10" Margin="0,12,0,0">
-                    <Button Grid.Column="0" x:Name="Snooze5Btn" FontSize="13"
-                            Height="44" CornerRadius="22" HorizontalAlignment="Stretch"
-                            Background="{ThemeResource GCalSurfaceVariant}"
-                            BorderBrush="{ThemeResource GCalBorder}"
-                            Click="OnSnooze5Clicked"/>
-                    <Button Grid.Column="1" x:Name="Snooze1Btn" FontSize="13"
-                            Height="44" CornerRadius="22" HorizontalAlignment="Stretch"
-                            Background="{ThemeResource GCalSurfaceVariant}"
-                            BorderBrush="{ThemeResource GCalBorder}"
-                            Click="OnSnooze1Clicked"/>
-                </Grid>
-
-                <!-- Before-event snooze row (only for pre-start alarms) -->
-                <Grid x:Name="BeforeEventGrid" ColumnDefinitions="*,*" ColumnSpacing="10"
-                      Margin="0,10,0,0" Visibility="Collapsed">
-                    <Button Grid.Column="0" x:Name="Before5Btn" FontSize="13"
-                            Height="44" CornerRadius="22" HorizontalAlignment="Stretch"
-                            Background="{ThemeResource GCalSurfaceVariant}"
-                            BorderBrush="{ThemeResource GCalBorder}"
-                            Click="OnSnoozeTo5MinBeforeClicked"/>
-                    <Button Grid.Column="1" x:Name="Before1Btn" FontSize="13"
-                            Height="44" CornerRadius="22" HorizontalAlignment="Stretch"
-                            Background="{ThemeResource GCalSurfaceVariant}"
-                            BorderBrush="{ThemeResource GCalBorder}"
-                            Click="OnSnoozeTo1MinBeforeClicked"/>
-                </Grid>
 
                 <!-- Cancel-all: quiet text button, deliberately last and small -->
                 <Button x:Name="CancelAllBtn" FontSize="12"
@@ -95,6 +131,7 @@
                         Click="OnCancelAllClicked"/>
 
             </StackPanel>
+            </ScrollViewer>
         </Border>
     </Grid>
 

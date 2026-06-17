@@ -448,6 +448,24 @@
   <data name="AlarmCancelAll" xml:space="preserve">
     <value>以降のアラームをすべてキャンセル</value>
   </data>
+  <data name="AlarmNextAlarmFormat" xml:space="preserve">
+    <value>次のアラート: {0}（あと{1}分）</value>
+  </data>
+  <data name="AlarmOffsetsHeader" xml:space="preserve">
+    <value>事前アラート</value>
+  </data>
+  <data name="AlarmSetNextHeader" xml:space="preserve">
+    <value>次のアラート時刻を設定</value>
+  </data>
+  <data name="AlarmSetFromNowLabel" xml:space="preserve">
+    <value>今から何分後</value>
+  </data>
+  <data name="AlarmSetBeforeStartLabel" xml:space="preserve">
+    <value>予定の何分前</value>
+  </data>
+  <data name="AlarmSetButton" xml:space="preserve">
+    <value>設定</value>
+  </data>
   <data name="SettingsTitle" xml:space="preserve">
     <value>設定</value>
   </data>

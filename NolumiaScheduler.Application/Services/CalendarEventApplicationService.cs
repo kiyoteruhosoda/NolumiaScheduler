@@ -150,6 +150,17 @@ public class CalendarEventApplicationService(
         _repository.Save(ev);
     }
 
+    /// <summary>
+    /// Updates only the alarm settings of an event, leaving title, schedule and everything else
+    /// untouched. Used by the alarm notification window's per-event offset toggles.
+    /// </summary>
+    public void SetEventAlarm(string eventId, EventAlarm alarm)
+    {
+        var ev = GetOrThrow(eventId);
+        ev.SetAlarm(alarm, _clock.GetUtcNow());
+        _repository.Save(ev);
+    }
+
     public void SkipOccurrence(SkipOccurrenceCommand command)
     {
         var ev = GetOrThrow(command.EventId);

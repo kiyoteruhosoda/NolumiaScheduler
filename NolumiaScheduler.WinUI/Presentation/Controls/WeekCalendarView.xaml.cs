@@ -338,11 +338,15 @@ public sealed partial class WeekCalendarView : UserControl
 
             var day = days[i];
 
-            // Header
+            // Header — today gets the top of the column frame (top + sides, rounded top);
+            // other days just carry the left day-divider.
             var headerBorder = new Border
             {
                 Background = new SolidColorBrush(WeekDayColumn.HeaderBackgroundColor),
-                Padding = new Thickness(0, 2, 0, 6)
+                Padding = new Thickness(0, 2, 0, 6),
+                BorderBrush = day.IsToday ? new SolidColorBrush(WinColors.GCalBlue) : DayDividerBrush(),
+                BorderThickness = day.IsToday ? new Thickness(2, 2, 2, 0) : new Thickness(1.3, 0, 0, 0),
+                CornerRadius = day.IsToday ? new CornerRadius(6, 6, 0, 0) : new CornerRadius(0)
             };
             var headerText = new TextBlock
             {
@@ -358,7 +362,7 @@ public sealed partial class WeekCalendarView : UserControl
             WeekHeaderGrid.Children.Add(headerBorder);
 
             // All-day lane
-            var allDayCanvas = BuildAllDayLane(day.Date);
+            var allDayCanvas = BuildAllDayLane(day.Date, day.IsToday);
             Grid.SetColumn(allDayCanvas, i);
             WeekAllDayGrid.Children.Add(allDayCanvas);
 
@@ -463,13 +467,18 @@ public sealed partial class WeekCalendarView : UserControl
         WeekAllDayGrid.Children.Clear();
         for (var i = 0; i < days.Count; i++)
         {
-            var lane = BuildAllDayLane(days[i].Date);
+            var lane = BuildAllDayLane(days[i].Date, days[i].IsToday);
             Grid.SetColumn(lane, i);
             WeekAllDayGrid.Children.Add(lane);
         }
     }
 
-    private Canvas BuildAllDayLane(DateTime day)
+    // Theme-aware brush for the day-separating vertical line; matches the body grid divider
+    // (WeekGridBackgroundView) so header, all-day lane and time grid line up.
+    private static SolidColorBrush DayDividerBrush()
+        => new(ThemeHelper.IsDark ? WinColors.GCalGridLineDark : WinColors.GCalGridLine);
+
+    private Border BuildAllDayLane(DateTime day, bool isToday)
     {
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
@@ -514,7 +523,14 @@ public sealed partial class WeekCalendarView : UserControl
             canvas.Children.Add(chip);
         }
 
-        return canvas;
+        // Wrap in a bordered host so the day divider continues through the all-day lane. For today
+        // this becomes the middle of the column frame (left + right blue sides, open top/bottom).
+        return new Border
+        {
+            BorderBrush = isToday ? new SolidColorBrush(WinColors.GCalBlue) : DayDividerBrush(),
+            BorderThickness = isToday ? new Thickness(2, 0, 2, 0) : new Thickness(1.3, 0, 0, 0),
+            Child = canvas
+        };
     }
 
     private static Windows.UI.Color DarkenColor(Windows.UI.Color color, double factor)

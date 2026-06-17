@@ -118,6 +118,131 @@ public class AlarmApplicationService
             _snoozed.Add(new SnoozeEntry(alarm.EventId, alarm.Title, notifyAt, alarm.Location, alarm.OccurrenceStart));
     }
 
+    /// <summary>
+    /// Sets an explicit "next alarm" <paramref name="delay"/> from now. Only the offset alarms that
+    /// would otherwise fire <em>before</em> it are skipped — see <see cref="SetNextAlarmAt"/>.
+    /// </summary>
+    public void SetNextAlarmFromNow(DueAlarm alarm, TimeSpan delay)
+        => SetNextAlarmAt(alarm, LocalNow().Add(delay));
+
+    /// <summary>
+    /// Sets an explicit "next alarm" <paramref name="lead"/> before the occurrence start. Only the
+    /// offset alarms that would otherwise fire <em>before</em> it are skipped (see
+    /// <see cref="SetNextAlarmAt"/>). No-op when the alarm has no occurrence start time.
+    /// </summary>
+    public void SetNextAlarmBeforeStart(DueAlarm alarm, TimeSpan lead)
+    {
+        if (alarm.OccurrenceStart == null) return;
+        SetNextAlarmAt(alarm, alarm.OccurrenceStart.Value - lead);
+    }
+
+    /// <summary>
+    /// Makes <paramref name="notifyAt"/> the event's next alarm: it replaces any earlier explicit
+    /// next-alarm and skips only the offset alarms that fall before it, so the explicit time is the
+    /// next thing to fire while later offsets still ring. A short snooze that lands before the
+    /// remaining offsets therefore keeps them; an explicit time past the event start skips them all.
+    /// </summary>
+    public void SetNextAlarmAt(DueAlarm alarm, DateTime notifyAt)
+    {
+        var now = LocalNow();
+        lock (_gate)
+        {
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value == alarm.EventId && planned.NotifyAt < notifyAt)
+                    _firedKeys.Add(planned.Key);
+            }
+
+            // The explicit next-alarm is single per event, so drop any earlier one before adding.
+            _snoozed.RemoveAll(s => s.EventId == alarm.EventId);
+            _snoozed.Add(new SnoozeEntry(
+                alarm.EventId, alarm.Title, notifyAt, alarm.Location, alarm.OccurrenceStart));
+        }
+    }
+
+    /// <summary>
+    /// The soonest not-yet-fired alarm time of the same event <em>and the same occurrence</em>
+    /// strictly after <paramref name="after"/>, or null. Scoping to the occurrence keeps a recurring
+    /// reservation's "next alarm" within the current day — it never rolls over to the next
+    /// occurrence. A pending snooze/explicit next-alarm for that occurrence counts too. When
+    /// <paramref name="occurrenceStart"/> is null (an occurrence-less reminder) only the event is
+    /// matched.
+    /// </summary>
+    public DateTime? GetNextAlarmTimeForOccurrence(string eventId, DateTime? occurrenceStart, DateTime after)
+    {
+        var now = LocalNow();
+        DateTime? best = null;
+
+        lock (_gate)
+        {
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value != eventId) continue;
+                if (occurrenceStart != null && planned.OccurrenceStart != occurrenceStart.Value) continue;
+                if (_firedKeys.Contains(planned.Key)) continue;
+                if (planned.NotifyAt <= after) continue;
+                if (best == null || planned.NotifyAt < best) best = planned.NotifyAt;
+            }
+
+            foreach (var snooze in _snoozed)
+            {
+                if (snooze.EventId != eventId) continue;
+                if (occurrenceStart != null && snooze.OccurrenceStart != occurrenceStart) continue;
+                if (snooze.NotifyAt <= after) continue;
+                if (best == null || snooze.NotifyAt < best) best = snooze.NotifyAt;
+            }
+        }
+
+        return best;
+    }
+
+    /// <summary>
+    /// True when the event still has an alarm scheduled in the future (an unfired offset, or a
+    /// pending snooze/explicit next-alarm). Used to hide "cancel remaining alarms" when there is
+    /// nothing left to cancel.
+    /// </summary>
+    public bool HasRemainingAlarms(string eventId)
+    {
+        var now = LocalNow();
+        lock (_gate)
+        {
+            if (_snoozed.Any(s => s.EventId == eventId && s.NotifyAt > now)) return true;
+
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value == eventId
+                    && !_firedKeys.Contains(planned.Key)
+                    && planned.NotifyAt > now)
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    /// <summary>
+    /// True when another alarm for the event is due <em>now</em> and has not been shown yet (its key
+    /// is not fired, or a snooze for it is due). Because the alarm currently on screen is already
+    /// marked fired, this signals that a newer alarm for the same event is waiting — the host uses it
+    /// to auto-close the stale window.
+    /// </summary>
+    public bool HasUnshownDueAlarm(string eventId)
+    {
+        var now = LocalNow();
+        lock (_gate)
+        {
+            if (_snoozed.Any(s => s.EventId == eventId && s.NotifyAt <= now)) return true;
+
+            foreach (var planned in EnumeratePlannedAlarms(now))
+            {
+                if (planned.Event.Id.Value == eventId
+                    && !_firedKeys.Contains(planned.Key)
+                    && AlarmScheduleCalculator.IsDue(now, planned.NotifyAt))
+                    return true;
+            }
+        }
+        return false;
+    }
+
     /// <summary>Marks every remaining notification of the event as fired and drops its snoozes.</summary>
     public void CancelRemainingAlarms(string eventId)
     {
@@ -144,6 +269,18 @@ public class AlarmApplicationService
     {
         lock (_gate)
             _firedKeys.Clear();
+    }
+
+    /// <summary>
+    /// Re-adds previously fired keys. Used to take a snapshot, persist an unrelated change that
+    /// resets all fired state (any repository write clears it), then restore so an alarm shown a
+    /// moment ago does not immediately re-fire within the catch-up grace.
+    /// </summary>
+    public void RestoreFiredKeys(IEnumerable<string> keys)
+    {
+        lock (_gate)
+            foreach (var key in keys)
+                _firedKeys.Add(key);
     }
 
     public IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms()

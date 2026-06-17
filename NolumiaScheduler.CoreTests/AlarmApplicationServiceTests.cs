@@ -168,6 +168,203 @@ public class AlarmApplicationServiceTests
         Assert.HasCount(0, _service.GetScheduledAlarms().Where(e => e.IsSnoozed).ToList());
     }
 
+    // ── next-alarm override (explicit time wins over offsets) ───────────────
+
+    [TestMethod]
+    public void 次のアラート設定_今からの指定で全オフセットを抑止し指定時刻に一度だけ再通知する()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms().Single();
+
+        // 再通知時刻 = (EventStart-15) + 20 = EventStart+5
+        _service.SetNextAlarmFromNow(due, TimeSpan.FromMinutes(20));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "5分前オフセットは抑止される");
+
+        _clock.SetUtcNow(EventStart);
+        Assert.HasCount(0, _service.CollectDueAlarms(), "開始時刻オフセットも抑止される");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(5));
+        var reminder = _service.CollectDueAlarms();
+        Assert.HasCount(1, reminder);
+        Assert.IsTrue(reminder[0].IsSnoozeReminder);
+        Assert.AreEqual("ev", reminder[0].EventId);
+    }
+
+    [TestMethod]
+    public void 次のアラート設定_指定時刻より前のオフセットだけ抑止し後のオフセットは残る()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms().Single();
+
+        // 次のアラート = 開始3分前。これより前の5分前は抑止、後の1分前・開始時刻は残る。
+        _service.SetNextAlarmBeforeStart(due, TimeSpan.FromMinutes(3));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "指定時刻より前の5分前は抑止される");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-3));
+        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "開始3分前に明示アラートが鳴る");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "指定時刻より後の1分前は残る");
+
+        _clock.SetUtcNow(EventStart);
+        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "開始時刻も残る");
+    }
+
+    [TestMethod]
+    public void スヌーズが残りオフセットより前なら5分前1分前開始時刻は発火し続ける()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms().Single(); // 15分前アラート
+
+        // 今から5分後 = 開始10分前。残りの5分前/1分前/開始時刻はすべて後なので発火済みにしない。
+        _service.SetNextAlarmFromNow(due, TimeSpan.FromMinutes(5));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-10));
+        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "5分後のスヌーズが鳴る");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.AreEqual(5, _service.CollectDueAlarms().Single().OffsetMinutes, "5分前は発火する");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "1分前は発火する");
+
+        _clock.SetUtcNow(EventStart);
+        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "開始時刻は発火する");
+    }
+
+    [TestMethod]
+    public void 次のアラート設定は他のイベントへ影響しない()
+    {
+        SaveEvent("ev1");
+        SaveEvent("ev2");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due1 = _service.CollectDueAlarms().Single(a => a.EventId == "ev1");
+
+        _service.SetNextAlarmFromNow(due1, TimeSpan.FromMinutes(20));
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        var due = _service.CollectDueAlarms();
+        Assert.HasCount(1, due, "ev2 の5分前は通常どおり発火する");
+        Assert.AreEqual("ev2", due[0].EventId);
+    }
+
+    [TestMethod]
+    public void 次のアラート取得は同じ回の未消化通知時刻を返す()
+    {
+        SaveEvent("ev");
+        var occStart = EventStart.DateTime;
+
+        Assert.AreEqual(
+            occStart.AddMinutes(-15),
+            _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
+            "最も近い未消化は15分前");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms();
+
+        Assert.AreEqual(
+            occStart.AddMinutes(-5),
+            _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
+            "15分前を消化したら次は5分前");
+    }
+
+    [TestMethod]
+    public void 次のアラート取得は残りがなければnull()
+    {
+        SaveEvent("ev");
+        var occStart = EventStart.DateTime;
+
+        foreach (var minutes in new[] { -15, -5, -1, 0 })
+        {
+            _clock.SetUtcNow(EventStart.AddMinutes(minutes));
+            _service.CollectDueAlarms();
+        }
+
+        Assert.IsNull(
+            _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
+            "全オフセット消化後は null");
+    }
+
+    [TestMethod]
+    public void 次のアラート取得は繰り返し予定でも当日の回だけを対象にする()
+    {
+        // 毎日(全曜日)繰り返しなので、今日(6/10)と明日(6/11)の両方に10:00の回がある。
+        SaveDailyRecurringEvent("daily");
+        var todayOccStart = EventStart.DateTime;
+
+        // 今日の全オフセットを消化する
+        foreach (var minutes in new[] { -15, -5, -1, 0 })
+        {
+            _clock.SetUtcNow(EventStart.AddMinutes(minutes));
+            _service.CollectDueAlarms();
+        }
+
+        // 翌日の回(6/11 10:00)の15分前が予定一覧には存在する
+        Assert.IsTrue(
+            _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddDays(1).AddMinutes(-15).DateTime),
+            "翌日の回は予定一覧には含まれる");
+
+        // しかし当日の回に絞った「次のアラート」は翌日へロールオーバーしない
+        Assert.IsNull(
+            _service.GetNextAlarmTimeForOccurrence("daily", todayOccStart, _clock.GetLocalNow().DateTime),
+            "当日の回を消化したら翌日の回は次のアラートにしない");
+    }
+
+    [TestMethod]
+    public void 残りアラート判定は将来の未発火通知があるときだけtrue()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms(); // 15分前を消化
+
+        Assert.IsTrue(_service.HasRemainingAlarms("ev"), "5分前/1分前/開始時刻がまだ将来に残る");
+
+        // 全オフセットを消化する
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart.AddMinutes(-1));
+        _service.CollectDueAlarms();
+        _clock.SetUtcNow(EventStart);
+        _service.CollectDueAlarms();
+
+        Assert.IsFalse(_service.HasRemainingAlarms("ev"), "全オフセット消化後は残りなし");
+    }
+
+    [TestMethod]
+    public void 未表示の発火中アラート判定は新しいアラートが来たときだけtrue()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        _service.CollectDueAlarms(); // 15分前を表示(発火済み)
+
+        Assert.IsFalse(_service.HasUnshownDueAlarm("ev"), "5分前の時刻前は未表示の発火中アラートなし");
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-5));
+        Assert.IsTrue(_service.HasUnshownDueAlarm("ev"), "5分前が発火中かつ未表示");
+        Assert.IsFalse(_service.HasUnshownDueAlarm("other"), "別イベントには反応しない");
+    }
+
+    [TestMethod]
+    public void 発火済みキーを退避して復元すると再発火しない()
+    {
+        SaveEvent("ev");
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        Assert.HasCount(1, _service.CollectDueAlarms());
+
+        var snapshot = _service.GetFiredKeys();
+        _service.ResetAllFiredKeys();
+        _service.RestoreFiredKeys(snapshot);
+
+        Assert.HasCount(0, _service.CollectDueAlarms(), "復元後は同じアラームが再発火しない");
+    }
+
     // ── cancelled ──────────────────────────────────────────────────────────
 
     [TestMethod]
@@ -276,6 +473,32 @@ public class AlarmApplicationServiceTests
             new SingleEventSchedule(EventStart, EventStart.AddHours(1)),
             EventStart.AddDays(-1),
             alarm: alarm ?? EventAlarm.Default);
+        _repo.Save(ev);
+    }
+
+    /// <summary>A daily (every weekday) recurring event at the same time-of-day as <see cref="EventStart"/>.</summary>
+    private void SaveDailyRecurringEvent(string id)
+    {
+        var startDate = new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1, startDate.AddDays(30),
+            // Monday-first: GenerateWeekly walks weekdays in week order and stops at the first one
+            // past the range, so the list must be chronological within the (Monday-aligned) week.
+            weekly: new WeeklyRule(
+            [
+                Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday,
+                Weekday.Friday, Weekday.Saturday, Weekday.Sunday
+            ]));
+        var schedule = new RecurringEventSchedule(
+            startDate,
+            new LocalTimeValue(EventStart.Hour, EventStart.Minute, 0),
+            new LocalTimeValue(EventStart.Hour + 1, EventStart.Minute, 0),
+            rule, allDay: false);
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle($"Event {id}"), null,
+            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
+            schedule, EventStart.AddDays(-1),
+            alarm: EventAlarm.Default);
         _repo.Save(ev);
     }
 }

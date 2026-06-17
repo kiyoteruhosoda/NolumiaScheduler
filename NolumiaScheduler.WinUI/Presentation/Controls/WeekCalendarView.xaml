@@ -19,8 +19,9 @@
             <ColumnDefinition Width="*"/>
         </Grid.ColumnDefinitions>
 
-        <!-- Header row: day labels -->
-        <Grid x:Name="WeekHeaderGrid" Grid.Row="0" Grid.Column="1" ColumnSpacing="1" Padding="0,2,0,6"/>
+        <!-- Header row: day labels. No bottom padding so the day divider / today frame on each
+             header cell reaches the row boundary and joins the all-day lane below. -->
+        <Grid x:Name="WeekHeaderGrid" Grid.Row="0" Grid.Column="1" ColumnSpacing="1" Padding="0,2,0,0"/>
 
         <!-- All-day lane -->
         <TextBlock Grid.Row="1" Grid.Column="0" Text="終日" FontSize="10"

@@ -1,10 +1,14 @@
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
+using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Presentation.Services;
 using System.Diagnostics;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using Windows.Graphics;
+using Windows.System;
 using WinRT;
 using WinRT.Interop;
 
@@ -14,9 +18,20 @@ public sealed partial class AlarmNotificationWindow : Window
 {
     private readonly TaskCompletionSource<AlarmNotificationResult> _tcs = new();
     private readonly string? _location;
+    private readonly bool _initialNotify5Min;
+    private readonly bool _initialNotify1Min;
     private bool _foregroundForced;
 
-    public AlarmNotificationWindow(string title, string message, string? location, DateTime? eventStartTime, TimeProvider clock)
+    public AlarmNotificationWindow(
+        string title,
+        string message,
+        string? location,
+        DateTime? eventStartTime,
+        DateTime? nextAlarmAt,
+        bool notify5Min,
+        bool notify1Min,
+        bool hasRemainingAlarms,
+        TimeProvider clock)
     {
         InitializeComponent();
 
@@ -28,12 +43,43 @@ public sealed partial class AlarmNotificationWindow : Window
         MessageLabel.Text = message;
         TimeLabel.Text = now.ToString("yyyy/MM/dd HH:mm");
         DismissBtn.Content = AppResources.AlarmDismiss;
-        Snooze5Btn.Content = AppResources.AlarmSnooze5MinBtn;
-        Snooze1Btn.Content = AppResources.AlarmSnooze1MinBtn;
         OpenLocationBtn.Content = AppResources.AlarmOpenLocation;
-        Before5Btn.Content = AppResources.AlarmSnoozeTo5MinBefore;
-        Before1Btn.Content = AppResources.AlarmSnoozeTo1MinBefore;
         CancelAllBtn.Content = AppResources.AlarmCancelAll;
+
+        // "Cancel all remaining alarms" only makes sense when something is still scheduled.
+        CancelAllBtn.Visibility = hasRemainingAlarms ? Visibility.Visible : Visibility.Collapsed;
+
+        // Show when the next alarm for *this* reservation is; hide the line entirely when there
+        // is no further alarm for it (we deliberately do not show other events' alarms here).
+        if (nextAlarmAt is { } nextAt && nextAt > now)
+            NextAlarmLabel.Text = FormatNextAlarm(nextAt, now);
+        else
+            NextAlarmLabel.Visibility = Visibility.Collapsed;
+
+        // Pre-event offset toggles reflect the event's current settings.
+        OffsetsHeaderLabel.Text = AppResources.AlarmOffsetsHeader;
+        Toggle5Label.Text = AppResources.AlarmNotify5Min;
+        Toggle1Label.Text = AppResources.AlarmNotify1Min;
+        _initialNotify5Min = notify5Min;
+        _initialNotify1Min = notify1Min;
+        Toggle5Switch.IsOn = notify5Min;
+        Toggle1Switch.IsOn = notify1Min;
+
+        // A pre-event offset only matters while its notify time (start − offset) is still ahead.
+        // Once it has passed it cannot fire for this occurrence, so hide it instead of showing a
+        // meaningless toggle (e.g. "5 minutes before" while the 1-minute alarm is already ringing).
+        var show5 = eventStartTime.HasValue && eventStartTime.Value.AddMinutes(-5) > now;
+        var show1 = eventStartTime.HasValue && eventStartTime.Value.AddMinutes(-1) > now;
+        Toggle5Row.Visibility = show5 ? Visibility.Visible : Visibility.Collapsed;
+        Toggle1Row.Visibility = show1 ? Visibility.Visible : Visibility.Collapsed;
+        OffsetsHeaderLabel.Visibility = show5 || show1 ? Visibility.Visible : Visibility.Collapsed;
+
+        // Free numeric input to set the next alarm time.
+        SetNextHeaderLabel.Text = AppResources.AlarmSetNextHeader;
+        FromNowLabel.Text = AppResources.AlarmSetFromNowLabel;
+        FromNowSetBtn.Content = AppResources.AlarmSetButton;
+        BeforeStartLabel.Text = AppResources.AlarmSetBeforeStartLabel;
+        BeforeStartSetBtn.Content = AppResources.AlarmSetButton;
 
         _location = location;
 
@@ -43,10 +89,18 @@ public sealed partial class AlarmNotificationWindow : Window
             OpenLocationBtn.Visibility = Visibility.Visible;
         }
 
-        // Show before-event snooze buttons if event start time is provided and in the future
-        if (eventStartTime.HasValue && eventStartTime.Value > now)
+        // "Minutes before event" is only meaningful when the start is far enough ahead that at
+        // least a 1-minute-before reminder still lands in the future. Cap the input so the chosen
+        // time can never be in the past; hide the whole row when nothing valid can be entered.
+        var maxBefore = eventStartTime.HasValue
+            ? (int)Math.Ceiling((eventStartTime.Value - now).TotalMinutes) - 1
+            : 0;
+        if (maxBefore >= 1)
         {
-            BeforeEventGrid.Visibility = Visibility.Visible;
+            BeforeStartInput.Maximum = Math.Min(1440, maxBefore);
+            if (BeforeStartInput.Value > BeforeStartInput.Maximum)
+                BeforeStartInput.Value = BeforeStartInput.Maximum;
+            BeforeStartGrid.Visibility = Visibility.Visible;
         }
 
         AppWindow?.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
@@ -68,11 +122,25 @@ public sealed partial class AlarmNotificationWindow : Window
         Closed += (_, _) =>
         {
             DisableOtherWindows(false);
-            _tcs.TrySetResult(AlarmNotificationResult.Dismiss);
+            // Closing without an explicit button (e.g. the title-bar X) still persists toggle changes.
+            _tcs.TrySetResult(BuildResult(AlarmNotificationAction.Dismiss));
         };
     }
 
     public Task<AlarmNotificationResult> WaitForResultAsync() => _tcs.Task;
+
+    /// <summary>
+    /// Auto-dismisses this window because a newer alarm for the same event has become due. Any
+    /// untouched offset toggles are carried as usual, so nothing the user changed is lost.
+    /// </summary>
+    public void RequestClose() => Complete(AlarmNotificationAction.Dismiss);
+
+    private static string FormatNextAlarm(DateTime nextAlarmAt, DateTime now)
+    {
+        var minutes = Math.Max(0, (int)Math.Ceiling((nextAlarmAt - now).TotalMinutes));
+        var time = nextAlarmAt.ToString("HH:mm", AppResources.FormatCulture);
+        return string.Format(AppResources.FormatCulture, AppResources.AlarmNextAlarmFormat, time, minutes);
+    }
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
     {
@@ -294,12 +362,44 @@ public sealed partial class AlarmNotificationWindow : Window
         NativeMethods.FlashWindowEx(in info);
     }
 
-    private void OnDismissClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.Dismiss);
-    private void OnSnooze5Clicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.Snooze5Min);
-    private void OnSnooze1Clicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.Snooze1Min);
-    private void OnCancelAllClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.CancelAll);
-    private void OnSnoozeTo5MinBeforeClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.SnoozeTo5MinBefore);
-    private void OnSnoozeTo1MinBeforeClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationResult.SnoozeTo1MinBefore);
+    private void OnDismissClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.Dismiss);
+    private void OnCancelAllClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.CancelAll);
+    private void OnSetFromNowClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmFromNow, ReadMinutes(FromNowInput));
+    private void OnSetBeforeStartClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmBeforeStart, ReadMinutes(BeforeStartInput));
+
+    // Pressing Enter in a minute box sets that alarm instead of merely committing the number.
+    private void OnFromNowKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+        e.Handled = true;
+        Complete(AlarmNotificationAction.SetNextAlarmFromNow, ReadMinutes(FromNowInput));
+    }
+
+    private void OnBeforeStartKeyDown(object sender, KeyRoutedEventArgs e)
+    {
+        if (e.Key != VirtualKey.Enter) return;
+        e.Handled = true;
+        Complete(AlarmNotificationAction.SetNextAlarmBeforeStart, ReadMinutes(BeforeStartInput));
+    }
+
+    private static int ReadMinutes(NumberBox box)
+    {
+        // Bounds default to a sane 1..1440 (24h) when the box leaves them unset.
+        var min = double.IsNaN(box.Minimum) || box.Minimum < 1 ? 1 : box.Minimum;
+        var max = double.IsNaN(box.Maximum) ? 1440 : box.Maximum;
+
+        // Prefer the raw text so a value typed but not yet committed (the user clicked "Set"
+        // without pressing Enter or tabbing out) is honoured; fall back to the committed Value.
+        double raw;
+        if (double.TryParse(box.Text, NumberStyles.Number, CultureInfo.CurrentCulture, out var typed))
+            raw = typed;
+        else if (!double.IsNaN(box.Value))
+            raw = box.Value;
+        else
+            raw = min;
+
+        return (int)Math.Clamp(Math.Round(raw), min, max);
+    }
 
     private void OnOpenLocationClicked(object sender, RoutedEventArgs e)
     {
@@ -322,11 +422,30 @@ public sealed partial class AlarmNotificationWindow : Window
         }
     }
 
-    private void Complete(AlarmNotificationResult result)
+    private void Complete(AlarmNotificationAction action, int minutes = 0)
     {
         DisableOtherWindows(false);
-        _tcs.TrySetResult(result);
+        _tcs.TrySetResult(BuildResult(action, minutes));
         Close();
+    }
+
+    /// <summary>
+    /// Snapshots the current toggle states alongside the chosen action. The offset toggles are
+    /// always carried so the host can persist them; <see cref="AlarmNotificationResult.AlarmSettingsChanged"/>
+    /// is only set when they differ from the values the window opened with.
+    /// </summary>
+    private AlarmNotificationResult BuildResult(AlarmNotificationAction action, int minutes = 0)
+    {
+        var notify5 = Toggle5Switch.IsOn;
+        var notify1 = Toggle1Switch.IsOn;
+        return new AlarmNotificationResult
+        {
+            Action = action,
+            Minutes = minutes,
+            Notify5Min = notify5,
+            Notify1Min = notify1,
+            AlarmSettingsChanged = notify5 != _initialNotify5Min || notify1 != _initialNotify1Min
+        };
     }
 
     private static void DisableOtherWindows(bool disable)
