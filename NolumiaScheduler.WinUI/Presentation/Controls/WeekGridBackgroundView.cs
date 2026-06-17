@@ -97,6 +97,14 @@ public partial class WeekGridBackgroundView : UserControl
             });
         }
 
+        // Vertical divider on the left edge so each day column is separated by a visible line.
+        var gridHeight = ActualHeight > 0 ? ActualHeight : 1440;
+        _canvas.Children.Add(new Line
+        {
+            X1 = 0, Y1 = 0, X2 = 0, Y2 = gridHeight,
+            Stroke = hourStroke, StrokeThickness = 1.3
+        });
+
         if (IsCurrentWeek)
         {
             _canvas.Children.Add(new Line
