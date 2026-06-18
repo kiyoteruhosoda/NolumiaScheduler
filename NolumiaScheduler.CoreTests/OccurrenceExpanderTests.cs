@@ -210,6 +210,73 @@ public class OccurrenceExpanderTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), results[0].Date);
     }
 
+    // ── "N business days before a monthly anchor" (毎月15日/月末の3営業日前) ────────────
+
+    // Mon–Fri workday calendar with the given holidays.
+    private static BusinessCalendar WeekdayCalendar(params LocalDateValue[] holidays) =>
+        new(new BusinessCalendarId("jp"), "JP", Tokyo,
+            [Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday],
+            holidays.Select(d => new Holiday(d, "祝")).ToList());
+
+    private CalendarEvent MonthlyAnchorMinusBusinessDays(MonthlyRule monthly, int businessDaysBefore)
+    {
+        var rule = new RecurrenceRule(
+            RecurrenceType.Monthly, 1,
+            new LocalDateValue(2026, 6, 30),
+            monthly: monthly,
+            adjustment: new AdjustmentRule(
+                AdjustmentCondition.Always, AdjustmentShiftUnit.BusinessDay,
+                -businessDaysBefore, new BusinessCalendarId("jp")));
+
+        return CalendarEvent.CreateRecurring(
+            new EventId("evt_bd"), new EventTitle("3営業日前13時"),
+            null, Visibility.Public, null, null, Tokyo,
+            new RecurringEventSchedule(Utc(2026, 6, 1, 13, 0), 60, rule), Now);
+    }
+
+    [TestMethod]
+    public void Expand_毎月15日の3営業日前_13時()
+    {
+        // June 2026: the 15th is a Monday; 3 business days before is Wed June 10 at 13:00.
+        var ev = MonthlyAnchorMinusBusinessDays(new DayOfMonthMonthlyRule(15), 3);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 6, 1), new LocalDateValue(2026, 6, 30), WeekdayCalendar());
+
+        Assert.HasCount(1, results);
+        Assert.AreEqual(new LocalDateValue(2026, 6, 10), results[0].Date);
+        Assert.AreEqual(new LocalTimeValue(13, 0, 0), results[0].StartTime);
+    }
+
+    [TestMethod]
+    public void Expand_毎月末の3営業日前_13時()
+    {
+        // June 2026 ends Tue June 30; 3 business days before is Thu June 25 at 13:00.
+        var ev = MonthlyAnchorMinusBusinessDays(new LastDayOfMonthMonthlyRule(), 3);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 6, 1), new LocalDateValue(2026, 6, 30), WeekdayCalendar());
+
+        Assert.HasCount(1, results);
+        Assert.AreEqual(new LocalDateValue(2026, 6, 25), results[0].Date);
+        Assert.AreEqual(new LocalTimeValue(13, 0, 0), results[0].StartTime);
+    }
+
+    [TestMethod]
+    public void Expand_3営業日前は祝日をスキップして数える()
+    {
+        // With Thu June 11 a holiday, counting back 3 business days from Mon June 15 skips it:
+        // Fri 12, (Thu 11 holiday), Wed 10, Tue 9 → June 9.
+        var ev = MonthlyAnchorMinusBusinessDays(new DayOfMonthMonthlyRule(15), 3);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 6, 1), new LocalDateValue(2026, 6, 30),
+            WeekdayCalendar(new LocalDateValue(2026, 6, 11)));
+
+        Assert.HasCount(1, results);
+        Assert.AreEqual(new LocalDateValue(2026, 6, 9), results[0].Date);
+    }
+
     [TestMethod]
     public void Expand_YearlyRecurring_GeneratesCorrectDates()
     {

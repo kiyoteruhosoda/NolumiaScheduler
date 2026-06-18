@@ -221,6 +221,11 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
             return FindNthWeekday(year, month, nthRule.WeekIndex, nthRule.Weekday.ToDayOfWeek());
         }
 
+        if (rule is LastDayOfMonthMonthlyRule)
+        {
+            return new DateOnly(year, month, DateTime.DaysInMonth(year, month));
+        }
+
         return null;
     }
 

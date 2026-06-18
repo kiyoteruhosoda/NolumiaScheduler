@@ -58,6 +58,33 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
+    public void CalendarEvent_月末3営業日前ルールが往復する()
+    {
+        var repo = new SqliteCalendarEventRepository(_factory);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Monthly, 1, new LocalDateValue(2027, 12, 31),
+            monthly: new LastDayOfMonthMonthlyRule(),
+            adjustment: new AdjustmentRule(
+                AdjustmentCondition.Always, AdjustmentShiftUnit.BusinessDay, -3,
+                new BusinessCalendarId("jp")));
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId(Guid.NewGuid().ToString()), new EventTitle("月末3営業日前"),
+            null, Visibility.Public, null, null, new TimeZoneId("Asia/Tokyo"),
+            new RecurringEventSchedule(Utc(2026, 6, 1, 13, 0, "Asia/Tokyo"), 60, rule),
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
+        repo.Save(ev);
+        var loaded = repo.FindById(ev.Id)!;
+
+        var loadedRule = loaded.RecurringSchedule!.RecurrenceRule;
+        Assert.IsInstanceOfType<LastDayOfMonthMonthlyRule>(loadedRule.Monthly);
+        Assert.AreEqual(AdjustmentCondition.Always, loadedRule.Adjustment!.Condition);
+        Assert.AreEqual(AdjustmentShiftUnit.BusinessDay, loadedRule.Adjustment.ShiftUnit);
+        Assert.AreEqual(-3, loadedRule.Adjustment.ShiftAmount);
+        Assert.AreEqual("jp", loadedRule.Adjustment.CalendarId!.Value);
+    }
+
+    [TestMethod]
     public void CalendarEvent_別インスタンスからも読み込める()
     {
         var ev = NewSingleEvent("Persisted", null);

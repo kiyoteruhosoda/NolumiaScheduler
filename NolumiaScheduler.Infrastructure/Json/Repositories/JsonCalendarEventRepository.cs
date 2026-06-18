@@ -230,6 +230,8 @@ internal class RecurrenceRuleDto
     public List<string>? Weekdays { get; set; }
     public MonthlyRuleDto? Monthly { get; set; }
     public YearlyRuleDto? Yearly { get; set; }
+    public AdjustmentDto? Adjustment { get; set; }
+    // Back-compat: older data stored only a Forward/Backward direction (Holiday + ±1 business day).
     public string? AdjustmentDirection { get; set; }
 
     public RecurrenceRule ToDomain()
@@ -244,9 +246,10 @@ internal class RecurrenceRuleDto
 
         MonthlyRule? monthly = Monthly?.ToDomain();
         YearlyRule? yearly = Yearly?.ToDomain();
-        AdjustmentRule? adjustment = AdjustmentDirection != null
-            ? new AdjustmentRule(Enum.Parse<NolumiaScheduler.Domain.ValueObjects.AdjustmentDirection>(AdjustmentDirection))
-            : null;
+        AdjustmentRule? adjustment = Adjustment?.ToDomain()
+            ?? (AdjustmentDirection != null
+                ? new AdjustmentRule(Enum.Parse<NolumiaScheduler.Domain.ValueObjects.AdjustmentDirection>(AdjustmentDirection))
+                : null);
 
         return new RecurrenceRule(type, Interval, endDateValue, weekly, monthly, yearly, adjustment);
     }
@@ -258,7 +261,7 @@ internal class RecurrenceRuleDto
             RuleType = rule.RuleType.ToString(),
             Interval = rule.Interval,
             EndDate = rule.EndDate.ToString(),
-            AdjustmentDirection = rule.Adjustment?.Direction.ToString()
+            Adjustment = rule.Adjustment != null ? AdjustmentDto.FromDomain(rule.Adjustment) : null
         };
 
         if (rule.Weekly != null)
@@ -285,6 +288,8 @@ internal class MonthlyRuleDto
     {
         if (Type == "DayOfMonth")
             return new DayOfMonthMonthlyRule(Day!.Value);
+        if (Type == "LastDay")
+            return new LastDayOfMonthMonthlyRule();
         return new NthWeekdayMonthlyRule(WeekIndex!.Value, Enum.Parse<Weekday>(Weekday!));
     }
 
@@ -292,9 +297,33 @@ internal class MonthlyRuleDto
     {
         if (rule is DayOfMonthMonthlyRule dom)
             return new MonthlyRuleDto { Type = "DayOfMonth", Day = dom.Day };
+        if (rule is LastDayOfMonthMonthlyRule)
+            return new MonthlyRuleDto { Type = "LastDay" };
         var nth = (NthWeekdayMonthlyRule)rule;
         return new MonthlyRuleDto { Type = "NthWeekday", WeekIndex = nth.WeekIndex, Weekday = nth.Weekday.ToString() };
     }
+}
+
+internal class AdjustmentDto
+{
+    public string Condition { get; set; } = "Holiday";
+    public string ShiftUnit { get; set; } = "BusinessDay";
+    public int ShiftAmount { get; set; }
+    public string? CalendarId { get; set; }
+
+    public AdjustmentRule ToDomain() => new(
+        Enum.Parse<AdjustmentCondition>(Condition),
+        Enum.Parse<AdjustmentShiftUnit>(ShiftUnit),
+        ShiftAmount,
+        CalendarId != null ? new BusinessCalendarId(CalendarId) : null);
+
+    public static AdjustmentDto FromDomain(AdjustmentRule a) => new()
+    {
+        Condition = a.Condition.ToString(),
+        ShiftUnit = a.ShiftUnit.ToString(),
+        ShiftAmount = a.ShiftAmount,
+        CalendarId = a.CalendarId?.Value
+    };
 }
 
 internal class YearlyRuleDto

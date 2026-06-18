@@ -26,6 +26,7 @@ public class BusinessDayShiftService : IBusinessDayShiftService
         return condition switch
         {
             AdjustmentCondition.Holiday => calendar.IsHoliday(date),
+            AdjustmentCondition.Always => true,
             _ => false,
         };
     }
