@@ -54,7 +54,8 @@ public class EventScenarioE2ETests
         Assert.AreEqual(new LocalTimeValue(14, 0, 0), occ.StartTime);
         // End 15:30 = start (14:00 = 840) + 90 minutes.
         Assert.AreEqual(90, occ.DurationMinutes);
-        Assert.AreEqual((14 * 60) + 30, (occ.StartMinuteOfDay + occ.DurationMinutes) % (24 * 60));
+        // End 15:30 = start (14:00 = 840) + 90 minutes.
+        Assert.AreEqual((15 * 60) + 30, (occ.StartMinuteOfDay + occ.DurationMinutes) % (24 * 60));
         Assert.IsFalse(occ.StartMinuteOfDay == 0 && occ.DurationMinutes == 24 * 60);
     }
 
