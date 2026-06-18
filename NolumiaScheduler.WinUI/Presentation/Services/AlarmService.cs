@@ -153,7 +153,11 @@ public class AlarmService(
             var ev = _eventService.FindById(due.EventId);
             var alarm = ev?.Alarm ?? EventAlarm.Default;
             var nextAlarmAt = _alarms.GetNextAlarmTimeForOccurrence(due.EventId, due.OccurrenceStart, now);
-            var hasRemainingAlarms = _alarms.HasRemainingAlarms(due.EventId);
+            // "Cancel remaining alarms" is only meaningful while THIS occurrence still has a later
+            // alarm. At the at-start ("Just") alarm — or after a snooze with nothing after it —
+            // there is nothing left to cancel, so hide it (a recurring event's future occurrences
+            // are a separate matter and must not keep the button visible here).
+            var hasRemainingAlarms = nextAlarmAt.HasValue;
 
             var tcs = new TaskCompletionSource<AlarmNotificationResult>();
 
