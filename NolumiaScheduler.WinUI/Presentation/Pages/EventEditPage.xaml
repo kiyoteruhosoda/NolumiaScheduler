@@ -194,6 +194,22 @@
                                    Foreground="{ThemeResource GCalTextSecondary}"/>
                         <ComboBox x:Name="AdjustmentPicker" FontSize="14" MinHeight="48"
                                   HorizontalAlignment="Stretch" SelectionChanged="OnAdjustmentChanged"/>
+                        <!-- N business days before/after the candidate date -->
+                        <StackPanel x:Name="AdjustmentBusinessDaySection" Visibility="Collapsed">
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" MinHeight="48">
+                                <ComboBox x:Name="AdjustmentDirectionPicker" Grid.Column="0" FontSize="14"
+                                          MinHeight="48" MinWidth="88"
+                                          SelectionChanged="OnAdjustmentDirectionChanged"/>
+                                <TextBox x:Name="AdjustmentDaysBox" Grid.Column="1" FontSize="14" Width="72"
+                                         InputScope="Number"
+                                         Foreground="{ThemeResource GCalTextPrimary}"
+                                         VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                         TextChanged="OnAdjustmentDaysChanged"/>
+                                <TextBlock x:Name="AdjustmentBusinessDaysLabel" Grid.Column="2" FontSize="13"
+                                           Margin="4,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource GCalTextSecondary}"/>
+                            </Grid>
+                        </StackPanel>
                         <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
                             <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
                             <Grid ColumnDefinitions="Auto,*" MinHeight="48">

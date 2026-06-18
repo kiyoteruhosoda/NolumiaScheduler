@@ -112,6 +112,12 @@ public static class AppResources
     public static string AdjustmentNone           => Get(nameof(AdjustmentNone));
     public static string AdjustmentForward        => Get(nameof(AdjustmentForward));
     public static string AdjustmentBackward       => Get(nameof(AdjustmentBackward));
+    public static string AdjustmentOnHoliday      => Get(nameof(AdjustmentOnHoliday));
+    public static string AdjustmentAlways         => Get(nameof(AdjustmentAlways));
+    public static string AdjustmentBefore         => Get(nameof(AdjustmentBefore));
+    public static string AdjustmentAfter          => Get(nameof(AdjustmentAfter));
+    public static string AdjustmentBusinessDaysLabel => Get(nameof(AdjustmentBusinessDaysLabel));
+    public static string MonthlyLastDay           => Get(nameof(MonthlyLastDay));
     public static string BusinessCalendarLabel    => Get(nameof(BusinessCalendarLabel));
     public static string ErrorTitleRequired       => Get(nameof(ErrorTitleRequired));
     public static string ErrorWeekdayRequired     => Get(nameof(ErrorWeekdayRequired));

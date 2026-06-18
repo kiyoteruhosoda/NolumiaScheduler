@@ -42,6 +42,8 @@ public sealed partial class EventEditPage : Page
     private bool _suppressYearlyWeekIndexChanged;
     private bool _suppressYearlyWeekdayChanged;
     private bool _suppressAdjustmentChanged;
+    private bool _suppressAdjustmentDirectionChanged;
+    private bool _suppressAdjustmentDaysChanged;
     private bool _suppressCalendarPickerChanged;
     private bool _suppressWeekdayChanged;
     private bool _suppressAlarmChanged;
@@ -79,6 +81,7 @@ public sealed partial class EventEditPage : Page
         IntervalLabel.Text      = AppResources.IntervalLabel;
         EndDateLabel.Text       = AppResources.EndDateLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
+        AdjustmentBusinessDaysLabel.Text = AppResources.AdjustmentBusinessDaysLabel;
         BusinessCalendarLabel.Text = AppResources.BusinessCalendarLabel;
         ColorLabel.Text         = AppResources.ColorLabel;
         AlarmLabel.Text         = AppResources.AlarmLabel;
@@ -175,6 +178,7 @@ public sealed partial class EventEditPage : Page
         YearlyWeekIndexPicker.ItemsSource = EventEditViewModel.WeekIndexItems;
         YearlyWeekdayPicker.ItemsSource   = EventEditViewModel.WeekdayItems;
         AdjustmentPicker.ItemsSource   = EventEditViewModel.AdjustmentItems;
+        AdjustmentDirectionPicker.ItemsSource = EventEditViewModel.AdjustmentDirectionItems;
 
         _suppressRepeatTypeChanged = true;
         RepeatTypePicker.SelectedIndex = _vm.RepeatTypeIndex;
@@ -251,6 +255,14 @@ public sealed partial class EventEditPage : Page
         _suppressAdjustmentChanged = true;
         AdjustmentPicker.SelectedIndex = _vm.AdjustmentIndex;
         _suppressAdjustmentChanged = false;
+
+        _suppressAdjustmentDirectionChanged = true;
+        AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+        _suppressAdjustmentDirectionChanged = false;
+
+        _suppressAdjustmentDaysChanged = true;
+        AdjustmentDaysBox.Text = _vm.AdjustmentBusinessDays.ToString();
+        _suppressAdjustmentDaysChanged = false;
 
         CalendarPicker.ItemsSource = _vm.AvailableCalendarNames;
         _suppressCalendarPickerChanged = true;
@@ -497,6 +509,9 @@ public sealed partial class EventEditPage : Page
         NthWeekdaySection.Visibility   = _vm.IsMonthlyNthWeekday  ? Visibility.Visible : Visibility.Collapsed;
         YearlyDomSection.Visibility    = _vm.IsYearlyDayOfMonth   ? Visibility.Visible : Visibility.Collapsed;
         YearlyNthSection.Visibility    = _vm.IsYearlyNthWeekday   ? Visibility.Visible : Visibility.Collapsed;
+
+        AdjustmentBusinessDaySection.Visibility = _vm.HasAdjustment
+            ? Visibility.Visible : Visibility.Collapsed;
 
         CalendarPickerSection.Visibility = (_vm.HasAdjustment && _vm.HasAvailableCalendars)
             ? Visibility.Visible : Visibility.Collapsed;
@@ -773,6 +788,19 @@ public sealed partial class EventEditPage : Page
     {
         if (_suppressAdjustmentChanged || _vm == null) return;
         _vm.AdjustmentIndex = AdjustmentPicker.SelectedIndex;
+    }
+
+    private void OnAdjustmentDirectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressAdjustmentDirectionChanged || _vm == null) return;
+        _vm.AdjustmentDirectionIndex = AdjustmentDirectionPicker.SelectedIndex;
+    }
+
+    private void OnAdjustmentDaysChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressAdjustmentDaysChanged || _vm == null) return;
+        if (int.TryParse(AdjustmentDaysBox.Text, out var val))
+            _vm.AdjustmentBusinessDays = val;
     }
 
     private void OnCalendarPickerChanged(object sender, SelectionChangedEventArgs e)

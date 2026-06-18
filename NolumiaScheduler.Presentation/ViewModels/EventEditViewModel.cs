@@ -14,11 +14,14 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 /// <summary>Repeat type selection index: 0=None 1=Weekly 2=Monthly 3=Yearly</summary>
 public enum RepeatTypeIndex { None = 0, Weekly = 1, Monthly = 2, Yearly = 3 }
 
-/// <summary>Monthly rule index: 0=DayOfMonth 1=NthWeekday</summary>
-public enum MonthlyRuleIndex { DayOfMonth = 0, NthWeekday = 1 }
+/// <summary>Monthly rule index: 0=DayOfMonth 1=NthWeekday 2=LastDay (月末)</summary>
+public enum MonthlyRuleIndex { DayOfMonth = 0, NthWeekday = 1, LastDay = 2 }
 
-/// <summary>Adjustment index: 0=None 1=Forward 2=Backward</summary>
-public enum AdjustmentIndex { None = 0, Forward = 1, Backward = 2 }
+/// <summary>Business-day adjustment condition: 0=None 1=OnHoliday(祝日のとき) 2=Always(常に)</summary>
+public enum AdjustmentIndex { None = 0, OnHoliday = 1, Always = 2 }
+
+/// <summary>Adjustment shift direction: 0=Before(前) 1=After(後)</summary>
+public enum AdjustmentDirectionIndex { Before = 0, After = 1 }
 
 public partial class EventEditViewModel : INotifyPropertyChanged
 {
@@ -59,6 +62,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     // Adjustment
     private int _adjustmentIndex;
+    private int _adjustmentDirectionIndex = (int)ViewModels.AdjustmentDirectionIndex.Before;
+    private int _adjustmentBusinessDays = 1;
     private int _selectedCalendarIndex = -1;
 
     private string _validationError = "";
@@ -256,6 +261,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                     WeekIndexPickerIndex = nth.WeekIndex == -1 ? 5 : nth.WeekIndex - 1;
                     MonthlyWeekdayIndex = (int)nth.Weekday;
                 }
+                else if (rule.Monthly is LastDayOfMonthMonthlyRule)
+                {
+                    MonthlyRuleIndex = (int)ViewModels.MonthlyRuleIndex.LastDay;
+                }
                 break;
             case RecurrenceType.Yearly:
                 RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.Yearly;
@@ -277,9 +286,15 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         if (rule.Adjustment != null)
         {
-            AdjustmentIndex = rule.Adjustment.ShiftAmount > 0
-                ? (int)ViewModels.AdjustmentIndex.Forward
-                : (int)ViewModels.AdjustmentIndex.Backward;
+            AdjustmentIndex = rule.Adjustment.Condition == AdjustmentCondition.Always
+                ? (int)ViewModels.AdjustmentIndex.Always
+                : (int)ViewModels.AdjustmentIndex.OnHoliday;
+
+            AdjustmentDirectionIndex = rule.Adjustment.ShiftAmount < 0
+                ? (int)ViewModels.AdjustmentDirectionIndex.Before
+                : (int)ViewModels.AdjustmentDirectionIndex.After;
+
+            AdjustmentBusinessDays = Math.Max(1, Math.Abs(rule.Adjustment.ShiftAmount));
 
             if (rule.Adjustment.CalendarId != null)
             {
@@ -302,10 +317,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public static List<string> MonthlyRuleItems =>
     [
         AppResources.MonthlyDayOfMonth,
-        AppResources.MonthlyNthWeekday
+        AppResources.MonthlyNthWeekday,
+        AppResources.MonthlyLastDay
     ];
 
-    public static List<string> YearlyRuleItems => MonthlyRuleItems;
+    // Yearly has no "month end" variant.
+    public static List<string> YearlyRuleItems =>
+    [
+        AppResources.MonthlyDayOfMonth,
+        AppResources.MonthlyNthWeekday
+    ];
 
     public static List<string> WeekIndexItems =>
     [
@@ -318,11 +339,19 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         AppResources.DayWed, AppResources.DayThu, AppResources.DayFri, AppResources.DaySat
     ];
 
+    // Adjustment condition: none / only when the candidate is a holiday / always.
     public static List<string> AdjustmentItems =>
     [
         AppResources.AdjustmentNone,
-        AppResources.AdjustmentForward,
-        AppResources.AdjustmentBackward
+        AppResources.AdjustmentOnHoliday,
+        AppResources.AdjustmentAlways
+    ];
+
+    // Shift direction: N business days before / after the candidate date.
+    public static List<string> AdjustmentDirectionItems =>
+    [
+        AppResources.AdjustmentBefore,
+        AppResources.AdjustmentAfter
     ];
 
     /// <summary>Selectable color keys; index-aligned with <see cref="ColorItems"/>.</summary>
@@ -589,6 +618,18 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             OnPropertyChanged(nameof(HasAdjustment));
         }
+    }
+
+    public int AdjustmentDirectionIndex
+    {
+        get => _adjustmentDirectionIndex;
+        set { _adjustmentDirectionIndex = value; OnPropertyChanged(); }
+    }
+
+    public int AdjustmentBusinessDays
+    {
+        get => _adjustmentBusinessDays;
+        set { _adjustmentBusinessDays = Math.Max(1, value); OnPropertyChanged(); }
     }
 
     public int SelectedCalendarIndex
@@ -994,6 +1035,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             ViewModels.MonthlyRuleIndex.NthWeekday  => new NthWeekdayMonthlyRule(
                 PickerIndexToWeekIndex(_weekIndexPickerIndex),
                 (Weekday)_monthlyWeekdayIndex),
+            ViewModels.MonthlyRuleIndex.LastDay     => new LastDayOfMonthMonthlyRule(),
             _ => throw new InvalidOperationException()
         };
 
@@ -1013,14 +1055,19 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         if (_selectedCalendarIndex >= 0 && _selectedCalendarIndex < _availableCalendarIds.Count)
             calId = new BusinessCalendarId(_availableCalendarIds[_selectedCalendarIndex]);
 
-        var direction = _adjustmentIndex == (int)ViewModels.AdjustmentIndex.Forward
-            ? AdjustmentDirection.Forward
-            : AdjustmentDirection.Backward;
+        var condition = _adjustmentIndex == (int)ViewModels.AdjustmentIndex.Always
+            ? AdjustmentCondition.Always
+            : AdjustmentCondition.Holiday;
+
+        var days = Math.Max(1, _adjustmentBusinessDays);
+        var signedDays = _adjustmentDirectionIndex == (int)ViewModels.AdjustmentDirectionIndex.Before
+            ? -days
+            : days;
 
         return new AdjustmentRule(
-            AdjustmentCondition.Holiday,
+            condition,
             AdjustmentShiftUnit.BusinessDay,
-            direction == AdjustmentDirection.Forward ? 1 : -1,
+            signedDays,
             calId);
     }
 
