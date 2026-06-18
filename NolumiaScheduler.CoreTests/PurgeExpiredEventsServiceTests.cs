@@ -85,8 +85,7 @@ public class PurgeExpiredEventsServiceTests
             new EventId("weekly"), new EventTitle("Weekly"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 6, 1),
-                new LocalTimeValue(9, 0, 0), 60,
+                Utc(2026, 6, 1, 9, 0, Utc0), 60,
                 rule),
             Now);
         _repo.Save(ev);
@@ -124,8 +123,7 @@ public class PurgeExpiredEventsServiceTests
             new EventId("adj"), new EventTitle("Adjusted"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 6, 15),
-                new LocalTimeValue(9, 0, 0), 60,
+                Utc(2026, 6, 15, 9, 0, Utc0), 60,
                 rule),
             Now);
         _repo.Save(ev);
@@ -149,8 +147,7 @@ public class PurgeExpiredEventsServiceTests
             new EventId("endless"), new EventTitle("Endless"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 6, 1),
-                new LocalTimeValue(9, 0, 0), 60,
+                Utc(2026, 6, 1, 9, 0, Utc0), 60,
                 rule),
             Now);
         _repo.Save(ev);
@@ -169,11 +166,15 @@ public class PurgeExpiredEventsServiceTests
             new EventId(id), new EventTitle(id), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new SingleEventSchedule(
-                new LocalDateValue(start.Year, start.Month, start.Day),
-                new LocalTimeValue(start.Hour, start.Minute, start.Second),
+                start.ToUniversalTime(),
                 (int)(end - start).TotalMinutes),
             Now);
     }
+
+    private static readonly TimeZoneInfo Utc0 = new TimeZoneId("UTC").ToTimeZoneInfo();
+
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi, TimeZoneInfo tz) =>
+        LocalSchedulePoint.StartInstant(new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), tz).ToUniversalTime();
 
     private sealed class InMemoryBusinessCalendarRepository : IBusinessCalendarRepository
     {

@@ -224,6 +224,17 @@ public class SqliteRepositoryTests
         Assert.AreEqual("Week", repo.GetStartupView());
     }
 
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi, string timeZoneId)
+    {
+        if (timeZoneId == "UTC")
+            return new DateTimeOffset(y, mo, d, h, mi, 0, TimeSpan.Zero);
+
+        var tz = new TimeZoneId(timeZoneId).ToTimeZoneInfo();
+        return LocalSchedulePoint
+            .StartInstant(new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), tz)
+            .ToUniversalTime();
+    }
+
     private static CalendarEvent NewSingleEvent(string title, string? location)
     {
         var now = new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero);
@@ -236,7 +247,7 @@ public class SqliteRepositoryTests
             description: null,
             new TimeZoneId("Asia/Tokyo"),
             new SingleEventSchedule(
-                new LocalDateValue(2026, 5, 20), new LocalTimeValue(10, 0, 0), 60),
+                Utc(2026, 5, 20, 10, 0, "Asia/Tokyo"), 60),
             now);
     }
 
@@ -251,8 +262,7 @@ public class SqliteRepositoryTests
             description: null,
             new TimeZoneId("UTC"),
             new SingleEventSchedule(
-                new LocalDateValue(date.Year, date.Month, date.Day),
-                new LocalTimeValue(10, 0, 0), 60),
+                Utc(date.Year, date.Month, date.Day, 10, 0, "UTC"), 60),
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     }
 
@@ -266,8 +276,7 @@ public class SqliteRepositoryTests
             description: null,
             new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                startDate,
-                new LocalTimeValue(10, 0, 0),
+                Utc(startDate.Year, startDate.Month, startDate.Day, 10, 0, "UTC"),
                 30,
                 new RecurrenceRule(RecurrenceType.Weekly, 1, endDate, weekly: new WeeklyRule([Weekday.Monday]))),
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));

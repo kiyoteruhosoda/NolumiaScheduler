@@ -213,9 +213,10 @@ end             = occurrenceUtc + DurationMinutes
 
 - 終日相当: `durationMinutes = 1440` かつアンカーが TZID ローカルの 00:00 に当たる UTC instant。
 
-> 実装状況: 現行コードは**移行段階の DTSTART(ローカル) + TZID + duration** 形
-> （`startDate`/`startTime`/`durationMinutes`）で保存しており、本節の **UTC 形（`startUtc`/
-> `anchorUtc`）への再実装は残課題**。§10 参照。
+> 実装状況: 検証可能なコア（Domain/Application/Infrastructure/Cli ＋ CoreTests）は**この UTC 形で
+> 実装済み**。`migrate-schema` も UTC 形を出力する（旧 start/end・終日形と移行段階の
+> DTSTART ローカル形の両方を変換）。Presentation / WinUI / Windows E2E は同 API へ機械的に
+> 追従済みだが Windows ビルドでの検証が必要。
 
 ---
 
@@ -266,9 +267,9 @@ end             = occurrenceUtc + DurationMinutes
 | `NolumiaScheduler.Cli` | 旧 → 新スキーマ変換サブコマンドを追加 |
 | `ValidationDifinication.md` ／各テスト | 本書に合わせて改訂（終日・日マタギ禁止・終了時刻の記述を更新） |
 
-### 10-1. UTC 保持への再実装（残課題）
+### 10-1. UTC 保持への再実装（コア実装済み）
 
-現行コードは DTSTART(ローカル)+TZID 形で実装済み。本書の **UTC 保持形（§3）** へ移すための差分：
+検証可能なコアは UTC 保持形（§3）で実装済み。要素ごとの対応：
 
 | 箇所 | 変更内容 |
 |------|---------|

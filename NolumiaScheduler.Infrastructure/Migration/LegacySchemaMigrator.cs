@@ -95,17 +95,17 @@ public static class LegacySchemaMigrator
         return new Report(migrated, current, failed);
     }
 
-    // A record is legacy when its schedule lacks the new "durationMinutes" field.
+    // A record needs migration when its schedule is not yet in the UTC form, i.e. the single
+    // schedule lacks "startUtc" (or the recurring schedule lacks "anchorUtc"). This covers both the
+    // original (start/end + allDay) and the interim (startDate/startTime/durationMinutes) shapes.
     private static bool IsLegacy(string rawJson)
     {
         using var doc = JsonDocument.Parse(rawJson);
         var root = doc.RootElement;
-        foreach (var name in new[] { "singleSchedule", "recurringSchedule" })
-        {
-            if (root.TryGetProperty(name, out var sched) && sched.ValueKind == JsonValueKind.Object)
-                return !sched.TryGetProperty("durationMinutes", out _);
-        }
-        // No schedule object at all: nothing to convert.
+        if (root.TryGetProperty("singleSchedule", out var ss) && ss.ValueKind == JsonValueKind.Object)
+            return !ss.TryGetProperty("startUtc", out _);
+        if (root.TryGetProperty("recurringSchedule", out var rs) && rs.ValueKind == JsonValueKind.Object)
+            return !rs.TryGetProperty("anchorUtc", out _);
         return false;
     }
 
@@ -124,19 +124,40 @@ public static class LegacySchemaMigrator
 
         if (kind == EventKind.Single && dto.SingleSchedule is { } ss)
         {
-            var start = DateTimeOffset.Parse(ss.Start, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-            var end = DateTimeOffset.Parse(ss.End, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
-            var localStart = TimeZoneInfo.ConvertTime(start, timeZone);
-            var duration = (int)Math.Round((end - start).TotalMinutes);
-            single = new SingleEventSchedule(
-                new LocalDateValue(localStart.Year, localStart.Month, localStart.Day),
-                new LocalTimeValue(localStart.Hour, localStart.Minute, localStart.Second),
-                duration <= 0 ? 24 * 60 : duration);
+            DateTimeOffset startUtc;
+            int duration;
+            if (!string.IsNullOrEmpty(ss.Start))
+            {
+                // Original shape: absolute start/end.
+                var start = DateTimeOffset.Parse(ss.Start, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                var end = DateTimeOffset.Parse(ss.End!, CultureInfo.InvariantCulture, DateTimeStyles.RoundtripKind);
+                startUtc = start.ToUniversalTime();
+                duration = (int)Math.Round((end - start).TotalMinutes);
+            }
+            else
+            {
+                // Interim shape: local startDate/startTime + durationMinutes.
+                startUtc = LocalStartToUtc(ss.StartDate!, ss.StartTime!, timeZone);
+                duration = ss.DurationMinutes ?? 0;
+            }
+            single = new SingleEventSchedule(startUtc, duration <= 0 ? 24 * 60 : duration);
         }
         else if (kind == EventKind.Recurring && dto.RecurringSchedule is { } rs)
         {
-            var (startTime, duration) = ResolveTimes(dto.AllDay, rs.StartTime, rs.EndTime);
-            recurring = new RecurringEventSchedule(ParseDate(rs.StartDate), startTime, duration, rs.Rule.ToDomain());
+            int duration;
+            LocalTimeValue startTime;
+            if (rs.DurationMinutes is { } dm && string.IsNullOrEmpty(rs.EndTime))
+            {
+                // Interim shape: startDate/startTime + durationMinutes.
+                startTime = ParseTime(rs.StartTime!);
+                duration = dm;
+            }
+            else
+            {
+                (startTime, duration) = ResolveTimes(dto.AllDay, rs.StartTime, rs.EndTime);
+            }
+            var anchorUtc = LocalStartToUtc(rs.StartDate, startTime, timeZone);
+            recurring = new RecurringEventSchedule(anchorUtc, duration, rs.Rule.ToDomain());
         }
 
         var exceptions = (dto.Exceptions ?? []).Select(e => ToException(e, dto.AllDay)).ToList();
@@ -194,7 +215,7 @@ public static class LegacySchemaMigrator
         if (allDay || string.IsNullOrEmpty(startStr) || string.IsNullOrEmpty(endStr))
             return (new LocalTimeValue(0, 0, 0), 24 * 60);
         var start = ParseTime(startStr);
-        return (start, DurationMinutes(start, ParseTime(endStr)));
+        return (start, LocalSchedulePoint.WrappingDurationMinutes(start, ParseTime(endStr)));
     }
 
     private static (LocalTimeValue? startTime, int? durationMinutes) ResolveOptionalTimes(bool allDay, string? startStr, string? endStr)
@@ -202,14 +223,14 @@ public static class LegacySchemaMigrator
         if (allDay || string.IsNullOrEmpty(startStr) || string.IsNullOrEmpty(endStr))
             return (null, null);
         var start = ParseTime(startStr);
-        return (start, DurationMinutes(start, ParseTime(endStr)));
+        return (start, LocalSchedulePoint.WrappingDurationMinutes(start, ParseTime(endStr)));
     }
 
-    private static int DurationMinutes(LocalTimeValue start, LocalTimeValue end)
-    {
-        var minutes = ((end.Hour * 60) + end.Minute) - ((start.Hour * 60) + start.Minute);
-        return minutes > 0 ? minutes : minutes + (24 * 60);
-    }
+    private static DateTimeOffset LocalStartToUtc(string dateStr, string timeStr, TimeZoneInfo tz)
+        => LocalSchedulePoint.StartInstant(ParseDate(dateStr), ParseTime(timeStr), tz).ToUniversalTime();
+
+    private static DateTimeOffset LocalStartToUtc(string dateStr, LocalTimeValue time, TimeZoneInfo tz)
+        => LocalSchedulePoint.StartInstant(ParseDate(dateStr), time, tz).ToUniversalTime();
 
     private static LocalDateValue ParseDate(string s)
     {
@@ -249,15 +270,21 @@ public static class LegacySchemaMigrator
 
     private sealed class LegacySingleScheduleDto
     {
-        public string Start { get; set; } = "";
-        public string End { get; set; } = "";
+        // Original shape
+        public string? Start { get; set; }
+        public string? End { get; set; }
+        // Interim shape
+        public string? StartDate { get; set; }
+        public string? StartTime { get; set; }
+        public int? DurationMinutes { get; set; }
     }
 
     private sealed class LegacyRecurringScheduleDto
     {
         public string StartDate { get; set; } = "";
         public string? StartTime { get; set; }
-        public string? EndTime { get; set; }
+        public string? EndTime { get; set; }       // original shape
+        public int? DurationMinutes { get; set; }  // interim shape
         public RecurrenceRuleDto Rule { get; set; } = new();
     }
 

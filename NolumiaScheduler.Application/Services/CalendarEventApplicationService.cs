@@ -41,8 +41,8 @@ public class CalendarEventApplicationService(
     {
         var id = new EventId(Guid.NewGuid().ToString());
         var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, command.AllDay);
-        var schedule = new SingleEventSchedule(
-            LocalDateValue.FromDateOnly(command.StartDate), startTime, duration);
+        var startUtc = ToUtc(LocalDateValue.FromDateOnly(command.StartDate), startTime, command.TimeZone);
+        var schedule = new SingleEventSchedule(startUtc, duration);
 
         var ev = CalendarEvent.CreateSingle(
             id,
@@ -64,11 +64,8 @@ public class CalendarEventApplicationService(
     {
         var id = new EventId(Guid.NewGuid().ToString());
         var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, command.AllDay);
-        var schedule = new RecurringEventSchedule(
-            command.StartDate,
-            startTime,
-            duration,
-            command.RecurrenceRule);
+        var anchorUtc = ToUtc(command.StartDate, startTime, command.TimeZone);
+        var schedule = new RecurringEventSchedule(anchorUtc, duration, command.RecurrenceRule);
 
         var ev = CalendarEvent.CreateRecurring(
             id,
@@ -107,9 +104,8 @@ public class CalendarEventApplicationService(
                 command.NewStartTime ?? TimeSpan.Zero,
                 command.NewEndTime ?? TimeSpan.Zero,
                 command.AllDay);
-            ev.RescheduleSingle(
-                new SingleEventSchedule(LocalDateValue.FromDateOnly(newDate), startTime, duration),
-                _clock.GetUtcNow());
+            var startUtc = ToUtc(LocalDateValue.FromDateOnly(newDate), startTime, ev.TimeZoneId.Value);
+            ev.RescheduleSingle(new SingleEventSchedule(startUtc, duration), _clock.GetUtcNow());
         }
 
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
@@ -136,11 +132,10 @@ public class CalendarEventApplicationService(
         // start/end pair denotes an all-day (00:00 + 24h) series.
         var old = ev.RecurringSchedule;
         var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, allDay: false);
-        var newSchedule = new RecurringEventSchedule(
-            old.StartDate,
-            startTime,
-            duration,
-            command.RecurrenceRule);
+        // Keep the series anchored on the same local date; only the time-of-day/duration/rule change.
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(old.AnchorUtc, ev.TimeZoneId.ToTimeZoneInfo());
+        var anchorUtc = ToUtc(anchorLocalDate, startTime, ev.TimeZoneId.Value);
+        var newSchedule = new RecurringEventSchedule(anchorUtc, duration, command.RecurrenceRule);
 
         ev.ChangeRecurrenceSchedule(newSchedule, _clock.GetUtcNow());
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
@@ -226,7 +221,9 @@ public class CalendarEventApplicationService(
         // occurrences, and an end date before its start date is invalid. In that case the edit
         // applies to the whole series, so drop the original rather than truncating it.
         var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
-        if (newEndDate.CompareTo(ev.RecurringSchedule.StartDate) < 0)
+        var seriesStartDate = LocalSchedulePoint.LocalDateOf(
+            ev.RecurringSchedule.AnchorUtc, ev.TimeZoneId.ToTimeZoneInfo());
+        if (newEndDate.CompareTo(seriesStartDate) < 0)
         {
             _repository.Delete(ev.Id);
         }
@@ -238,11 +235,9 @@ public class CalendarEventApplicationService(
 
         var newId = new EventId(Guid.NewGuid().ToString());
         var (newStartTime, newDuration) = ResolveTimes(command.NewStartTime, command.NewEndTime, command.NewAllDay);
-        var newSchedule = new RecurringEventSchedule(
-            command.FromOccurrenceKey.Date,
-            newStartTime,
-            newDuration,
-            command.NewRecurrenceRule);
+        // The split-off series keeps the original timezone for now (cross-TZ editing is a follow-up).
+        var newAnchorUtc = ToUtc(command.FromOccurrenceKey.Date, newStartTime, ev.TimeZoneId.Value);
+        var newSchedule = new RecurringEventSchedule(newAnchorUtc, newDuration, command.NewRecurrenceRule);
 
         var newEv = CalendarEvent.CreateRecurring(
             newId,
@@ -291,27 +286,26 @@ public class CalendarEventApplicationService(
         if (allDay) return (Midnight, MinutesPerDay);
         var start = LocalTimeValue.FromTimeOnly(TimeOnly.FromTimeSpan(startTime));
         var end = LocalTimeValue.FromTimeOnly(TimeOnly.FromTimeSpan(endTime));
-        return (start, DurationMinutes(start, end));
+        return (start, LocalSchedulePoint.WrappingDurationMinutes(start, end));
     }
 
     private static (LocalTimeValue startTime, int durationMinutes) ResolveTimes(
         LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
     {
         if (allDay || startTime == null || endTime == null) return (Midnight, MinutesPerDay);
-        return (startTime, DurationMinutes(startTime, endTime));
+        return (startTime, LocalSchedulePoint.WrappingDurationMinutes(startTime, endTime));
     }
 
     private static (LocalTimeValue? startTime, int? durationMinutes) ResolveOptionalTimes(
         LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
     {
         if (allDay || startTime == null || endTime == null) return (null, null);
-        return (startTime, DurationMinutes(startTime, endTime));
+        return (startTime, LocalSchedulePoint.WrappingDurationMinutes(startTime, endTime));
     }
 
-    private static int DurationMinutes(LocalTimeValue start, LocalTimeValue end)
-    {
-        var minutes = ((end.Hour * 60) + end.Minute) - ((start.Hour * 60) + start.Minute);
-        // end == start means a full day; end < start crosses into the next day.
-        return minutes > 0 ? minutes : minutes + MinutesPerDay;
-    }
+    // Resolves a local wall-clock date+time in the given timezone to an absolute UTC instant
+    // (docs/time-model.md §3): the stored value never re-resolves through the tz database again.
+    private static DateTimeOffset ToUtc(LocalDateValue date, LocalTimeValue time, string timeZoneId)
+        => LocalSchedulePoint.StartInstant(date, time, new TimeZoneId(timeZoneId).ToTimeZoneInfo())
+            .ToUniversalTime();
 }

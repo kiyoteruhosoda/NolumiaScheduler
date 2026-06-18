@@ -14,6 +14,11 @@ public class CalendarEventTests
     private static readonly TimeZoneId Tokyo = new("Asia/Tokyo");
     private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow;
 
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi) =>
+        LocalSchedulePoint.StartInstant(
+            new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), Tokyo.ToTimeZoneInfo())
+            .ToUniversalTime();
+
     [TestMethod]
     public void CreateSingleEvent_ShouldSetProperties()
     {
@@ -23,8 +28,7 @@ public class CalendarEventTests
             new Location("会議室A"),
             Visibility.Public,
             null, null, Tokyo,
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
+            new SingleEventSchedule(Utc(2026, 4, 20, 10, 0), 60),
             Now);
 
         Assert.IsTrue(ev.IsSingle());
@@ -38,22 +42,19 @@ public class CalendarEventTests
     public void CreateSingleEvent_NonPositiveDuration_ShouldThrow()
     {
         Assert.ThrowsExactly<DomainException>(() =>
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 4, 20), new LocalTimeValue(12, 0, 0), 0));
+            new SingleEventSchedule(Utc(2026, 4, 20, 12, 0), 0));
     }
 
     [TestMethod]
     public void CreateRecurringEvent_Weekly_ShouldSetProperties()
     {
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 12, 31),
             weekly: new WeeklyRule([Weekday.Monday]));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 4, 20, 10, 0),
             60,
             rule);
 
@@ -72,14 +73,13 @@ public class CalendarEventTests
     {
         // Crossing midnight is now allowed: a 23:00 start lasting 2h ends at 01:00 the next day,
         // expressed purely through the duration (docs/time-model.md).
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 12, 31),
             weekly: new WeeklyRule([Weekday.Monday]));
 
         var schedule = new RecurringEventSchedule(
-            startDate, new LocalTimeValue(23, 0, 0), 120, rule);
+            Utc(2026, 4, 20, 23, 0), 120, rule);
 
         Assert.AreEqual(120, schedule.DurationMinutes);
     }
@@ -199,8 +199,7 @@ public class CalendarEventTests
             new EventId("evt_s01"),
             new EventTitle("単発"),
             null, Visibility.Public, null, null, Tokyo,
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
+            new SingleEventSchedule(Utc(2026, 4, 20, 10, 0), 60),
             Now);
 
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
@@ -284,8 +283,7 @@ public class CalendarEventTests
             new EventId("evt_s02"),
             new EventTitle("単発"),
             null, Visibility.Public, null, null, Tokyo,
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
+            new SingleEventSchedule(Utc(2026, 4, 20, 10, 0), 60),
             Now);
 
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
@@ -296,15 +294,13 @@ public class CalendarEventTests
 
     private static CalendarEvent CreateWeeklyRecurring()
     {
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 12, 31),
             weekly: new WeeklyRule([Weekday.Monday]));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 4, 20, 10, 0),
             60,
             rule);
 

@@ -52,8 +52,8 @@ public class CalendarEventSpanTests
             description: null,
             new TimeZoneId("UTC"),
             new SingleEventSchedule(
-                new LocalDateValue(start.Year, start.Month, start.Day),
-                new LocalTimeValue(start.Hour, start.Minute, start.Second), 60),
+                new DateTimeOffset(start.Year, start.Month, start.Day, start.Hour, start.Minute, start.Second, TimeSpan.Zero),
+                60),
             Now);
 
     private static CalendarEvent WeeklyMonday(LocalDateValue startDate, LocalDateValue endDate) =>
@@ -66,8 +66,7 @@ public class CalendarEventSpanTests
             description: null,
             new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                startDate,
-                new LocalTimeValue(10, 0, 0),
+                new DateTimeOffset(startDate.Year, startDate.Month, startDate.Day, 10, 0, 0, TimeSpan.Zero),
                 30,
                 new RecurrenceRule(RecurrenceType.Weekly, 1, endDate, weekly: new WeeklyRule([Weekday.Monday]))),
             Now);

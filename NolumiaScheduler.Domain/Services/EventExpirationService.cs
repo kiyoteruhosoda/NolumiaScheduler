@@ -68,8 +68,10 @@ public class EventExpirationService(IOccurrenceExpander expander) : IEventExpira
 
         var schedule = calendarEvent.RecurringSchedule!;
         var lastDate = GetLastPossibleOccurrenceDate(calendarEvent);
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(
+            schedule.AnchorUtc, calendarEvent.TimeZoneId.ToTimeZoneInfo());
 
-        var occurrences = _expander.Expand(calendarEvent, schedule.StartDate, lastDate, businessCalendar);
+        var occurrences = _expander.Expand(calendarEvent, anchorLocalDate, lastDate, businessCalendar);
         if (occurrences.Count == 0)
             return null;
 
@@ -107,12 +109,7 @@ public class EventExpirationService(IOccurrenceExpander expander) : IEventExpira
     }
 
     private static DateTimeOffset SingleEnd(CalendarEvent calendarEvent)
-    {
-        var schedule = calendarEvent.SingleSchedule!;
-        var tz = calendarEvent.TimeZoneId.ToTimeZoneInfo();
-        return LocalSchedulePoint.EndInstant(
-            schedule.StartDate, schedule.StartTime, schedule.DurationMinutes, tz);
-    }
+        => calendarEvent.SingleSchedule!.EndUtc;
 
     private static DateTimeOffset GetOccurrenceEnd(EventOccurrence occurrence, TimeZoneInfo timeZone)
     {

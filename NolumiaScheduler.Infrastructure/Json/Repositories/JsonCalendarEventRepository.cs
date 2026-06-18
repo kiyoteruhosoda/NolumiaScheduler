@@ -168,37 +168,33 @@ internal class AlarmDto
 
 internal class SingleScheduleDto
 {
-    public string StartDate { get; set; } = "";
-    public string StartTime { get; set; } = "";
+    public string StartUtc { get; set; } = "";
     public int DurationMinutes { get; set; }
 
     public SingleEventSchedule ToDomain()
-        => new(ScheduleParse.Date(StartDate), ScheduleParse.Time(StartTime), DurationMinutes);
+        => new(ScheduleParse.Instant(StartUtc), DurationMinutes);
 
     public static SingleScheduleDto FromDomain(SingleEventSchedule schedule)
         => new()
         {
-            StartDate = schedule.StartDate.ToString(),
-            StartTime = schedule.StartTime.ToString(),
+            StartUtc = ScheduleParse.FormatInstant(schedule.StartUtc),
             DurationMinutes = schedule.DurationMinutes
         };
 }
 
 internal class RecurringScheduleDto
 {
-    public string StartDate { get; set; } = "";
-    public string StartTime { get; set; } = "";
+    public string AnchorUtc { get; set; } = "";
     public int DurationMinutes { get; set; }
     public RecurrenceRuleDto Rule { get; set; } = new();
 
     public RecurringEventSchedule ToDomain()
-        => new(ScheduleParse.Date(StartDate), ScheduleParse.Time(StartTime), DurationMinutes, Rule.ToDomain());
+        => new(ScheduleParse.Instant(AnchorUtc), DurationMinutes, Rule.ToDomain());
 
     public static RecurringScheduleDto FromDomain(RecurringEventSchedule schedule)
         => new()
         {
-            StartDate = schedule.StartDate.ToString(),
-            StartTime = schedule.StartTime.ToString(),
+            AnchorUtc = ScheduleParse.FormatInstant(schedule.AnchorUtc),
             DurationMinutes = schedule.DurationMinutes,
             Rule = RecurrenceRuleDto.FromDomain(schedule.RecurrenceRule)
         };
@@ -217,6 +213,13 @@ internal static class ScheduleParse
         var t = TimeOnly.Parse(s);
         return new LocalTimeValue(t.Hour, t.Minute, t.Second);
     }
+
+    public static DateTimeOffset Instant(string s)
+        => DateTimeOffset.Parse(s, System.Globalization.CultureInfo.InvariantCulture,
+            System.Globalization.DateTimeStyles.RoundtripKind).ToUniversalTime();
+
+    public static string FormatInstant(DateTimeOffset instant)
+        => instant.ToUniversalTime().ToString("yyyy-MM-ddTHH:mm:ssZ", System.Globalization.CultureInfo.InvariantCulture);
 }
 
 internal class RecurrenceRuleDto

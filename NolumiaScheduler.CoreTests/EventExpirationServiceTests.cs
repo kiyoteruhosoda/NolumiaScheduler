@@ -54,7 +54,7 @@ public class EventExpirationServiceTests
             new EventId("allday"), new EventTitle("AllDay"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new SingleEventSchedule(
-                new LocalDateValue(2026, 6, 10), new LocalTimeValue(0, 0, 0), 24 * 60),
+                Utc(2026, 6, 10, 0, 0, TimeZoneInfo.Utc), 24 * 60),
             CreatedAt);
 
         Assert.IsFalse(_service.IsExpired(ev, null, new DateTimeOffset(2026, 6, 10, 23, 59, 59, TimeSpan.Zero)));
@@ -117,7 +117,7 @@ public class EventExpirationServiceTests
             new EventId("rec-allday"), new EventTitle("Rec AllDay"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 6, 1), new LocalTimeValue(0, 0, 0), 24 * 60, rule),
+                Utc(2026, 6, 1, 0, 0, TimeZoneInfo.Utc), 24 * 60, rule),
             CreatedAt);
 
         Assert.IsFalse(_service.IsExpired(ev, null, new DateTimeOffset(2026, 6, 15, 23, 0, 0, TimeSpan.Zero)));
@@ -152,7 +152,7 @@ public class EventExpirationServiceTests
             new EventId("adj"), new EventTitle("Adjusted"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 6, 15), new LocalTimeValue(9, 0, 0), 60,
+                Utc(2026, 6, 15, 9, 0, TimeZoneInfo.Utc), 60,
                 rule),
             CreatedAt);
 
@@ -182,12 +182,12 @@ public class EventExpirationServiceTests
     {
         // Schedule is start + duration: start one hour before the given end (60-minute event).
         var start = end.AddHours(-1);
+        var tz = new TimeZoneId(timeZone).ToTimeZoneInfo();
         return CalendarEvent.CreateSingle(
             new EventId("single"), new EventTitle("Single"), null,
             Visibility.Public, null, null, new TimeZoneId(timeZone),
             new SingleEventSchedule(
-                new LocalDateValue(start.Year, start.Month, start.Day),
-                new LocalTimeValue(start.Hour, start.Minute, start.Second),
+                Utc(start.Year, start.Month, start.Day, start.Hour, start.Minute, tz),
                 (int)(end - start).TotalMinutes),
             CreatedAt);
     }
@@ -200,13 +200,18 @@ public class EventExpirationServiceTests
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1, endDate ?? new LocalDateValue(2026, 12, 28),
             weekly: new WeeklyRule([Weekday.Monday]));
+        var tz = new TimeZoneId(timeZone).ToTimeZoneInfo();
+        var start = startDate ?? new LocalDateValue(2026, 6, 1);
         return CalendarEvent.CreateRecurring(
             new EventId("weekly"), new EventTitle("Weekly"), null,
             Visibility.Public, null, null, new TimeZoneId(timeZone),
             new RecurringEventSchedule(
-                startDate ?? new LocalDateValue(2026, 6, 1),
-                new LocalTimeValue(9, 0, 0), 60,
+                Utc(start.Year, start.Month, start.Day, 9, 0, tz), 60,
                 rule),
             CreatedAt);
     }
+
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi, TimeZoneInfo tz)
+        => LocalSchedulePoint.StartInstant(
+            new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), tz).ToUniversalTime();
 }

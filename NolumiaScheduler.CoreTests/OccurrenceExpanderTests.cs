@@ -14,6 +14,13 @@ public class OccurrenceExpanderTests
     private static readonly DateTimeOffset Now = DateTimeOffset.UtcNow;
     private readonly OccurrenceExpander _expander = new(new BusinessDayShiftService());
 
+    // Builds a UTC instant from an intended local wall-clock time in the Tokyo timezone,
+    // which is the timezone every event in this file is created with.
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi) =>
+        LocalSchedulePoint.StartInstant(
+            new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0),
+            Tokyo.ToTimeZoneInfo()).ToUniversalTime();
+
     [TestMethod]
     public void Expand_SingleEvent_InRange_ReturnsOne()
     {
@@ -21,8 +28,7 @@ public class OccurrenceExpanderTests
             new EventId("evt_s01"),
             new EventTitle("テスト"),
             null, Visibility.Public, null, null, Tokyo,
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0), 60),
+            new SingleEventSchedule(Utc(2026, 4, 20, 10, 0), 60),
             Now);
 
         var results = _expander.Expand(ev,
@@ -40,8 +46,7 @@ public class OccurrenceExpanderTests
             new EventId("evt_s02"),
             new EventTitle("テスト"),
             null, Visibility.Public, null, null, Tokyo,
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 5, 20), new LocalTimeValue(10, 0, 0), 60),
+            new SingleEventSchedule(Utc(2026, 5, 20, 10, 0), 60),
             Now);
 
         var results = _expander.Expand(ev,
@@ -140,15 +145,13 @@ public class OccurrenceExpanderTests
     public void Expand_MonthlyRecurring_NthWeekday()
     {
         // 2nd Monday of each month, starting April 2026
-        var startDate = new LocalDateValue(2026, 4, 1);
         var rule = new RecurrenceRule(
             RecurrenceType.Monthly, 1,
             new LocalDateValue(2026, 6, 30),
             monthly: new NthWeekdayMonthlyRule(2, Weekday.Monday));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 4, 1, 10, 0),
             60,
             rule);
 
@@ -172,7 +175,6 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_WithBusinessDayAdjustment_ShiftsHoliday()
     {
-        var startDate = new LocalDateValue(2026, 5, 1);
         var rule = new RecurrenceRule(
             RecurrenceType.Monthly, 1,
             new LocalDateValue(2026, 5, 31),
@@ -180,8 +182,7 @@ public class OccurrenceExpanderTests
             adjustment: new AdjustmentRule(AdjustmentDirection.Backward));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 5, 1, 10, 0),
             60,
             rule);
 
@@ -212,15 +213,13 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_YearlyRecurring_GeneratesCorrectDates()
     {
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Yearly, 1,
             new LocalDateValue(2028, 12, 31),
             yearly: new DayOfMonthYearlyRule(4, 20));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(9, 0, 0),
+            Utc(2026, 4, 20, 9, 0),
             60,
             rule);
 
@@ -244,7 +243,6 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_RecurringAllDay_HasNullTimes()
     {
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 4, 30),
@@ -252,8 +250,7 @@ public class OccurrenceExpanderTests
 
         // An "all-day" recurrence is now modeled as start 00:00 + 1440-minute duration.
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(0, 0, 0), 24 * 60,
+            Utc(2026, 4, 20, 0, 0), 24 * 60,
             rule);
 
         var ev = CalendarEvent.CreateRecurring(
@@ -275,15 +272,13 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_WeeklyRecurring_OutsideEndDate_ReturnsEmpty()
     {
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 4, 26),
             weekly: new WeeklyRule([Weekday.Monday]));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 4, 20, 10, 0),
             60,
             rule);
 
@@ -304,7 +299,6 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_WithAdjustment_NonHolidayDate_IsNotShifted()
     {
-        var startDate = new LocalDateValue(2026, 5, 1);
         var rule = new RecurrenceRule(
             RecurrenceType.Monthly, 1,
             new LocalDateValue(2026, 5, 31),
@@ -312,8 +306,7 @@ public class OccurrenceExpanderTests
             adjustment: new AdjustmentRule(AdjustmentDirection.Backward));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 5, 1, 10, 0),
             60,
             rule);
 
@@ -418,8 +411,7 @@ public class OccurrenceExpanderTests
     private static CalendarEvent CreateRecurring(string id, LocalDateValue startDate, RecurrenceRule rule)
     {
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(startDate.Year, startDate.Month, startDate.Day, 10, 0),
             60,
             rule);
 
@@ -432,15 +424,13 @@ public class OccurrenceExpanderTests
 
     private static CalendarEvent CreateWeeklyMonday()
     {
-        var startDate = new LocalDateValue(2026, 4, 20);
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
             new LocalDateValue(2026, 12, 31),
             weekly: new WeeklyRule([Weekday.Monday]));
 
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(10, 0, 0),
+            Utc(2026, 4, 20, 10, 0),
             60,
             rule);
 

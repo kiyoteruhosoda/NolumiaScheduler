@@ -24,7 +24,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
         CalendarEvent ev, LocalDateValue fromDate, LocalDateValue toDate)
     {
         var schedule = ev.SingleSchedule!;
-        var startDate = schedule.StartDate;
+        var tz = ev.TimeZoneId.ToTimeZoneInfo();
+        var startDate = LocalSchedulePoint.LocalDateOf(schedule.StartUtc, tz);
 
         if (startDate < fromDate || startDate > toDate)
             return [];
@@ -33,7 +34,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
         [
             new EventOccurrence(
                 ev.Id, startDate,
-                schedule.StartTime, schedule.DurationMinutes,
+                LocalSchedulePoint.LocalTimeOf(schedule.StartUtc, tz), schedule.DurationMinutes,
                 ev.Title, ev.Location, ev.Visibility,
                 colorKey: ev.ColorKey)
         ];
@@ -45,13 +46,27 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
     {
         var schedule = ev.RecurringSchedule!;
         var rule = schedule.RecurrenceRule;
+        var tz = ev.TimeZoneId.ToTimeZoneInfo();
         var results = new List<EventOccurrence>();
 
-        var candidateDates = GenerateCandidateDates(schedule.StartDate, rule, toDate);
+        // The anchor's local date/time-of-day in the event timezone. The time-of-day is the
+        // nominal series start used for stable occurrence keys; each occurrence's actual local
+        // start is the UTC-pinned instant converted back to local (it may drift across DST).
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(schedule.AnchorUtc, tz);
+        var anchorLocalTime = LocalSchedulePoint.LocalTimeOf(schedule.AnchorUtc, tz);
+
+        // The UTC-pinned local start time-of-day on a given local date (docs/time-model.md §4-2).
+        LocalTimeValue SeriesTimeAt(LocalDateValue date)
+        {
+            var days = date.ToDateOnly().DayNumber - anchorLocalDate.ToDateOnly().DayNumber;
+            return LocalSchedulePoint.LocalTimeOf(schedule.AnchorUtc.AddDays(days), tz);
+        }
+
+        var candidateDates = GenerateCandidateDates(anchorLocalDate, rule, toDate);
 
         foreach (var candidateDate in candidateDates)
         {
-            var key = new OccurrenceLocalKey(candidateDate, schedule.StartTime);
+            var key = new OccurrenceLocalKey(candidateDate, anchorLocalTime);
 
             // Check skip
             var exception = ev.Exceptions.FirstOrDefault(e => e.OccurrenceKey.Equals(key));
@@ -71,7 +86,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     var movedOverride = exception is { Type: ExceptionType.Override } ? exception.Override : null;
                     results.Add(new EventOccurrence(
                         ev.Id, move.NewDate,
-                        move.NewStartTime ?? movedOverride?.StartTime ?? schedule.StartTime,
+                        move.NewStartTime ?? movedOverride?.StartTime ?? SeriesTimeAt(candidateDate),
                         move.NewDurationMinutes ?? movedOverride?.DurationMinutes ?? schedule.DurationMinutes,
                         move.Title ?? movedOverride?.Title ?? ev.Title,
                         move.Location ?? movedOverride?.Location ?? ev.Location,
@@ -99,7 +114,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 var ov = exception.Override;
                 results.Add(new EventOccurrence(
                     ev.Id, adjustedDate,
-                    ov.StartTime ?? schedule.StartTime,
+                    ov.StartTime ?? SeriesTimeAt(adjustedDate),
                     ov.DurationMinutes ?? schedule.DurationMinutes,
                     ov.Title ?? ev.Title,
                     ov.Location ?? ev.Location,
@@ -112,7 +127,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
 
             results.Add(new EventOccurrence(
                 ev.Id, adjustedDate,
-                schedule.StartTime, schedule.DurationMinutes,
+                SeriesTimeAt(adjustedDate), schedule.DurationMinutes,
                 ev.Title, ev.Location, ev.Visibility,
                 seriesKey: key,
                 colorKey: ev.ColorKey));

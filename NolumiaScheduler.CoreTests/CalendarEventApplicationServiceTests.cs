@@ -15,6 +15,11 @@ public class CalendarEventApplicationServiceTests
     private FakeClock _clock = null!;
     private CalendarEventApplicationService _svc = null!;
 
+    private static readonly TimeZoneInfo Tokyo = new TimeZoneId("Asia/Tokyo").ToTimeZoneInfo();
+
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi, TimeZoneInfo tz)
+        => LocalSchedulePoint.StartInstant(new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), tz).ToUniversalTime();
+
     [TestInitialize]
     public void Setup()
     {
@@ -64,8 +69,8 @@ public class CalendarEventApplicationServiceTests
 
         var ev = _repo.FindAll()[0];
         // All-day is now modeled as start 00:00 + a full-day (1440-minute) duration.
-        Assert.AreEqual(new LocalDateValue(2026, 5, 20), ev.SingleSchedule!.StartDate);
-        Assert.AreEqual(new LocalTimeValue(0, 0, 0), ev.SingleSchedule.StartTime);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 20), LocalSchedulePoint.LocalDateOf(ev.SingleSchedule!.StartUtc, Tokyo));
+        Assert.AreEqual(new LocalTimeValue(0, 0, 0), LocalSchedulePoint.LocalTimeOf(ev.SingleSchedule.StartUtc, Tokyo));
         Assert.AreEqual(24 * 60, ev.SingleSchedule.DurationMinutes);
     }
 
@@ -165,7 +170,7 @@ public class CalendarEventApplicationServiceTests
     public void UpdateEvent_単発予定は日時を変更できる()
     {
         var ev = CreateAndSaveSingleEvent("upd2");
-        var originalStartDate = ev.SingleSchedule!.StartDate;
+        var originalStartDate = LocalSchedulePoint.LocalDateOf(ev.SingleSchedule!.StartUtc, Tokyo);
 
         _svc.UpdateEvent(new UpdateEventCommand(
             EventId: "upd2",
@@ -179,9 +184,9 @@ public class CalendarEventApplicationServiceTests
             Alarm: null));
 
         var saved = _repo.FindById(new EventId("upd2"))!;
-        Assert.AreNotEqual(originalStartDate, saved.SingleSchedule!.StartDate);
-        Assert.AreEqual(new LocalDateValue(2026, 6, 1), saved.SingleSchedule.StartDate);
-        Assert.AreEqual(14, saved.SingleSchedule.StartTime.Hour);
+        Assert.AreNotEqual(originalStartDate, LocalSchedulePoint.LocalDateOf(saved.SingleSchedule!.StartUtc, Tokyo));
+        Assert.AreEqual(new LocalDateValue(2026, 6, 1), LocalSchedulePoint.LocalDateOf(saved.SingleSchedule.StartUtc, Tokyo));
+        Assert.AreEqual(14, LocalSchedulePoint.LocalTimeOf(saved.SingleSchedule.StartUtc, Tokyo).Hour);
         Assert.AreEqual(60, saved.SingleSchedule.DurationMinutes);
     }
 
@@ -196,7 +201,7 @@ public class CalendarEventApplicationServiceTests
             StartTime: TimeSpan.Zero, EndTime: TimeSpan.Zero));
 
         var ev = _repo.FindAll()[0];
-        var originalStartDate = ev.SingleSchedule!.StartDate;
+        var originalStartDate = LocalSchedulePoint.LocalDateOf(ev.SingleSchedule!.StartUtc, Tokyo);
 
         _svc.UpdateEvent(new UpdateEventCommand(
             EventId: ev.Id.Value,
@@ -208,10 +213,10 @@ public class CalendarEventApplicationServiceTests
             Alarm: null));
 
         var saved = _repo.FindById(ev.Id)!;
-        Assert.AreNotEqual(originalStartDate, saved.SingleSchedule!.StartDate);
-        Assert.AreEqual(new LocalDateValue(2026, 5, 25), saved.SingleSchedule.StartDate);
+        Assert.AreNotEqual(originalStartDate, LocalSchedulePoint.LocalDateOf(saved.SingleSchedule!.StartUtc, Tokyo));
+        Assert.AreEqual(new LocalDateValue(2026, 5, 25), LocalSchedulePoint.LocalDateOf(saved.SingleSchedule.StartUtc, Tokyo));
         // Remains a full-day occurrence: start 00:00 + 1440 minutes.
-        Assert.AreEqual(new LocalTimeValue(0, 0, 0), saved.SingleSchedule.StartTime);
+        Assert.AreEqual(new LocalTimeValue(0, 0, 0), LocalSchedulePoint.LocalTimeOf(saved.SingleSchedule.StartUtc, Tokyo));
         Assert.AreEqual(24 * 60, saved.SingleSchedule.DurationMinutes);
     }
 
@@ -343,7 +348,7 @@ public class CalendarEventApplicationServiceTests
 
         var newSeries = all.Single(e => e.Id.Value != "split1");
         Assert.AreEqual("New Series", newSeries.Title.Value);
-        Assert.AreEqual(new LocalDateValue(2026, 5, 6), newSeries.RecurringSchedule!.StartDate);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 6), LocalSchedulePoint.LocalDateOf(newSeries.RecurringSchedule!.AnchorUtc, Tokyo));
     }
 
     // ── UpdateRecurringSeries ──────────────────────────────────────────────
@@ -377,9 +382,9 @@ public class CalendarEventApplicationServiceTests
             new[] { Weekday.Monday, Weekday.Friday },
             ev.RecurringSchedule!.RecurrenceRule.Weekly!.Weekdays.ToList());
         Assert.AreEqual(2, ev.RecurringSchedule.RecurrenceRule.Interval);
-        Assert.AreEqual(13, ev.RecurringSchedule.StartTime!.Hour);
+        Assert.AreEqual(13, LocalSchedulePoint.LocalTimeOf(ev.RecurringSchedule.AnchorUtc, Tokyo).Hour);
         // The original series start date is preserved so existing occurrence keys stay aligned.
-        Assert.AreEqual(new LocalDateValue(2026, 5, 1), ev.RecurringSchedule.StartDate);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1), LocalSchedulePoint.LocalDateOf(ev.RecurringSchedule.AnchorUtc, Tokyo));
     }
 
     // ── DeleteEvent ────────────────────────────────────────────────────────
@@ -403,8 +408,7 @@ public class CalendarEventApplicationServiceTests
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle("sample"), null,
             Visibility.Public, null, null, tz,
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 5, 20), new LocalTimeValue(9, 0, 0), 60),
+            new SingleEventSchedule(Utc(2026, 5, 20, 9, 0, Tokyo), 60),
             DateTimeOffset.UtcNow);
         _repo.Save(ev);
         return ev;
@@ -418,8 +422,7 @@ public class CalendarEventApplicationServiceTests
             new LocalDateValue(2026, 12, 31),
             weekly: new WeeklyRule([Weekday.Wednesday]));
         var schedule = new RecurringEventSchedule(
-            new LocalDateValue(2026, 5, 1),
-            new LocalTimeValue(9, 30, 0),
+            Utc(2026, 5, 1, 9, 30, Tokyo),
             60,
             rule);
         var ev = CalendarEvent.CreateRecurring(

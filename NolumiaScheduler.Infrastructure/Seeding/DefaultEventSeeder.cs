@@ -26,8 +26,7 @@ public static class DefaultEventSeeder
             description: null,
             new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2026, 1, 5),
-                new LocalTimeValue(10, 0, 0),
+                new DateTimeOffset(2026, 1, 5, 10, 0, 0, TimeSpan.Zero),
                 30,
                 new RecurrenceRule(
                     RecurrenceType.Weekly,
@@ -38,7 +37,6 @@ public static class DefaultEventSeeder
         repo.Save(standup);
 
         var todayUtc = now.UtcDateTime;
-        var todayDate = new LocalDateValue(todayUtc.Year, todayUtc.Month, todayUtc.Day);
 
         var todayEvent = CalendarEvent.CreateSingle(
             new EventId(Guid.NewGuid().ToString()),
@@ -48,8 +46,9 @@ public static class DefaultEventSeeder
             eventType: null,
             description: null,
             new TimeZoneId("UTC"),
-            // All-day == start 00:00 + a full day (24h).
-            new SingleEventSchedule(todayDate, new LocalTimeValue(0, 0, 0), 24 * 60),
+            // All-day == start at local (here UTC) midnight + a full day (24h).
+            new SingleEventSchedule(
+                new DateTimeOffset(todayUtc.Year, todayUtc.Month, todayUtc.Day, 0, 0, 0, TimeSpan.Zero), 24 * 60),
             now);
         repo.Save(todayEvent);
 
@@ -62,8 +61,7 @@ public static class DefaultEventSeeder
             description: null,
             new TimeZoneId("UTC"),
             new RecurringEventSchedule(
-                new LocalDateValue(2020, 4, 1),
-                new LocalTimeValue(0, 0, 0),
+                new DateTimeOffset(2020, 4, 1, 0, 0, 0, TimeSpan.Zero),
                 24 * 60,
                 new RecurrenceRule(
                     RecurrenceType.Yearly,

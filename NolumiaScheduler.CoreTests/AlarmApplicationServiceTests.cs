@@ -455,7 +455,7 @@ public class AlarmApplicationServiceTests
             new EventId("allday"), new EventTitle("AllDay"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
             new SingleEventSchedule(
-                new LocalDateValue(2026, 6, 10), new LocalTimeValue(0, 0, 0), 24 * 60),
+                Utc(2026, 6, 10, 0, 0), 24 * 60),
             start,
             alarm: EventAlarm.Default);
         _repo.Save(ev);
@@ -467,14 +467,19 @@ public class AlarmApplicationServiceTests
 
     // ── helpers ────────────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Builds the UTC instant for the given wall-clock components in the event's time zone.
+    /// All events in these tests use the "UTC" zone, so the wall-clock equals the UTC instant.
+    /// </summary>
+    private static DateTimeOffset Utc(int year, int month, int day, int hour, int minute) =>
+        new(year, month, day, hour, minute, 0, TimeSpan.Zero);
+
     private void SaveEvent(string id, EventAlarm? alarm = null)
     {
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle($"Event {id}"), null,
             Visibility.Public, null, null, new TimeZoneId("UTC"),
-            new SingleEventSchedule(
-                new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day),
-                new LocalTimeValue(EventStart.Hour, EventStart.Minute, EventStart.Second), 60),
+            new SingleEventSchedule(EventStart, 60),
             EventStart.AddDays(-1),
             alarm: alarm ?? EventAlarm.Default);
         _repo.Save(ev);
@@ -494,8 +499,7 @@ public class AlarmApplicationServiceTests
                 Weekday.Friday, Weekday.Saturday, Weekday.Sunday
             ]));
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(EventStart.Hour, EventStart.Minute, 0),
+            EventStart,
             60,
             rule);
         var ev = CalendarEvent.CreateRecurring(

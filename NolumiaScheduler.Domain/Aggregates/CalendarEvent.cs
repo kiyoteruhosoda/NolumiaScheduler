@@ -115,6 +115,7 @@ public class CalendarEvent
         EventAlarm? alarm = null,
         EventColorKey colorKey = EventColorKey.Default)
     {
+        EnsureRecurrenceStartsOnOrBeforeEnd(timeZoneId, schedule);
         return new CalendarEvent(
             id: id,
             kind: EventKind.Recurring,
@@ -208,7 +209,9 @@ public class CalendarEvent
             throw new DomainException("Recurring schedule is required.");
 
         var newRule = RecurringSchedule.RecurrenceRule.WithEndDate(newEndDate);
-        RecurringSchedule = RecurringSchedule.WithRecurrenceRule(newRule);
+        var newSchedule = RecurringSchedule.WithRecurrenceRule(newRule);
+        EnsureRecurrenceStartsOnOrBeforeEnd(TimeZoneId, newSchedule);
+        RecurringSchedule = newSchedule;
 
         Touch(updatedAt);
     }
@@ -222,12 +225,17 @@ public class CalendarEvent
         if (newSchedule == null)
             throw new DomainException("Recurring schedule is required.");
 
-        // Occurrence keys are (candidate date, series start time), so a start-time change would
-        // orphan every existing skip/override/move. Re-key them to the new start time so the
-        // per-occurrence customizations keep applying.
-        var oldStartTime = RecurringSchedule?.StartTime;
-        if (!Equals(oldStartTime, newSchedule.StartTime))
-            RekeyOccurrenceCustomizations(oldStartTime, newSchedule.StartTime);
+        EnsureRecurrenceStartsOnOrBeforeEnd(TimeZoneId, newSchedule);
+
+        // Occurrence keys are (candidate date, series start time-of-day), so a start-time change
+        // would orphan every existing skip/override/move. The nominal series time-of-day is the
+        // anchor's local time in the event timezone; re-key when it changes.
+        var tz = TimeZoneId.ToTimeZoneInfo();
+        var oldStartTime = RecurringSchedule != null
+            ? LocalSchedulePoint.LocalTimeOf(RecurringSchedule.AnchorUtc, tz) : null;
+        var newStartTime = LocalSchedulePoint.LocalTimeOf(newSchedule.AnchorUtc, tz);
+        if (!Equals(oldStartTime, newStartTime))
+            RekeyOccurrenceCustomizations(oldStartTime, newStartTime);
 
         RecurringSchedule = newSchedule;
         Touch(updatedAt);
@@ -346,15 +354,17 @@ public class CalendarEvent
     /// </summary>
     public (LocalDateValue Start, LocalDateValue End) GetActiveDateSpan()
     {
+        var tz = TimeZoneId.ToTimeZoneInfo();
+
         if (IsSingle())
         {
             var single = SingleSchedule!;
-            var start = single.StartDate;
-            var endLocal = LocalSchedulePoint.LocalEnd(single.StartDate, single.StartTime, single.DurationMinutes);
+            var start = LocalSchedulePoint.LocalDateOf(single.StartUtc, tz);
+            var endLocalDt = TimeZoneInfo.ConvertTime(single.EndUtc, tz);
             // The end instant is exclusive; an occurrence that ends exactly at local midnight does
             // not extend the span into the following day.
-            var endExclusive = DateOnly.FromDateTime(endLocal);
-            var endLast = endLocal.TimeOfDay == TimeSpan.Zero && endExclusive > start.ToDateOnly()
+            var endExclusive = DateOnly.FromDateTime(endLocalDt.DateTime);
+            var endLast = endLocalDt.TimeOfDay == TimeSpan.Zero && endExclusive > start.ToDateOnly()
                 ? endExclusive.AddDays(-1)
                 : endExclusive;
             var end = LocalDateValue.FromDateOnly(endLast);
@@ -362,7 +372,7 @@ public class CalendarEvent
         }
 
         var schedule = RecurringSchedule!;
-        var spanStart = schedule.StartDate;
+        var spanStart = LocalSchedulePoint.LocalDateOf(schedule.AnchorUtc, tz);
         var spanEnd = schedule.RecurrenceRule.EndDate;
         foreach (var move in _moves)
         {
@@ -405,6 +415,16 @@ public class CalendarEvent
     {
         if (Kind != EventKind.Recurring)
             throw new DomainException("This operation is only allowed for recurring events.");
+    }
+
+    // Aggregate invariant: the anchor's local date (resolved in the event's timezone) must fall on
+    // or before the recurrence end date. It spans the schedule and the timezone, so it lives on the
+    // aggregate root rather than the schedule value object.
+    private static void EnsureRecurrenceStartsOnOrBeforeEnd(TimeZoneId timeZoneId, RecurringEventSchedule schedule)
+    {
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(schedule.AnchorUtc, timeZoneId.ToTimeZoneInfo());
+        if (anchorLocalDate.CompareTo(schedule.RecurrenceRule.EndDate) > 0)
+            throw new DomainException("startDate must be on or before recurrence endDate.");
     }
 
     private void EnsureOccurrenceKeyNotMoved(OccurrenceLocalKey occurrenceKey)

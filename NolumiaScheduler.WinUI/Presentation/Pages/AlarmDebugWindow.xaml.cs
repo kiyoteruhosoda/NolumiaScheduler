@@ -174,12 +174,14 @@ public sealed partial class AlarmDebugWindow : Window
             if (ev.IsSingle() && ev.SingleSchedule is { } ss)
             {
                 evLines.Add($"  Schedule : Single");
-                evLines.Add($"    Start  : {ss.StartDate} {ss.StartTime}");
+                evLines.Add($"    StartUtc : {ss.StartUtc:yyyy/MM/dd HH:mm:ss}Z");
                 evLines.Add($"    Duration: {ss.DurationMinutes} min");
                 try
                 {
-                    var localDate = ss.StartDate;
-                    evLines.Add($"    LocalDate: {localDate} ({ev.TimeZoneId.Value})");
+                    var tz = ev.TimeZoneId.ToTimeZoneInfo();
+                    var local = TimeZoneInfo.ConvertTime(ss.StartUtc, tz);
+                    var localDate = new LocalDateValue(local.Year, local.Month, local.Day);
+                    evLines.Add($"    Local   : {local:yyyy/MM/dd HH:mm} ({ev.TimeZoneId.Value})");
                     var inRange = localDate >= today && localDate <= tomorrow;
                     evLines.Add($"    範囲内? : {inRange}" + (!inRange ? $" ← ★範囲外 (today={today}, tomorrow={tomorrow})" : ""));
                 }
@@ -191,8 +193,7 @@ public sealed partial class AlarmDebugWindow : Window
             else if (ev.RecurringSchedule is { } rs)
             {
                 evLines.Add($"  Schedule : Recurring");
-                evLines.Add($"    StartDate : {rs.StartDate}");
-                evLines.Add($"    Time      : {rs.StartTime} (+{rs.DurationMinutes} min)");
+                evLines.Add($"    AnchorUtc : {rs.AnchorUtc:yyyy/MM/dd HH:mm:ss}Z (+{rs.DurationMinutes} min)");
                 evLines.Add($"    Rule      : {rs.RecurrenceRule.RuleType}, Interval={rs.RecurrenceRule.Interval}");
                 evLines.Add($"    EndDate   : {rs.RecurrenceRule.EndDate}");
             }

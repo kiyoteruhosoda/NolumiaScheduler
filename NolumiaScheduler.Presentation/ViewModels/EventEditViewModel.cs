@@ -156,28 +156,39 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         _wasRecurringAtLoad = ev.IsRecurring();
 
         const int minutesPerDay = 24 * 60;
+        // The form edits in the event's own timezone: convert the stored UTC instant to local
+        // (docs/time-model.md §4). Cross-TZ editing in the viewer's zone is a follow-up.
+        var tz = ev.TimeZoneId.ToTimeZoneInfo();
 
         if (ev.IsSingle() && ev.SingleSchedule != null)
         {
             var sched = ev.SingleSchedule;
+            var local = TimeZoneInfo.ConvertTime(sched.StartUtc, tz);
             // All-day is derived from a midnight start spanning a full day (docs/time-model.md).
-            AllDay = sched.StartTime.Hour == 0 && sched.StartTime.Minute == 0 && sched.DurationMinutes == minutesPerDay;
-            StartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
-            StartTime = new TimeSpan(sched.StartTime.Hour, sched.StartTime.Minute, 0);
+            AllDay = local.Hour == 0 && local.Minute == 0 && sched.DurationMinutes == minutesPerDay;
+            StartDate = local.Date;
+            StartTime = local.TimeOfDay;
             EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(sched.DurationMinutes));
             RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.None;
         }
         else if (ev.IsRecurring() && ev.RecurringSchedule != null)
         {
             var sched = ev.RecurringSchedule;
-            AllDay = sched.StartTime.Hour == 0 && sched.StartTime.Minute == 0 && sched.DurationMinutes == minutesPerDay;
+            var anchorLocal = TimeZoneInfo.ConvertTime(sched.AnchorUtc, tz);
+            AllDay = anchorLocal.Hour == 0 && anchorLocal.Minute == 0 && sched.DurationMinutes == minutesPerDay;
 
-            var effectiveDate = occurrenceKey?.Date ?? sched.StartDate;
-            var effectiveStart = occurrenceKey?.Time ?? sched.StartTime;
+            var anchorDate = DateOnly.FromDateTime(anchorLocal.DateTime);
+            var anchorTime = anchorLocal.TimeOfDay;
+            var effectiveDate = occurrenceKey?.Date is { } kd
+                ? new DateTime(kd.Year, kd.Month, kd.Day)
+                : anchorLocal.Date;
+            var effectiveStart = occurrenceKey?.Time is { } kt
+                ? new TimeSpan(kt.Hour, kt.Minute, 0)
+                : anchorTime;
 
-            _seriesStartDate = new DateTime(sched.StartDate.Year, sched.StartDate.Month, sched.StartDate.Day);
-            StartDate = new DateTime(effectiveDate.Year, effectiveDate.Month, effectiveDate.Day);
-            StartTime = new TimeSpan(effectiveStart.Hour, effectiveStart.Minute, 0);
+            _seriesStartDate = new DateTime(anchorDate.Year, anchorDate.Month, anchorDate.Day);
+            StartDate = effectiveDate;
+            StartTime = effectiveStart;
 
             var durationMinutes = Math.Max(EventEditDefaults.MinEventDurationMinutes, sched.DurationMinutes);
             EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(durationMinutes));

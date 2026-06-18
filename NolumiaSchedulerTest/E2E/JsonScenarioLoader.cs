@@ -51,15 +51,12 @@ internal static class JsonScenarioLoader
 
         if (string.Equals(dto.Kind, "Single", StringComparison.OrdinalIgnoreCase))
         {
-            // Scenario JSON keeps the legacy start/end shape; translate it into the duration model
-            // (docs/time-model.md). The wall-clock start is taken in the event's timezone.
+            // Scenario JSON keeps the legacy start/end shape; translate it into the UTC instant +
+            // duration model (docs/time-model.md §3).
             var start = ParseDateTimeOffset(Required(dto.Start, "start"));
             var end = ParseDateTimeOffset(Required(dto.End, "end"));
-            var localStart = TimeZoneInfo.ConvertTime(start, tz.ToTimeZoneInfo());
-            var startDate = new LocalDateValue(localStart.Year, localStart.Month, localStart.Day);
-            var startTime = new LocalTimeValue(localStart.Hour, localStart.Minute, localStart.Second);
             var duration = (int)(end - start).TotalMinutes;
-            var schedule = new SingleEventSchedule(startDate, startTime, duration);
+            var schedule = new SingleEventSchedule(start.ToUniversalTime(), duration);
             return CalendarEvent.Reconstitute(
                 id, EventKind.Single, title, location, visibility, eventType, description,
                 tz, schedule, recurringSchedule: null,
@@ -73,7 +70,8 @@ internal static class JsonScenarioLoader
             var startTime = string.IsNullOrEmpty(dto.StartTime) ? new LocalTimeValue(0, 0, 0) : ParseLocalTime(dto.StartTime);
             var duration = DurationFromTimes(dto.AllDay, dto.StartTime, dto.EndTime) ?? 24 * 60;
             var rule = MapRecurrenceRule(Required(dto.Recurrence, "recurrence"));
-            var schedule = new RecurringEventSchedule(startDate, startTime, duration, rule);
+            var anchorUtc = LocalSchedulePoint.StartInstant(startDate, startTime, tz.ToTimeZoneInfo()).ToUniversalTime();
+            var schedule = new RecurringEventSchedule(anchorUtc, duration, rule);
 
             var exceptions = (dto.Exceptions ?? [])
                 .Select(e => MapException(e, dto.AllDay))
@@ -250,10 +248,7 @@ internal static class JsonScenarioLoader
     private static int? DurationFromTimes(bool allDay, string? startStr, string? endStr)
     {
         if (allDay || string.IsNullOrEmpty(startStr) || string.IsNullOrEmpty(endStr)) return null;
-        var s = ParseLocalTime(startStr);
-        var e = ParseLocalTime(endStr);
-        var minutes = ((e.Hour * 60) + e.Minute) - ((s.Hour * 60) + s.Minute);
-        return minutes > 0 ? minutes : minutes + (24 * 60);
+        return LocalSchedulePoint.WrappingDurationMinutes(ParseLocalTime(startStr), ParseLocalTime(endStr));
     }
 
     private static BusinessCalendar MapCalendar(CalendarDto dto)
