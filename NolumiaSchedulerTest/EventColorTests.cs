@@ -75,7 +75,7 @@ public class EventColorTests
             new LocalDateValue(2026, 6, 30),
             businessCalendar: null);
 
-        Assert.AreEqual(1, occurrences.Count);
+        Assert.HasCount(1, occurrences);
         Assert.AreEqual(EventColorKey.Peacock, occurrences[0].ColorKey);
     }
 }
