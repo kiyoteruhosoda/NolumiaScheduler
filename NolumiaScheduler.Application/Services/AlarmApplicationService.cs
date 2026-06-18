@@ -354,6 +354,11 @@ public class AlarmApplicationService
                     lines.Add($"    SKIP occ {occ.Date}: all-day (00:00 + 24h)");
                     continue;
                 }
+                if (!occ.AlarmEnabled)
+                {
+                    lines.Add($"    SKIP occ {occ.Date}: alarm silenced for this occurrence");
+                    continue;
+                }
 
                 var occStart = ToOccurrenceStart(occ);
                 lines.Add($"    occ {occ.Date} start={occStart:HH:mm} | 15m={ev.Alarm.Notify15Min} 5m={ev.Alarm.Notify5Min} 1m={ev.Alarm.Notify1Min} atStart={ev.Alarm.NotifyAtStart}");
@@ -390,7 +395,7 @@ public class AlarmApplicationService
 
             foreach (var occ in _expander.Expand(ev, today, tomorrow, null))
             {
-                if (IsAllDay(occ)) continue;
+                if (IsAllDay(occ) || !occ.AlarmEnabled) continue;
 
                 var occStart = ToOccurrenceStart(occ);
                 foreach (var min in AlarmScheduleCalculator.Offsets)

@@ -57,7 +57,9 @@ public sealed record OverrideOccurrenceCommand(
     bool AllDay,
     LocalDateValue Date,
     LocalTimeValue? StartTime,
-    LocalTimeValue? EndTime);
+    LocalTimeValue? EndTime,
+    // Per-occurrence alarm override: null inherits the series, false silences just this occurrence.
+    bool? AlarmEnabled = null);
 
 public sealed record MoveOccurrenceCommand(
     string EventId,

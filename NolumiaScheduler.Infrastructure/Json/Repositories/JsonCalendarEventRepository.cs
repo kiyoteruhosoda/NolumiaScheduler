@@ -371,6 +371,7 @@ internal class ExceptionOverrideDto
     public string? Visibility { get; set; }
     public string? StartTime { get; set; }
     public int? DurationMinutes { get; set; }
+    public bool? AlarmEnabled { get; set; }
 
     public ExceptionOverride ToDomain()
     {
@@ -379,7 +380,8 @@ internal class ExceptionOverrideDto
             Location != null ? new Location(Location) : null,
             Visibility != null ? Enum.Parse<Visibility>(Visibility) : null,
             StartTime != null ? ScheduleParse.Time(StartTime) : null,
-            DurationMinutes);
+            DurationMinutes,
+            AlarmEnabled);
     }
 
     public static ExceptionOverrideDto FromDomain(ExceptionOverride ov)
@@ -390,7 +392,8 @@ internal class ExceptionOverrideDto
             Location = ov.Location?.Value,
             Visibility = ov.Visibility?.ToString(),
             StartTime = ov.StartTime?.ToString(),
-            DurationMinutes = ov.DurationMinutes
+            DurationMinutes = ov.DurationMinutes,
+            AlarmEnabled = ov.AlarmEnabled
         };
     }
 }

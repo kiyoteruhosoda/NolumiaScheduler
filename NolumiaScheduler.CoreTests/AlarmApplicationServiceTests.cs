@@ -1,5 +1,6 @@
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
+using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
@@ -463,6 +464,52 @@ public class AlarmApplicationServiceTests
         _clock.SetUtcNow(start.AddHours(9));
         Assert.HasCount(0, _service.CollectDueAlarms());
         Assert.HasCount(0, _service.GetScheduledAlarms());
+    }
+
+    // ── per-occurrence alarm suppression ───────────────────────────────────
+
+    [TestMethod]
+    public void 繰り返しのこの回だけアラームを無効化できる()
+    {
+        SaveDailyRecurringEvent("daily");
+
+        // Silence only today's (6/10) occurrence via a per-occurrence override.
+        var ev = _repo.FindById(new EventId("daily"))!;
+        var todayKey = new OccurrenceLocalKey(
+            new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day),
+            new LocalTimeValue(10, 0, 0));
+        ev.OverrideOccurrence(todayKey, new ExceptionOverride(alarmEnabled: false), EventStart.AddDays(-1));
+        _repo.Save(ev);
+
+        // Today's 15-min alarm would normally be due here, but the occurrence is silenced.
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "この回はアラーム無効なので発火しない");
+
+        // The next day's occurrence is unaffected and still planned.
+        Assert.IsTrue(
+            _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddDays(1).AddMinutes(-15).DateTime),
+            "他の回は影響を受けない");
+        Assert.IsFalse(
+            _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddMinutes(-15).DateTime),
+            "無効化した回は予定一覧にも出ない");
+    }
+
+    [TestMethod]
+    public void アラーム無効化は他の回には及ばない()
+    {
+        SaveDailyRecurringEvent("daily");
+        var ev = _repo.FindById(new EventId("daily"))!;
+        // Silence tomorrow (6/11), not today.
+        var tomorrowKey = new OccurrenceLocalKey(
+            new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day).AddDays(1),
+            new LocalTimeValue(10, 0, 0));
+        ev.OverrideOccurrence(tomorrowKey, new ExceptionOverride(alarmEnabled: false), EventStart.AddDays(-1));
+        _repo.Save(ev);
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms();
+        Assert.HasCount(1, due, "今日の回は通常どおり発火する");
+        Assert.AreEqual(15, due[0].OffsetMinutes);
     }
 
     // ── helpers ────────────────────────────────────────────────────────────

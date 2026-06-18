@@ -16,7 +16,8 @@ namespace NolumiaScheduler.Domain.Entities
         Location? location = null,
         Visibility? visibility = null,
         LocalTimeValue? startTime = null,
-        int? durationMinutes = null)
+        int? durationMinutes = null,
+        bool? alarmEnabled = null)
     {
         public EventTitle? Title { get; } = title;
         public Location? Location { get; } = location;
@@ -24,9 +25,13 @@ namespace NolumiaScheduler.Domain.Entities
         public LocalTimeValue? StartTime { get; } = startTime;
         public int? DurationMinutes { get; } = durationMinutes;
 
+        /// <summary>Per-occurrence alarm override: <c>null</c> inherits the series; <c>false</c> silences this occurrence.</summary>
+        public bool? AlarmEnabled { get; } = alarmEnabled;
+
         public bool IsEmpty()
         {
-            return Title == null && Location == null && Visibility == null && StartTime == null && DurationMinutes == null;
+            return Title == null && Location == null && Visibility == null
+                && StartTime == null && DurationMinutes == null && AlarmEnabled == null;
         }
     }
 

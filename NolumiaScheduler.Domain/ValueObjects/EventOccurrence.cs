@@ -16,7 +16,8 @@ public sealed class EventOccurrence(
     bool isMoved = false,
     bool isOverridden = false,
     OccurrenceLocalKey? seriesKey = null,
-    EventColorKey colorKey = EventColorKey.Default)
+    EventColorKey colorKey = EventColorKey.Default,
+    bool alarmEnabled = true)
 {
     public EventId EventId { get; } = eventId;
     public LocalDateValue Date { get; } = date;
@@ -28,6 +29,12 @@ public sealed class EventOccurrence(
     public bool IsMoved { get; } = isMoved;
     public bool IsOverridden { get; } = isOverridden;
     public EventColorKey ColorKey { get; } = colorKey;
+
+    /// <summary>
+    /// Whether this occurrence raises its series alarm. A per-occurrence override can silence a
+    /// single occurrence (docs/time-model.md); the series alarm settings still apply otherwise.
+    /// </summary>
+    public bool AlarmEnabled { get; } = alarmEnabled;
 
     // Original recurrence key (candidate date + scheduled start) this occurrence was
     // expanded from. Lets callers target the correct occurrence when moving/resizing a

@@ -42,7 +42,8 @@ public static class OccurrenceDisplayProjection
             occurrence.IsMoved,
             occurrence.IsOverridden,
             canonicalKey,
-            occurrence.ColorKey);
+            occurrence.ColorKey,
+            occurrence.AlarmEnabled);
     }
 
     private static bool IsAllDay(EventOccurrence occ)
@@ -59,5 +60,5 @@ public static class OccurrenceDisplayProjection
             : new EventOccurrence(
                 occ.EventId, occ.Date, occ.StartTime, occ.DurationMinutes,
                 occ.Title, occ.Location, occ.Visibility,
-                occ.IsMoved, occ.IsOverridden, key, occ.ColorKey);
+                occ.IsMoved, occ.IsOverridden, key, occ.ColorKey, occ.AlarmEnabled);
 }

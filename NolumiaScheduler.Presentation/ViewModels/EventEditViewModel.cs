@@ -33,7 +33,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private DateTime _startDate;
 
     private TimeSpan _startTime = new(9, 0, 0);
-    private TimeSpan _endTime = new(10, 0, 0);
+    private TimeSpan _endTime = new(9, 30, 0);
 
     // ── Recurrence ───────────────────────────────────────────
     private int _repeatTypeIndex;
@@ -132,7 +132,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         var endMinutes = endMinute.HasValue
             ? Math.Clamp(endMinute.Value, snapped + 15, 23 * 60 + 59)
-            : Math.Min(snapped + 60, 23 * 60 + 59);
+            : Math.Min(snapped + EventEditDefaults.DefaultEventDurationMinutes, 23 * 60 + 59);
         EndTime = TimeSpan.FromMinutes(endMinutes);
     }
     public string PageTitle => IsEditing ? AppResources.EditEventTitle : AppResources.NewEventTitle;

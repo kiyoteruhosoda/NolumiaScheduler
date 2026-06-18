@@ -173,7 +173,8 @@ public class CalendarEventApplicationService(
             location: command.Location != null ? new Location(command.Location) : null,
             visibility: command.Visibility,
             startTime: ovStart,
-            durationMinutes: ovDuration);
+            durationMinutes: ovDuration,
+            alarmEnabled: command.AlarmEnabled);
 
         ev.OverrideOccurrence(command.OccurrenceKey, exceptionOverride, _clock.GetUtcNow());
 

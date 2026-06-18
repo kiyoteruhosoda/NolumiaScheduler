@@ -93,7 +93,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                         move.Visibility ?? movedOverride?.Visibility ?? ev.Visibility,
                         isMoved: true,
                         seriesKey: key,
-                        colorKey: ev.ColorKey));
+                        colorKey: ev.ColorKey,
+                        alarmEnabled: movedOverride?.AlarmEnabled ?? true));
                 }
                 continue;
             }
@@ -121,7 +122,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     ov.Visibility ?? ev.Visibility,
                     isOverridden: true,
                     seriesKey: key,
-                    colorKey: ev.ColorKey));
+                    colorKey: ev.ColorKey,
+                    alarmEnabled: ov.AlarmEnabled ?? true));
                 continue;
             }
 
