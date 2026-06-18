@@ -22,6 +22,11 @@ public class EventScenarioE2ETests
 
     private readonly OccurrenceExpander _expander = new(new BusinessDayShiftService());
 
+    // All-day in the UTC model: the anchor resolves to local midnight and spans a full day.
+    private static bool IsAllDay(DateTimeOffset anchorUtc, int durationMinutes, TimeZoneId tz)
+        => LocalSchedulePoint.LocalTimeOf(anchorUtc, tz.ToTimeZoneInfo()).Equals(new LocalTimeValue(0, 0, 0))
+           && durationMinutes == 24 * 60;
+
     // ---------- Single events ----------
 
     [TestMethod]
@@ -36,7 +41,7 @@ public class EventScenarioE2ETests
         Assert.IsTrue(ev.IsSingle());
         // Not all-day: derived from the duration model (all-day is 00:00 + 1440).
         var single = ev.SingleSchedule!;
-        Assert.IsFalse(single.StartTime.Equals(new LocalTimeValue(0, 0, 0)) && single.DurationMinutes == 24 * 60);
+        Assert.IsFalse(IsAllDay(single.StartUtc, single.DurationMinutes, ev.TimeZoneId));
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 1),
@@ -75,7 +80,7 @@ public class EventScenarioE2ETests
         Assert.IsTrue(ev.IsSingle());
         // All-day in the duration model: start 00:00 + 1440 minutes.
         var single = ev.SingleSchedule!;
-        Assert.IsTrue(single.StartTime.Equals(new LocalTimeValue(0, 0, 0)) && single.DurationMinutes == 24 * 60);
+        Assert.IsTrue(IsAllDay(single.StartUtc, single.DurationMinutes, ev.TimeZoneId));
         Assert.IsNull(ev.Location);
 
         var results = _expander.Expand(ev,
@@ -96,7 +101,7 @@ public class EventScenarioE2ETests
         var ev = JsonScenarioLoader.LoadEvent(SingleCrossDayJson);
 
         var single = ev.SingleSchedule!;
-        Assert.IsFalse(single.StartTime.Equals(new LocalTimeValue(0, 0, 0)) && single.DurationMinutes == 24 * 60);
+        Assert.IsFalse(IsAllDay(single.StartUtc, single.DurationMinutes, ev.TimeZoneId));
         Assert.IsTrue(ev.IsSingle());
 
         var results = _expander.Expand(ev,
@@ -155,7 +160,7 @@ public class EventScenarioE2ETests
 
         // All-day recurring in the duration model: start 00:00 + 1440 minutes.
         var recurring = ev.RecurringSchedule!;
-        Assert.IsTrue(recurring.StartTime.Equals(new LocalTimeValue(0, 0, 0)) && recurring.DurationMinutes == 24 * 60);
+        Assert.IsTrue(IsAllDay(recurring.AnchorUtc, recurring.DurationMinutes, ev.TimeZoneId));
         Assert.IsTrue(ev.IsRecurring());
 
         var results = _expander.Expand(ev,

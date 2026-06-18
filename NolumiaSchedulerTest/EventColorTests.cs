@@ -18,10 +18,7 @@ public class EventColorTests
             eventType: null,
             description: null,
             new TimeZoneId("Asia/Tokyo"),
-            new SingleEventSchedule(
-                new LocalDateValue(2026, 6, 10),
-                new LocalTimeValue(9, 0, 0),
-                60),
+            new SingleEventSchedule(start.ToUniversalTime(), 60),
             createdAt: start,
             colorKey: colorKey);
     }
