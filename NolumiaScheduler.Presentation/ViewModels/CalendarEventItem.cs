@@ -17,7 +17,10 @@ public sealed class CalendarEventItem
         // day (docs/time-model.md). The end-of-day is start + duration; 24:00 is shown rather than
         // 00:00 when a block ends exactly at the day boundary.
         IsAllDay = occ.StartMinuteOfDay == 0 && occ.DurationMinutes == MinutesPerDay;
-        OccurrenceKey = new OccurrenceLocalKey(occ.Date, IsAllDay ? null : occ.StartTime);
+        // The key's time is the occurrence start (00:00 for all-day, not null), matching the key
+        // the expander uses for exceptions/moves — otherwise skip/override of an all-day recurring
+        // occurrence would never match and the occurrence would stay visible.
+        OccurrenceKey = new OccurrenceLocalKey(occ.Date, occ.StartTime);
         SeriesKey = occ.SeriesKey;
         Title = occ.Title.Value;
         Location = occ.Location?.Value;
