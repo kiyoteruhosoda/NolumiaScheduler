@@ -62,7 +62,17 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
             return LocalSchedulePoint.LocalTimeOf(schedule.AnchorUtc.AddDays(days), tz);
         }
 
-        var candidateDates = GenerateCandidateDates(anchorLocalDate, rule, toDate);
+        // A business-day adjustment can shift a candidate date by several calendar days, so a
+        // candidate whose raw date sits just outside [fromDate, toDate] can still land inside the
+        // window once shifted. Generate candidates over a widened upper bound and let the exact
+        // post-shift filter below decide membership — otherwise narrow windows (alarms, the week
+        // view) would drop, e.g., a "3 business days before month-end" occurrence whose month-end
+        // candidate falls after the window end. The margin matches the coarse pre-filter's, which
+        // is the largest shift the stored active span can represent.
+        var candidateBound = rule.Adjustment != null
+            ? toDate.AddDays(CalendarEvent.PeriodOverlapMarginDays)
+            : toDate;
+        var candidateDates = GenerateCandidateDates(anchorLocalDate, rule, candidateBound);
 
         foreach (var candidateDate in candidateDates)
         {
