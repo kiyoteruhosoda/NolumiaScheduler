@@ -57,7 +57,7 @@
                             <ComboBox x:Name="StartTimePicker" Grid.Column="1" FontSize="14"
                                       IsEditable="True"
                                       Foreground="{ThemeResource GCalTextPrimary}"
-                                      HorizontalAlignment="Stretch" Margin="0,0,8,0"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center" Margin="0,0,8,0"
                                       SelectionChanged="OnStartTimePickerChanged"
                                       TextSubmitted="OnStartTimeTextSubmitted"/>
                             <TextBlock x:Name="EndLabel" Grid.Column="2" FontSize="13" Width="48"
@@ -65,7 +65,7 @@
                             <ComboBox x:Name="EndTimePicker" Grid.Column="3" FontSize="14"
                                       IsEditable="True"
                                       Foreground="{ThemeResource GCalTextPrimary}"
-                                      HorizontalAlignment="Stretch"
+                                      HorizontalAlignment="Stretch" VerticalAlignment="Center"
                                       SelectionChanged="OnEndTimePickerChanged"
                                       TextSubmitted="OnEndTimeTextSubmitted"/>
                         </Grid>
@@ -135,7 +135,7 @@
                                      Foreground="{ThemeResource GCalTextPrimary}" TextChanged="OnDomChanged"
                                      VerticalAlignment="Center" VerticalContentAlignment="Center"/>
                             <CheckBox x:Name="MonthlyLastDayChk" Grid.Column="2" Margin="8,0,0,0"
-                                      VerticalAlignment="Center"
+                                      VerticalAlignment="Center" VerticalContentAlignment="Center"
                                       Checked="OnMonthlyLastDayChanged" Unchecked="OnMonthlyLastDayChanged"/>
                         </Grid>
                         <Grid x:Name="NthWeekdaySection" ColumnDefinitions="*,*" ColumnSpacing="8" Visibility="Collapsed">
@@ -174,8 +174,13 @@
                     <StackPanel x:Name="RecurringSection" Visibility="Collapsed">
                         <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
                         <!-- The interval is 1 by default; reveal the input only on demand. -->
-                        <CheckBox x:Name="UseCustomIntervalChk" MinHeight="44" VerticalAlignment="Center"
-                                  Checked="OnUseCustomIntervalChanged" Unchecked="OnUseCustomIntervalChanged"/>
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="48">
+                            <TextBlock x:Name="UseCustomIntervalLabelText" Grid.Column="0" FontSize="14"
+                                       Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                            <ToggleSwitch x:Name="UseCustomIntervalSwitch" Grid.Column="1"
+                                          OnContent="" OffContent="" Margin="0" MinWidth="0"
+                                          Toggled="OnUseCustomIntervalToggled"/>
+                        </Grid>
                         <Grid x:Name="IntervalInputSection" ColumnDefinitions="Auto,*,Auto" MinHeight="44"
                               Visibility="Collapsed">
                             <TextBlock x:Name="IntervalLabel" Grid.Column="0" FontSize="13" Width="64"
@@ -203,7 +208,7 @@
                              0 days means no business-day shift at all. -->
                         <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" MinHeight="48">
                             <ComboBox x:Name="AdjustmentDirectionPicker" Grid.Column="0" FontSize="14"
-                                      MinHeight="48" MinWidth="88"
+                                      MinWidth="88" VerticalAlignment="Center"
                                       SelectionChanged="OnAdjustmentDirectionChanged"/>
                             <TextBox x:Name="AdjustmentDaysBox" Grid.Column="1" FontSize="14" Width="72"
                                      InputScope="Number"
@@ -215,7 +220,8 @@
                                        Foreground="{ThemeResource GCalTextSecondary}"/>
                         </Grid>
                         <!-- Optional: restrict the shift to holidays only (default shifts always). -->
-                        <CheckBox x:Name="AdjustmentHolidayShiftChk" MinHeight="44" VerticalAlignment="Center"
+                        <CheckBox x:Name="AdjustmentHolidayShiftChk" MinHeight="44"
+                                  VerticalAlignment="Center" VerticalContentAlignment="Center"
                                   Checked="OnAdjustmentHolidayShiftChanged" Unchecked="OnAdjustmentHolidayShiftChanged"/>
                         <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
                             <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>

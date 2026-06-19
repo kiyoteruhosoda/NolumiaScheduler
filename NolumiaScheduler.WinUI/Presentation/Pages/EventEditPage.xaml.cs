@@ -82,7 +82,7 @@ public sealed partial class EventEditPage : Page
         DayLbl.Text             = AppResources.DayLabel;
         MonthlyLastDayChk.Content = AppResources.MonthlyLastDay;
         IntervalLabel.Text      = AppResources.IntervalLabel;
-        UseCustomIntervalChk.Content = AppResources.UseCustomIntervalLabel;
+        UseCustomIntervalLabelText.Text = AppResources.UseCustomIntervalLabel;
         EndDateLabel.Text       = AppResources.EndDateLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
         AdjustmentBusinessDaysLabel.Text = AppResources.AdjustmentBusinessDaysLabel;
@@ -250,7 +250,7 @@ public sealed partial class EventEditPage : Page
 
         // Interval / End Date
         _suppressUseCustomIntervalChanged = true;
-        UseCustomIntervalChk.IsChecked = _vm.UseCustomInterval;
+        UseCustomIntervalSwitch.IsOn = _vm.UseCustomInterval;
         _suppressUseCustomIntervalChanged = false;
 
         _suppressIntervalChanged = true;
@@ -824,10 +824,10 @@ public sealed partial class EventEditPage : Page
         _vm.MonthlyLastDay = MonthlyLastDayChk.IsChecked == true;
     }
 
-    private void OnUseCustomIntervalChanged(object sender, RoutedEventArgs e)
+    private void OnUseCustomIntervalToggled(object sender, RoutedEventArgs e)
     {
         if (_suppressUseCustomIntervalChanged || _vm == null) return;
-        _vm.UseCustomInterval = UseCustomIntervalChk.IsChecked == true;
+        _vm.UseCustomInterval = UseCustomIntervalSwitch.IsOn;
     }
 
     private void OnAdjustmentDirectionChanged(object sender, SelectionChangedEventArgs e)
