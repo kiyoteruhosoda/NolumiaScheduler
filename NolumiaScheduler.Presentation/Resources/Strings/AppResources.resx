@@ -75,6 +75,8 @@
   <data name="AdjustmentAfter" xml:space="preserve"><value>After</value></data>
   <data name="AdjustmentBusinessDaysLabel" xml:space="preserve"><value>Business days</value></data>
   <data name="MonthlyLastDay" xml:space="preserve"><value>Last day of month</value></data>
+  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve"><value>Shift only on holidays</value></data>
+  <data name="UseCustomIntervalLabel" xml:space="preserve"><value>Custom interval</value></data>
   <data name="BusinessCalendarLabel" xml:space="preserve"><value>Business Calendar</value></data>
   <data name="ErrorTitleRequired" xml:space="preserve"><value>Title is required.</value></data>
   <data name="ErrorWeekdayRequired" xml:space="preserve"><value>Select at least one day.</value></data>

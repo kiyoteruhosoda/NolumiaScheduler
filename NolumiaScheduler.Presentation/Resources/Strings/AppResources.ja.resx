@@ -294,6 +294,12 @@
   <data name="MonthlyLastDay" xml:space="preserve">
     <value>月末</value>
   </data>
+  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve">
+    <value>休日のみシフト</value>
+  </data>
+  <data name="UseCustomIntervalLabel" xml:space="preserve">
+    <value>間隔を指定</value>
+  </data>
   <data name="BusinessCalendarLabel" xml:space="preserve">
     <value>営業日カレンダー</value>
   </data>

@@ -14,13 +14,10 @@ namespace NolumiaScheduler.Presentation.ViewModels;
 /// <summary>Repeat type selection index: 0=None 1=Weekly 2=Monthly 3=Yearly</summary>
 public enum RepeatTypeIndex { None = 0, Weekly = 1, Monthly = 2, Yearly = 3 }
 
-/// <summary>Monthly rule index: 0=DayOfMonth 1=NthWeekday 2=LastDay (月末)</summary>
-public enum MonthlyRuleIndex { DayOfMonth = 0, NthWeekday = 1, LastDay = 2 }
+/// <summary>Monthly rule index: 0=DayOfMonth 1=NthWeekday. Month-end is a separate checkbox.</summary>
+public enum MonthlyRuleIndex { DayOfMonth = 0, NthWeekday = 1 }
 
-/// <summary>Business-day adjustment condition: 0=None 1=OnHoliday(祝日のとき) 2=Always(常に)</summary>
-public enum AdjustmentIndex { None = 0, OnHoliday = 1, Always = 2 }
-
-/// <summary>Adjustment shift direction: 0=Before(前) 1=After(後)</summary>
+/// <summary>Business-day adjustment shift direction: 0=Before(前) 1=After(後)</summary>
 public enum AdjustmentDirectionIndex { Before = 0, After = 1 }
 
 public partial class EventEditViewModel : INotifyPropertyChanged
@@ -41,6 +38,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     // ── Recurrence ───────────────────────────────────────────
     private int _repeatTypeIndex;
     private int _interval = 1;
+    // Interval input stays hidden unless the user opts in; an unspecified interval means 1.
+    private bool _useCustomInterval;
     private bool _hasEndDate = false;
     private DateTime _endDate;
 
@@ -49,6 +48,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     // Monthly
     private int _monthlyRuleIndex;
+    // Month-end is a checkbox beside the day input rather than a separate rule choice.
+    private bool _monthlyLastDay;
     private int _dayOfMonth = 1;
     private int _weekIndexPickerIndex = 1;   // maps: 0→1st, 1→2nd, 2→3rd, 3→4th, 4→5th, 5→Last
     private int _monthlyWeekdayIndex;         // 0=Sun … 6=Sat
@@ -60,10 +61,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private int _yearlyWeekIndexPickerIndex = 1;
     private int _yearlyWeekdayIndex;
 
-    // Adjustment
-    private int _adjustmentIndex;
+    // Adjustment: the business-day offset is primary (0 = no shift); the holiday-only restriction
+    // is a secondary opt-in checkbox.
+    private bool _adjustmentHolidayShift;
     private int _adjustmentDirectionIndex = (int)ViewModels.AdjustmentDirectionIndex.Before;
-    private int _adjustmentBusinessDays = 1;
+    private int _adjustmentBusinessDays;   // 0 = no business-day shift
     private int _selectedCalendarIndex = -1;
 
     private string _validationError = "";
@@ -231,6 +233,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         // which would clobber an already-ended series' real end date if EndDate were set first.
         HasEndDate = rule.EndDate.Year < 9999;
         EndDate = new DateTime(rule.EndDate.Year, rule.EndDate.Month, rule.EndDate.Day);
+        // Reveal the interval input only when the saved interval is non-default.
+        UseCustomInterval = rule.Interval > 1;
         Interval = rule.Interval;
 
         switch (rule.RuleType)
@@ -253,6 +257,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 if (rule.Monthly is DayOfMonthMonthlyRule dom)
                 {
                     MonthlyRuleIndex = (int)ViewModels.MonthlyRuleIndex.DayOfMonth;
+                    MonthlyLastDay = false;
                     DayOfMonth = dom.Day;
                 }
                 else if (rule.Monthly is NthWeekdayMonthlyRule nth)
@@ -263,7 +268,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 }
                 else if (rule.Monthly is LastDayOfMonthMonthlyRule)
                 {
-                    MonthlyRuleIndex = (int)ViewModels.MonthlyRuleIndex.LastDay;
+                    // Month-end is the day-of-month rule with the "末日" checkbox set.
+                    MonthlyRuleIndex = (int)ViewModels.MonthlyRuleIndex.DayOfMonth;
+                    MonthlyLastDay = true;
                 }
                 break;
             case RecurrenceType.Yearly:
@@ -286,15 +293,14 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         if (rule.Adjustment != null)
         {
-            AdjustmentIndex = rule.Adjustment.Condition == AdjustmentCondition.Always
-                ? (int)ViewModels.AdjustmentIndex.Always
-                : (int)ViewModels.AdjustmentIndex.OnHoliday;
+            // Holiday-only restriction is the opt-in checkbox; the default (unchecked) shifts always.
+            AdjustmentHolidayShift = rule.Adjustment.Condition == AdjustmentCondition.Holiday;
 
             AdjustmentDirectionIndex = rule.Adjustment.ShiftAmount < 0
                 ? (int)ViewModels.AdjustmentDirectionIndex.Before
                 : (int)ViewModels.AdjustmentDirectionIndex.After;
 
-            AdjustmentBusinessDays = Math.Max(1, Math.Abs(rule.Adjustment.ShiftAmount));
+            AdjustmentBusinessDays = Math.Abs(rule.Adjustment.ShiftAmount);
 
             if (rule.Adjustment.CalendarId != null)
             {
@@ -317,8 +323,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public static List<string> MonthlyRuleItems =>
     [
         AppResources.MonthlyDayOfMonth,
-        AppResources.MonthlyNthWeekday,
-        AppResources.MonthlyLastDay
+        AppResources.MonthlyNthWeekday
     ];
 
     // Yearly has no "month end" variant.
@@ -337,14 +342,6 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     [
         AppResources.DaySun, AppResources.DayMon, AppResources.DayTue,
         AppResources.DayWed, AppResources.DayThu, AppResources.DayFri, AppResources.DaySat
-    ];
-
-    // Adjustment condition: none / only when the candidate is a holiday / always.
-    public static List<string> AdjustmentItems =>
-    [
-        AppResources.AdjustmentNone,
-        AppResources.AdjustmentOnHoliday,
-        AppResources.AdjustmentAlways
     ];
 
     // Shift direction: N business days before / after the candidate date.
@@ -512,6 +509,18 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set { _interval = Math.Max(1, value); OnPropertyChanged(); }
     }
 
+    public bool UseCustomInterval
+    {
+        get => _useCustomInterval;
+        set
+        {
+            _useCustomInterval = value;
+            // Collapsing the custom interval resets to the implicit default of every period.
+            if (!value) Interval = 1;
+            OnPropertyChanged();
+        }
+    }
+
     public bool HasEndDate
     {
         get => _hasEndDate;
@@ -558,6 +567,20 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         get => _dayOfMonth;
         set { _dayOfMonth = Math.Clamp(value, 1, 31); OnPropertyChanged(); }
     }
+
+    public bool MonthlyLastDay
+    {
+        get => _monthlyLastDay;
+        set
+        {
+            _monthlyLastDay = value;
+            OnPropertyChanged();
+            // The day input is meaningless when "末日" is checked.
+            OnPropertyChanged(nameof(IsDayOfMonthInputEnabled));
+        }
+    }
+
+    public bool IsDayOfMonthInputEnabled => !_monthlyLastDay;
 
     public int WeekIndexPickerIndex
     {
@@ -609,15 +632,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     }
 
     // Adjustment
-    public int AdjustmentIndex
+    public bool AdjustmentHolidayShift
     {
-        get => _adjustmentIndex;
-        set
-        {
-            _adjustmentIndex = value;
-            OnPropertyChanged();
-            OnPropertyChanged(nameof(HasAdjustment));
-        }
+        get => _adjustmentHolidayShift;
+        set { _adjustmentHolidayShift = value; OnPropertyChanged(); }
     }
 
     public int AdjustmentDirectionIndex
@@ -629,7 +647,13 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public int AdjustmentBusinessDays
     {
         get => _adjustmentBusinessDays;
-        set { _adjustmentBusinessDays = Math.Max(1, value); OnPropertyChanged(); }
+        set
+        {
+            _adjustmentBusinessDays = Math.Max(0, value);
+            OnPropertyChanged();
+            // A zero offset means no business-day shift at all.
+            OnPropertyChanged(nameof(HasAdjustment));
+        }
     }
 
     public int SelectedCalendarIndex
@@ -704,7 +728,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public bool IsMonthlyNthWeekday  => _monthlyRuleIndex == (int)ViewModels.MonthlyRuleIndex.NthWeekday;
     public bool IsYearlyDayOfMonth   => _yearlyRuleIndex == 0;
     public bool IsYearlyNthWeekday   => _yearlyRuleIndex == 1;
-    public bool HasAdjustment        => _adjustmentIndex != (int)ViewModels.AdjustmentIndex.None;
+    public bool HasAdjustment        => _adjustmentBusinessDays > 0;
     public bool HasAvailableCalendars => AvailableCalendarNames.Count > 0;
 
     public string IntervalUnitLabel => _repeatTypeIndex switch
@@ -1006,21 +1030,23 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             ? new LocalDateValue(_endDate.Year, _endDate.Month, _endDate.Day)
             : new LocalDateValue(9999, 12, 31);
         var adjustment = BuildAdjustmentRule();
+        // An unspecified interval means every period (1).
+        var interval = _useCustomInterval ? _interval : 1;
 
         return (ViewModels.RepeatTypeIndex)_repeatTypeIndex switch
         {
             ViewModels.RepeatTypeIndex.Weekly => new RecurrenceRule(
-                RecurrenceType.Weekly, _interval, endDate,
+                RecurrenceType.Weekly, interval, endDate,
                 weekly: new WeeklyRule(CollectWeekdays()),
                 adjustment: adjustment),
 
             ViewModels.RepeatTypeIndex.Monthly => new RecurrenceRule(
-                RecurrenceType.Monthly, _interval, endDate,
+                RecurrenceType.Monthly, interval, endDate,
                 monthly: BuildMonthlyRule(),
                 adjustment: adjustment),
 
             ViewModels.RepeatTypeIndex.Yearly => new RecurrenceRule(
-                RecurrenceType.Yearly, _interval, endDate,
+                RecurrenceType.Yearly, interval, endDate,
                 yearly: BuildYearlyRule(),
                 adjustment: adjustment),
 
@@ -1031,11 +1057,13 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private MonthlyRule BuildMonthlyRule() =>
         (ViewModels.MonthlyRuleIndex)_monthlyRuleIndex switch
         {
-            ViewModels.MonthlyRuleIndex.DayOfMonth  => new DayOfMonthMonthlyRule(_dayOfMonth),
+            // The "末日" checkbox turns the day-of-month rule into a month-end rule.
+            ViewModels.MonthlyRuleIndex.DayOfMonth  => _monthlyLastDay
+                ? new LastDayOfMonthMonthlyRule()
+                : new DayOfMonthMonthlyRule(_dayOfMonth),
             ViewModels.MonthlyRuleIndex.NthWeekday  => new NthWeekdayMonthlyRule(
                 PickerIndexToWeekIndex(_weekIndexPickerIndex),
                 (Weekday)_monthlyWeekdayIndex),
-            ViewModels.MonthlyRuleIndex.LastDay     => new LastDayOfMonthMonthlyRule(),
             _ => throw new InvalidOperationException()
         };
 
@@ -1049,20 +1077,21 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     private AdjustmentRule? BuildAdjustmentRule()
     {
-        if (_adjustmentIndex == (int)ViewModels.AdjustmentIndex.None) return null;
+        // No offset means no business-day adjustment at all.
+        if (_adjustmentBusinessDays <= 0) return null;
 
         BusinessCalendarId? calId = null;
         if (_selectedCalendarIndex >= 0 && _selectedCalendarIndex < _availableCalendarIds.Count)
             calId = new BusinessCalendarId(_availableCalendarIds[_selectedCalendarIndex]);
 
-        var condition = _adjustmentIndex == (int)ViewModels.AdjustmentIndex.Always
-            ? AdjustmentCondition.Always
-            : AdjustmentCondition.Holiday;
+        // The holiday-shift checkbox restricts shifting to holidays; default is to always shift.
+        var condition = _adjustmentHolidayShift
+            ? AdjustmentCondition.Holiday
+            : AdjustmentCondition.Always;
 
-        var days = Math.Max(1, _adjustmentBusinessDays);
         var signedDays = _adjustmentDirectionIndex == (int)ViewModels.AdjustmentDirectionIndex.Before
-            ? -days
-            : days;
+            ? -_adjustmentBusinessDays
+            : _adjustmentBusinessDays;
 
         return new AdjustmentRule(
             condition,
@@ -1102,6 +1131,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             _availableCalendarIds.Add(cal.Id.Value);
         }
         OnPropertyChanged(nameof(HasAvailableCalendars));
+
+        // With a single business calendar there is nothing to choose: select it by default so the
+        // business-day shift works without an extra step.
+        if (AvailableCalendarNames.Count == 1)
+            SelectedCalendarIndex = 0;
     }
 
     // ── Delete logic ──────────────────────────────────────────────
