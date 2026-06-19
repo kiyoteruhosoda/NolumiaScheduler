@@ -363,6 +363,11 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private static LocalTimeValue ToLocalTime(int minuteOfDay)
         => new(minuteOfDay / 60, minuteOfDay % 60, 0);
 
+    // Projects a canonical occurrence (event-timezone wall-clock) into the device's local
+    // timezone for display, preserving the canonical key for editing/moving (docs/time-model.md §4).
+    private static EventOccurrence ProjectForDisplay(CalendarEvent ev, EventOccurrence occ)
+        => OccurrenceDisplayProjection.ToDisplayTimeZone(occ, ev.TimeZoneId.ToTimeZoneInfo(), TimeZoneInfo.Local);
+
     private void RefreshAfterChange()
     {
         var previousDate = _selectedCell?.Date;
@@ -496,44 +501,48 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         {
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
-            foreach (var occ in _expander.Expand(ev, from, to, calendar))
+            // Pad the expansion by a day on each side: after projecting to the viewer timezone a
+            // boundary occurrence can land on a different local day, and a cross-midnight event can
+            // spill into (or out of) the visible range. Each segment is then bucketed only if its
+            // own day is in view.
+            foreach (var canonical in _expander.Expand(ev, from.AddDays(-1), to.AddDays(1), calendar))
             {
+                // Render in the viewer's (device) timezone while keeping the canonical key for
+                // editing/moving (docs/time-model.md §4). Bucketing and the 24:00 split are done
+                // in viewer-local coordinates.
+                var occ = ProjectForDisplay(ev, canonical);
                 var dayIdx = (int)(occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue).Date - _weekStartDate.Date).TotalDays;
-                if (dayIdx < 0 || dayIdx >= dayCount) continue;
                 var item = new CalendarEventItem(occ);
-                if (!item.IsAllDay && item.CrossesMidnight && dayIdx < dayCount - 1)
+                if (!item.IsAllDay && item.CrossesMidnight)
                 {
-                    var firstOccurrence = new EventOccurrence(
-                        occ.EventId,
-                        occ.Date,
-                        occ.StartTime,
-                        new LocalTimeValue(23, 59, 0),
-                        false,
-                        occ.Title,
-                        occ.Location,
-                        occ.Visibility,
-                        occ.IsMoved,
-                        occ.IsOverridden,
-                        occ.SeriesKey,
-                        occ.ColorKey);
-                    weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence));
+                    // Split at the local 24:00 boundary: the first day runs start → 24:00, the
+                    // remainder spills onto the next day from 00:00 (docs/time-model.md). Render
+                    // whichever segment falls inside the view.
+                    const int minutesPerDay = 24 * 60;
+                    var firstDuration = minutesPerDay - occ.StartMinuteOfDay;
+                    var secondDuration = occ.StartMinuteOfDay + occ.DurationMinutes - minutesPerDay;
 
-                    var secondOccurrence = new EventOccurrence(
-                        occ.EventId,
-                        LocalDateValue.FromDateOnly(occ.Date.ToDateOnly().AddDays(1)),
-                        new LocalTimeValue(0, 0, 0),
-                        occ.EndTime,
-                        false,
-                        occ.Title,
-                        occ.Location,
-                        occ.Visibility,
-                        occ.IsMoved,
-                        occ.IsOverridden,
-                        occ.SeriesKey,
-                        occ.ColorKey);
-                    weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence));
+                    if (dayIdx >= 0 && dayIdx < dayCount)
+                    {
+                        var firstOccurrence = new EventOccurrence(
+                            occ.EventId, occ.Date, occ.StartTime, firstDuration,
+                            occ.Title, occ.Location, occ.Visibility,
+                            occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled);
+                        weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence));
+                    }
+
+                    if (dayIdx + 1 >= 0 && dayIdx + 1 < dayCount)
+                    {
+                        var secondOccurrence = new EventOccurrence(
+                            occ.EventId,
+                            LocalDateValue.FromDateOnly(occ.Date.ToDateOnly().AddDays(1)),
+                            new LocalTimeValue(0, 0, 0), secondDuration,
+                            occ.Title, occ.Location, occ.Visibility,
+                            occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled);
+                        weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence));
+                    }
                 }
-                else
+                else if (dayIdx >= 0 && dayIdx < dayCount)
                 {
                     weekly[dayIdx].Add(item);
                 }
@@ -622,8 +631,11 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId?.Value;
             var calendar = GetCalendar(calId);
 
-            foreach (var occ in _expander.Expand(ev, monthFrom, monthTo, calendar))
+            // Pad by a day on each side: projecting to the viewer timezone can move a boundary
+            // occurrence onto an adjacent local day (only the visible cells are read afterwards).
+            foreach (var canonical in _expander.Expand(ev, monthFrom.AddDays(-1), monthTo.AddDays(1), calendar))
             {
+                var occ = ProjectForDisplay(ev, canonical);
                 var key = occ.Date.ToString();
                 if (!byDate.TryGetValue(key, out var list))
                     byDate[key] = list = [];
@@ -631,15 +643,16 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             }
         }
 
-        // Sort: all-day first, then by start time
+        // Sort: all-day first (00:00 + 24h), then by start time
+        static bool IsAllDay(EventOccurrence o) => o.StartMinuteOfDay == 0 && o.DurationMinutes == 24 * 60;
         foreach (var list in byDate.Values)
         {
             list.Sort((a, b) =>
             {
-                if (a.AllDay != b.AllDay) return a.AllDay ? -1 : 1;
-                if (a.StartTime != null && b.StartTime != null)
-                    return a.StartTime.CompareTo(b.StartTime);
-                return 0;
+                var aAllDay = IsAllDay(a);
+                var bAllDay = IsAllDay(b);
+                if (aAllDay != bAllDay) return aAllDay ? -1 : 1;
+                return a.StartTime.CompareTo(b.StartTime);
             });
         }
 

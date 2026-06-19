@@ -65,10 +65,18 @@
   <data name="NthWeekLast" xml:space="preserve"><value>Last</value></data>
   <data name="IntervalLabel" xml:space="preserve"><value>Interval</value></data>
   <data name="EndDateLabel" xml:space="preserve"><value>End Date</value></data>
-  <data name="AdjustmentLabel" xml:space="preserve"><value>Holiday Shift</value></data>
+  <data name="AdjustmentLabel" xml:space="preserve"><value>Business day adjustment</value></data>
   <data name="AdjustmentNone" xml:space="preserve"><value>None</value></data>
   <data name="AdjustmentForward" xml:space="preserve"><value>Next Business Day</value></data>
   <data name="AdjustmentBackward" xml:space="preserve"><value>Prev Business Day</value></data>
+  <data name="AdjustmentOnHoliday" xml:space="preserve"><value>On holidays</value></data>
+  <data name="AdjustmentAlways" xml:space="preserve"><value>Always</value></data>
+  <data name="AdjustmentBefore" xml:space="preserve"><value>Before</value></data>
+  <data name="AdjustmentAfter" xml:space="preserve"><value>After</value></data>
+  <data name="AdjustmentBusinessDaysLabel" xml:space="preserve"><value>Business days</value></data>
+  <data name="MonthlyLastDay" xml:space="preserve"><value>Last day of month</value></data>
+  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve"><value>Shift only on holidays</value></data>
+  <data name="UseCustomIntervalLabel" xml:space="preserve"><value>Custom interval</value></data>
   <data name="BusinessCalendarLabel" xml:space="preserve"><value>Business Calendar</value></data>
   <data name="ErrorTitleRequired" xml:space="preserve"><value>Title is required.</value></data>
   <data name="ErrorWeekdayRequired" xml:space="preserve"><value>Select at least one day.</value></data>

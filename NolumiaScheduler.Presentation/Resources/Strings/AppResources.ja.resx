@@ -265,7 +265,7 @@
     <value>終了日</value>
   </data>
   <data name="AdjustmentLabel" xml:space="preserve">
-    <value>祝日ずらし</value>
+    <value>営業日調整</value>
   </data>
   <data name="AdjustmentNone" xml:space="preserve">
     <value>なし</value>
@@ -275,6 +275,30 @@
   </data>
   <data name="AdjustmentBackward" xml:space="preserve">
     <value>前営業日へ</value>
+  </data>
+  <data name="AdjustmentOnHoliday" xml:space="preserve">
+    <value>祝日のとき</value>
+  </data>
+  <data name="AdjustmentAlways" xml:space="preserve">
+    <value>常に</value>
+  </data>
+  <data name="AdjustmentBefore" xml:space="preserve">
+    <value>前</value>
+  </data>
+  <data name="AdjustmentAfter" xml:space="preserve">
+    <value>後</value>
+  </data>
+  <data name="AdjustmentBusinessDaysLabel" xml:space="preserve">
+    <value>営業日数</value>
+  </data>
+  <data name="MonthlyLastDay" xml:space="preserve">
+    <value>月末</value>
+  </data>
+  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve">
+    <value>休日のみシフト</value>
+  </data>
+  <data name="UseCustomIntervalLabel" xml:space="preserve">
+    <value>間隔を指定</value>
   </data>
   <data name="BusinessCalendarLabel" xml:space="preserve">
     <value>営業日カレンダー</value>

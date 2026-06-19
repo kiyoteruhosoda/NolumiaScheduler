@@ -9,7 +9,7 @@ namespace NolumiaScheduler.Domain.Entities
         OccurrenceLocalKey occurrenceKey,
         LocalDateValue newDate,
         LocalTimeValue? newStartTime = null,
-        LocalTimeValue? newEndTime = null,
+        int? newDurationMinutes = null,
         EventTitle? title = null,
         Location? location = null,
         Visibility? visibility = null)
@@ -17,7 +17,7 @@ namespace NolumiaScheduler.Domain.Entities
         public OccurrenceLocalKey OccurrenceKey { get; } = occurrenceKey ?? throw new ArgumentNullException(nameof(occurrenceKey));
         public LocalDateValue NewDate { get; } = newDate ?? throw new ArgumentNullException(nameof(newDate));
         public LocalTimeValue? NewStartTime { get; } = newStartTime;
-        public LocalTimeValue? NewEndTime { get; } = newEndTime;
+        public int? NewDurationMinutes { get; } = newDurationMinutes;
         public EventTitle? Title { get; } = title;
         public Location? Location { get; } = location;
         public Visibility? Visibility { get; } = visibility;

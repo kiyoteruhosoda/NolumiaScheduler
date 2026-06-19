@@ -25,8 +25,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
     {
         var schedule = ev.SingleSchedule!;
         var tz = ev.TimeZoneId.ToTimeZoneInfo();
-        var startLocal = TimeZoneInfo.ConvertTime(schedule.Start, tz);
-        var startDate = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(startLocal.DateTime));
+        var startDate = LocalSchedulePoint.LocalDateOf(schedule.StartUtc, tz);
 
         if (startDate < fromDate || startDate > toDate)
             return [];
@@ -35,10 +34,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
         [
             new EventOccurrence(
                 ev.Id, startDate,
-                ev.AllDay ? null : LocalTimeValue.FromTimeOnly(TimeOnly.FromDateTime(startLocal.DateTime)),
-                ev.AllDay ? null : LocalTimeValue.FromTimeOnly(TimeOnly.FromDateTime(
-                    TimeZoneInfo.ConvertTime(schedule.End, tz).DateTime)),
-                ev.AllDay, ev.Title, ev.Location, ev.Visibility,
+                LocalSchedulePoint.LocalTimeOf(schedule.StartUtc, tz), schedule.DurationMinutes,
+                ev.Title, ev.Location, ev.Visibility,
                 colorKey: ev.ColorKey)
         ];
     }
@@ -49,13 +46,37 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
     {
         var schedule = ev.RecurringSchedule!;
         var rule = schedule.RecurrenceRule;
+        var tz = ev.TimeZoneId.ToTimeZoneInfo();
         var results = new List<EventOccurrence>();
 
-        var candidateDates = GenerateCandidateDates(schedule.StartDate, rule, toDate);
+        // The anchor's local date/time-of-day in the event timezone. The time-of-day is the
+        // nominal series start used for stable occurrence keys; each occurrence's actual local
+        // start is the UTC-pinned instant converted back to local (it may drift across DST).
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(schedule.AnchorUtc, tz);
+        var anchorLocalTime = LocalSchedulePoint.LocalTimeOf(schedule.AnchorUtc, tz);
+
+        // The UTC-pinned local start time-of-day on a given local date (docs/time-model.md §4-2).
+        LocalTimeValue SeriesTimeAt(LocalDateValue date)
+        {
+            var days = date.ToDateOnly().DayNumber - anchorLocalDate.ToDateOnly().DayNumber;
+            return LocalSchedulePoint.LocalTimeOf(schedule.AnchorUtc.AddDays(days), tz);
+        }
+
+        // A business-day adjustment can shift a candidate date by several calendar days, so a
+        // candidate whose raw date sits just outside [fromDate, toDate] can still land inside the
+        // window once shifted. Generate candidates over a widened upper bound and let the exact
+        // post-shift filter below decide membership — otherwise narrow windows (alarms, the week
+        // view) would drop, e.g., a "3 business days before month-end" occurrence whose month-end
+        // candidate falls after the window end. The margin matches the coarse pre-filter's, which
+        // is the largest shift the stored active span can represent.
+        var candidateBound = rule.Adjustment != null
+            ? toDate.AddDays(CalendarEvent.PeriodOverlapMarginDays)
+            : toDate;
+        var candidateDates = GenerateCandidateDates(anchorLocalDate, rule, candidateBound);
 
         foreach (var candidateDate in candidateDates)
         {
-            var key = new OccurrenceLocalKey(candidateDate, schedule.StartTime);
+            var key = new OccurrenceLocalKey(candidateDate, anchorLocalTime);
 
             // Check skip
             var exception = ev.Exceptions.FirstOrDefault(e => e.OccurrenceKey.Equals(key));
@@ -75,15 +96,15 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     var movedOverride = exception is { Type: ExceptionType.Override } ? exception.Override : null;
                     results.Add(new EventOccurrence(
                         ev.Id, move.NewDate,
-                        move.NewStartTime ?? movedOverride?.StartTime ?? schedule.StartTime,
-                        move.NewEndTime ?? movedOverride?.EndTime ?? schedule.EndTime,
-                        ev.AllDay,
+                        move.NewStartTime ?? movedOverride?.StartTime ?? SeriesTimeAt(candidateDate),
+                        move.NewDurationMinutes ?? movedOverride?.DurationMinutes ?? schedule.DurationMinutes,
                         move.Title ?? movedOverride?.Title ?? ev.Title,
                         move.Location ?? movedOverride?.Location ?? ev.Location,
                         move.Visibility ?? movedOverride?.Visibility ?? ev.Visibility,
                         isMoved: true,
                         seriesKey: key,
-                        colorKey: ev.ColorKey));
+                        colorKey: ev.ColorKey,
+                        alarmEnabled: movedOverride?.AlarmEnabled ?? true));
                 }
                 continue;
             }
@@ -104,22 +125,22 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 var ov = exception.Override;
                 results.Add(new EventOccurrence(
                     ev.Id, adjustedDate,
-                    ov.StartTime ?? schedule.StartTime,
-                    ov.EndTime ?? schedule.EndTime,
-                    ev.AllDay,
+                    ov.StartTime ?? SeriesTimeAt(adjustedDate),
+                    ov.DurationMinutes ?? schedule.DurationMinutes,
                     ov.Title ?? ev.Title,
                     ov.Location ?? ev.Location,
                     ov.Visibility ?? ev.Visibility,
                     isOverridden: true,
                     seriesKey: key,
-                    colorKey: ev.ColorKey));
+                    colorKey: ev.ColorKey,
+                    alarmEnabled: ov.AlarmEnabled ?? true));
                 continue;
             }
 
             results.Add(new EventOccurrence(
                 ev.Id, adjustedDate,
-                schedule.StartTime, schedule.EndTime,
-                ev.AllDay, ev.Title, ev.Location, ev.Visibility,
+                SeriesTimeAt(adjustedDate), schedule.DurationMinutes,
+                ev.Title, ev.Location, ev.Visibility,
                 seriesKey: key,
                 colorKey: ev.ColorKey));
         }
@@ -208,6 +229,11 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
         if (rule is NthWeekdayMonthlyRule nthRule)
         {
             return FindNthWeekday(year, month, nthRule.WeekIndex, nthRule.Weekday.ToDayOfWeek());
+        }
+
+        if (rule is LastDayOfMonthMonthlyRule)
+        {
+            return new DateOnly(year, month, DateTime.DaysInMonth(year, month));
         }
 
         return null;

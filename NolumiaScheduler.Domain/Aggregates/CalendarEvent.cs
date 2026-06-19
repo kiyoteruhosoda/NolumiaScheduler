@@ -18,8 +18,6 @@ public class CalendarEvent
     public Description? Description { get; private set; }
     public TimeZoneId TimeZoneId { get; }
 
-    public bool AllDay { get; }
-
     public SingleEventSchedule? SingleSchedule { get; private set; }
     public RecurringEventSchedule? RecurringSchedule { get; private set; }
 
@@ -47,7 +45,6 @@ public class CalendarEvent
         EventType? eventType,
         Description? description,
         TimeZoneId timeZoneId,
-        bool allDay,
         SingleEventSchedule? singleSchedule,
         RecurringEventSchedule? recurringSchedule,
         DateTimeOffset createdAt,
@@ -65,7 +62,6 @@ public class CalendarEvent
         EventType = eventType;
         Description = description;
         TimeZoneId = timeZoneId ?? throw new ArgumentNullException(nameof(timeZoneId));
-        AllDay = allDay;
         SingleSchedule = singleSchedule;
         RecurringSchedule = recurringSchedule;
         CreatedAt = createdAt;
@@ -85,7 +81,6 @@ public class CalendarEvent
         EventType? eventType,
         Description? description,
         TimeZoneId timeZoneId,
-        bool allDay,
         SingleEventSchedule schedule,
         DateTimeOffset createdAt,
         EventAlarm? alarm = null,
@@ -100,7 +95,6 @@ public class CalendarEvent
             eventType: eventType,
             description: description,
             timeZoneId: timeZoneId,
-            allDay: allDay,
             singleSchedule: schedule,
             recurringSchedule: null,
             createdAt: createdAt,
@@ -116,12 +110,12 @@ public class CalendarEvent
         EventType? eventType,
         Description? description,
         TimeZoneId timeZoneId,
-        bool allDay,
         RecurringEventSchedule schedule,
         DateTimeOffset createdAt,
         EventAlarm? alarm = null,
         EventColorKey colorKey = EventColorKey.Default)
     {
+        EnsureRecurrenceStartsOnOrBeforeEnd(timeZoneId, schedule);
         return new CalendarEvent(
             id: id,
             kind: EventKind.Recurring,
@@ -131,7 +125,6 @@ public class CalendarEvent
             eventType: eventType,
             description: description,
             timeZoneId: timeZoneId,
-            allDay: allDay,
             singleSchedule: null,
             recurringSchedule: schedule,
             createdAt: createdAt,
@@ -148,7 +141,6 @@ public class CalendarEvent
         EventType? eventType,
         Description? description,
         TimeZoneId timeZoneId,
-        bool allDay,
         SingleEventSchedule? singleSchedule,
         RecurringEventSchedule? recurringSchedule,
         DateTimeOffset createdAt,
@@ -161,7 +153,7 @@ public class CalendarEvent
     {
         var ev = new CalendarEvent(
             id, kind, title, location, visibility, eventType, description,
-            timeZoneId, allDay, singleSchedule, recurringSchedule,
+            timeZoneId, singleSchedule, recurringSchedule,
             createdAt, exceptions, moves, version, alarm, colorKey)
         {
             UpdatedAt = updatedAt
@@ -217,7 +209,9 @@ public class CalendarEvent
             throw new DomainException("Recurring schedule is required.");
 
         var newRule = RecurringSchedule.RecurrenceRule.WithEndDate(newEndDate);
-        RecurringSchedule = RecurringSchedule.WithRecurrenceRule(newRule);
+        var newSchedule = RecurringSchedule.WithRecurrenceRule(newRule);
+        EnsureRecurrenceStartsOnOrBeforeEnd(TimeZoneId, newSchedule);
+        RecurringSchedule = newSchedule;
 
         Touch(updatedAt);
     }
@@ -231,15 +225,17 @@ public class CalendarEvent
         if (newSchedule == null)
             throw new DomainException("Recurring schedule is required.");
 
-        if (newSchedule.AllDay != AllDay)
-            throw new DomainException("All-day status cannot be changed for an existing series.");
+        EnsureRecurrenceStartsOnOrBeforeEnd(TimeZoneId, newSchedule);
 
-        // Occurrence keys are (candidate date, series start time), so a start-time change would
-        // orphan every existing skip/override/move. Re-key them to the new start time so the
-        // per-occurrence customizations keep applying.
-        var oldStartTime = RecurringSchedule?.StartTime;
-        if (!Equals(oldStartTime, newSchedule.StartTime))
-            RekeyOccurrenceCustomizations(oldStartTime, newSchedule.StartTime);
+        // Occurrence keys are (candidate date, series start time-of-day), so a start-time change
+        // would orphan every existing skip/override/move. The nominal series time-of-day is the
+        // anchor's local time in the event timezone; re-key when it changes.
+        var tz = TimeZoneId.ToTimeZoneInfo();
+        var oldStartTime = RecurringSchedule != null
+            ? LocalSchedulePoint.LocalTimeOf(RecurringSchedule.AnchorUtc, tz) : null;
+        var newStartTime = LocalSchedulePoint.LocalTimeOf(newSchedule.AnchorUtc, tz);
+        if (!Equals(oldStartTime, newStartTime))
+            RekeyOccurrenceCustomizations(oldStartTime, newStartTime);
 
         RecurringSchedule = newSchedule;
         Touch(updatedAt);
@@ -263,7 +259,7 @@ public class CalendarEvent
             if (!Equals(move.OccurrenceKey.Time, oldTime)) continue;
             _moves[i] = new EventMove(
                 new OccurrenceLocalKey(move.OccurrenceKey.Date, newTime),
-                move.NewDate, move.NewStartTime, move.NewEndTime,
+                move.NewDate, move.NewStartTime, move.NewDurationMinutes,
                 move.Title, move.Location, move.Visibility);
         }
     }
@@ -358,18 +354,25 @@ public class CalendarEvent
     /// </summary>
     public (LocalDateValue Start, LocalDateValue End) GetActiveDateSpan()
     {
+        var tz = TimeZoneId.ToTimeZoneInfo();
+
         if (IsSingle())
         {
-            var tz = TimeZoneId.ToTimeZoneInfo();
-            var startLocal = TimeZoneInfo.ConvertTime(SingleSchedule!.Start, tz);
-            var endLocal = TimeZoneInfo.ConvertTime(SingleSchedule!.End, tz);
-            var start = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(startLocal.DateTime));
-            var end = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(endLocal.DateTime));
+            var single = SingleSchedule!;
+            var start = LocalSchedulePoint.LocalDateOf(single.StartUtc, tz);
+            var endLocalDt = TimeZoneInfo.ConvertTime(single.EndUtc, tz);
+            // The end instant is exclusive; an occurrence that ends exactly at local midnight does
+            // not extend the span into the following day.
+            var endExclusive = DateOnly.FromDateTime(endLocalDt.DateTime);
+            var endLast = endLocalDt.TimeOfDay == TimeSpan.Zero && endExclusive > start.ToDateOnly()
+                ? endExclusive.AddDays(-1)
+                : endExclusive;
+            var end = LocalDateValue.FromDateOnly(endLast);
             return start <= end ? (start, end) : (end, start);
         }
 
         var schedule = RecurringSchedule!;
-        var spanStart = schedule.StartDate;
+        var spanStart = LocalSchedulePoint.LocalDateOf(schedule.AnchorUtc, tz);
         var spanEnd = schedule.RecurrenceRule.EndDate;
         foreach (var move in _moves)
         {
@@ -414,6 +417,16 @@ public class CalendarEvent
             throw new DomainException("This operation is only allowed for recurring events.");
     }
 
+    // Aggregate invariant: the anchor's local date (resolved in the event's timezone) must fall on
+    // or before the recurrence end date. It spans the schedule and the timezone, so it lives on the
+    // aggregate root rather than the schedule value object.
+    private static void EnsureRecurrenceStartsOnOrBeforeEnd(TimeZoneId timeZoneId, RecurringEventSchedule schedule)
+    {
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(schedule.AnchorUtc, timeZoneId.ToTimeZoneInfo());
+        if (anchorLocalDate.CompareTo(schedule.RecurrenceRule.EndDate) > 0)
+            throw new DomainException("startDate must be on or before recurrence endDate.");
+    }
+
     private void EnsureOccurrenceKeyNotMoved(OccurrenceLocalKey occurrenceKey)
     {
         if (_moves.Any(x => x.OccurrenceKey.Equals(occurrenceKey)))
@@ -431,42 +444,29 @@ public class CalendarEvent
 
     private void EnsureOverrideCompatible(ExceptionOverride exceptionOverride)
     {
-        if (AllDay)
-        {
-            if (exceptionOverride.StartTime != null || exceptionOverride.EndTime != null)
-                throw new DomainException("All-day recurring event cannot override times.");
-        }
-        else
-        {
-            var hasStart = exceptionOverride.StartTime != null;
-            var hasEnd = exceptionOverride.EndTime != null;
+        var hasStart = exceptionOverride.StartTime != null;
+        var hasDuration = exceptionOverride.DurationMinutes != null;
 
-            if (hasStart != hasEnd)
-                throw new DomainException("Override start/end time must be specified together.");
+        if (hasStart != hasDuration)
+            throw new DomainException("Override start time and duration must be specified together.");
 
-            if (hasStart && exceptionOverride.StartTime!.CompareTo(exceptionOverride.EndTime!) >= 0)
-                throw new DomainException("Override start time must be before end time.");
-        }
+        if (hasDuration && exceptionOverride.DurationMinutes!.Value <= 0)
+            throw new DomainException("Override duration must be greater than zero.");
 
         if (exceptionOverride.IsEmpty())
             throw new DomainException("Override payload must not be empty.");
     }
 
-    private void EnsureMoveCompatible(EventMove move)
+    private static void EnsureMoveCompatible(EventMove move)
     {
-        if (AllDay)
-        {
-            if (move.NewStartTime != null || move.NewEndTime != null)
-                throw new DomainException("All-day recurring event move must not have times.");
-        }
-        else
-        {
-            if (move.NewStartTime == null || move.NewEndTime == null)
-                throw new DomainException("Timed recurring event move requires times.");
+        var hasStart = move.NewStartTime != null;
+        var hasDuration = move.NewDurationMinutes != null;
 
-            if (move.NewStartTime.CompareTo(move.NewEndTime) >= 0)
-                throw new DomainException("Move start time must be before end time.");
-        }
+        if (hasStart != hasDuration)
+            throw new DomainException("Move start time and duration must be specified together.");
+
+        if (hasDuration && move.NewDurationMinutes!.Value <= 0)
+            throw new DomainException("Move duration must be greater than zero.");
     }
 
     private bool RemoveExceptionInternal(OccurrenceLocalKey occurrenceKey)

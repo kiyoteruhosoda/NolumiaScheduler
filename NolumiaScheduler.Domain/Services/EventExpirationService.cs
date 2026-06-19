@@ -21,7 +21,7 @@ public class EventExpirationService(IOccurrenceExpander expander) : IEventExpira
     public bool IsExpired(CalendarEvent calendarEvent, BusinessCalendar? businessCalendar, DateTimeOffset reference)
     {
         if (calendarEvent.IsSingle())
-            return calendarEvent.SingleSchedule!.End <= reference;
+            return SingleEnd(calendarEvent) <= reference;
 
         var lastDate = GetLastPossibleOccurrenceDate(calendarEvent);
         var timeZone = calendarEvent.TimeZoneId.ToTimeZoneInfo();
@@ -64,12 +64,14 @@ public class EventExpirationService(IOccurrenceExpander expander) : IEventExpira
     public DateTimeOffset? GetLastOccurrenceEnd(CalendarEvent calendarEvent, BusinessCalendar? businessCalendar)
     {
         if (calendarEvent.IsSingle())
-            return calendarEvent.SingleSchedule!.End;
+            return SingleEnd(calendarEvent);
 
         var schedule = calendarEvent.RecurringSchedule!;
         var lastDate = GetLastPossibleOccurrenceDate(calendarEvent);
+        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(
+            schedule.AnchorUtc, calendarEvent.TimeZoneId.ToTimeZoneInfo());
 
-        var occurrences = _expander.Expand(calendarEvent, schedule.StartDate, lastDate, businessCalendar);
+        var occurrences = _expander.Expand(calendarEvent, anchorLocalDate, lastDate, businessCalendar);
         if (occurrences.Count == 0)
             return null;
 
@@ -106,15 +108,15 @@ public class EventExpirationService(IOccurrenceExpander expander) : IEventExpira
         return lastDate;
     }
 
+    private static DateTimeOffset SingleEnd(CalendarEvent calendarEvent)
+        => calendarEvent.SingleSchedule!.EndUtc;
+
     private static DateTimeOffset GetOccurrenceEnd(EventOccurrence occurrence, TimeZoneInfo timeZone)
     {
-        // All-day occurrences (and any occurrence without an end time) last until the end of
-        // their local day.
-        var localEnd = occurrence.EndTime != null
-            ? occurrence.Date.ToDateOnly().ToDateTime(occurrence.EndTime.ToTimeOnly())
-            : AddDaysClamped(occurrence.Date.ToDateOnly(), 1).ToDateTime(TimeOnly.MinValue);
-
-        return new DateTimeOffset(localEnd, timeZone.GetUtcOffset(localEnd));
+        // End is start + duration in wall-clock terms; a cross-midnight occurrence ends on a later
+        // local day, which the duration naturally accounts for.
+        return LocalSchedulePoint.EndInstant(
+            occurrence.Date, occurrence.StartTime, occurrence.DurationMinutes, timeZone);
     }
 
     private static DateOnly AddDaysClamped(DateOnly date, int days)

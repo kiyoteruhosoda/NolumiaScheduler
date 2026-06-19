@@ -22,6 +22,11 @@ public class EventScenarioE2ETests
 
     private readonly OccurrenceExpander _expander = new(new BusinessDayShiftService());
 
+    // All-day in the UTC model: the anchor resolves to local midnight and spans a full day.
+    private static bool IsAllDay(DateTimeOffset anchorUtc, int durationMinutes, TimeZoneId tz)
+        => LocalSchedulePoint.LocalTimeOf(anchorUtc, tz.ToTimeZoneInfo()).Equals(new LocalTimeValue(0, 0, 0))
+           && durationMinutes == 24 * 60;
+
     // ---------- Single events ----------
 
     [TestMethod]
@@ -34,7 +39,9 @@ public class EventScenarioE2ETests
         Assert.AreEqual("東京本社", ev.Location!.Value);
         Assert.AreEqual(DomainVisibility.Public, ev.Visibility);
         Assert.IsTrue(ev.IsSingle());
-        Assert.IsFalse(ev.AllDay);
+        // Not all-day: derived from the duration model (all-day is 00:00 + 1440).
+        var single = ev.SingleSchedule!;
+        Assert.IsFalse(IsAllDay(single.StartUtc, single.DurationMinutes, ev.TimeZoneId));
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 1),
@@ -45,8 +52,11 @@ public class EventScenarioE2ETests
         var occ = results[0];
         Assert.AreEqual(new LocalDateValue(2026, 4, 21), occ.Date);
         Assert.AreEqual(new LocalTimeValue(14, 0, 0), occ.StartTime);
-        Assert.AreEqual(new LocalTimeValue(15, 30, 0), occ.EndTime);
-        Assert.IsFalse(occ.AllDay);
+        // End 15:30 = start (14:00 = 840) + 90 minutes.
+        Assert.AreEqual(90, occ.DurationMinutes);
+        // End 15:30 = start (14:00 = 840) + 90 minutes.
+        Assert.AreEqual((15 * 60) + 30, (occ.StartMinuteOfDay + occ.DurationMinutes) % (24 * 60));
+        Assert.IsFalse(occ.StartMinuteOfDay == 0 && occ.DurationMinutes == 24 * 60);
     }
 
     [TestMethod]
@@ -69,7 +79,9 @@ public class EventScenarioE2ETests
 
         Assert.AreEqual("evt_single_003", ev.Id.Value);
         Assert.IsTrue(ev.IsSingle());
-        Assert.IsTrue(ev.AllDay);
+        // All-day in the duration model: start 00:00 + 1440 minutes.
+        var single = ev.SingleSchedule!;
+        Assert.IsTrue(IsAllDay(single.StartUtc, single.DurationMinutes, ev.TimeZoneId));
         Assert.IsNull(ev.Location);
 
         var results = _expander.Expand(ev,
@@ -80,9 +92,7 @@ public class EventScenarioE2ETests
         Assert.HasCount(1, results);
         var occ = results[0];
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), occ.Date);
-        Assert.IsTrue(occ.AllDay);
-        Assert.IsNull(occ.StartTime);
-        Assert.IsNull(occ.EndTime);
+        Assert.IsTrue(occ.StartMinuteOfDay == 0 && occ.DurationMinutes == 24 * 60);
         Assert.AreEqual("有給休暇", occ.Title.Value);
     }
 
@@ -91,7 +101,8 @@ public class EventScenarioE2ETests
     {
         var ev = JsonScenarioLoader.LoadEvent(SingleCrossDayJson);
 
-        Assert.IsFalse(ev.AllDay);
+        var single = ev.SingleSchedule!;
+        Assert.IsFalse(IsAllDay(single.StartUtc, single.DurationMinutes, ev.TimeZoneId));
         Assert.IsTrue(ev.IsSingle());
 
         var results = _expander.Expand(ev,
@@ -104,8 +115,10 @@ public class EventScenarioE2ETests
         // start in JST is 2026-04-25 23:00
         Assert.AreEqual(new LocalDateValue(2026, 4, 25), occ.Date);
         Assert.AreEqual(new LocalTimeValue(23, 0, 0), occ.StartTime);
-        // end in JST is 2026-04-26 02:00
-        Assert.AreEqual(new LocalTimeValue(2, 0, 0), occ.EndTime);
+        // end in JST is 2026-04-26 02:00 → crosses midnight; duration 23:00→02:00 = 180 min.
+        Assert.IsTrue(occ.CrossesMidnight);
+        Assert.AreEqual(180, occ.DurationMinutes);
+        Assert.AreEqual((2 * 60) + 0, occ.EndMinuteFromStartDay - (24 * 60));
     }
 
     // ---------- Recurring events ----------
@@ -134,8 +147,10 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 5, 25),
         };
         CollectionAssert.AreEqual(expected, results.Select(r => r.Date).ToArray());
-        Assert.IsTrue(results.All(r => r.StartTime!.Equals(new LocalTimeValue(10, 0, 0))));
-        Assert.IsTrue(results.All(r => r.EndTime!.Equals(new LocalTimeValue(11, 0, 0))));
+        Assert.IsTrue(results.All(r => r.StartTime.Equals(new LocalTimeValue(10, 0, 0))));
+        // End 11:00 = start (10:00) + 60 minutes.
+        Assert.IsTrue(results.All(r => r.DurationMinutes == 60));
+        Assert.IsTrue(results.All(r => (r.StartMinuteOfDay + r.DurationMinutes) % (24 * 60) == 11 * 60));
         Assert.IsTrue(results.All(r => !r.IsMoved && !r.IsOverridden));
     }
 
@@ -144,7 +159,9 @@ public class EventScenarioE2ETests
     {
         var ev = JsonScenarioLoader.LoadEvent(RecurringAllDayJson);
 
-        Assert.IsTrue(ev.AllDay);
+        // All-day recurring in the duration model: start 00:00 + 1440 minutes.
+        var recurring = ev.RecurringSchedule!;
+        Assert.IsTrue(IsAllDay(recurring.AnchorUtc, recurring.DurationMinutes, ev.TimeZoneId));
         Assert.IsTrue(ev.IsRecurring());
 
         var results = _expander.Expand(ev,
@@ -163,8 +180,7 @@ public class EventScenarioE2ETests
             new LocalDateValue(2026, 5, 29),
         };
         CollectionAssert.AreEqual(expected, results.Select(r => r.Date).ToArray());
-        Assert.IsTrue(results.All(r => r.AllDay));
-        Assert.IsTrue(results.All(r => r.StartTime is null && r.EndTime is null));
+        Assert.IsTrue(results.All(r => r.StartMinuteOfDay == 0 && r.DurationMinutes == 24 * 60));
     }
 
     [TestMethod]
@@ -189,8 +205,10 @@ public class EventScenarioE2ETests
             new LocalDateValue(2030, 4, 20),
         };
         CollectionAssert.AreEqual(expected, results.Select(r => r.Date).ToArray());
-        Assert.IsTrue(results.All(r => r.StartTime!.Equals(new LocalTimeValue(8, 0, 0))));
-        Assert.IsTrue(results.All(r => r.EndTime!.Equals(new LocalTimeValue(12, 0, 0))));
+        Assert.IsTrue(results.All(r => r.StartTime.Equals(new LocalTimeValue(8, 0, 0))));
+        // End 12:00 = start (8:00) + 240 minutes.
+        Assert.IsTrue(results.All(r => r.DurationMinutes == 240));
+        Assert.IsTrue(results.All(r => (r.StartMinuteOfDay + r.DurationMinutes) % (24 * 60) == 12 * 60));
     }
 
     [TestMethod]
@@ -298,7 +316,9 @@ public class EventScenarioE2ETests
         Assert.AreEqual("会議室C", overridden.Location!.Value);
         Assert.AreEqual(DomainVisibility.Private, overridden.Visibility);
         Assert.AreEqual(new LocalTimeValue(10, 30, 0), overridden.StartTime);
-        Assert.AreEqual(new LocalTimeValue(11, 0, 0), overridden.EndTime);
+        // End 11:00 = start (10:30) + 30 minutes.
+        Assert.AreEqual(30, overridden.DurationMinutes);
+        Assert.AreEqual(11 * 60, (overridden.StartMinuteOfDay + overridden.DurationMinutes) % (24 * 60));
 
         // Other occurrences keep base values.
         var untouched = results.First(r => r.Date.Equals(new LocalDateValue(2026, 4, 21)));
@@ -307,7 +327,9 @@ public class EventScenarioE2ETests
         Assert.AreEqual("会議室B", untouched.Location!.Value);
         Assert.AreEqual(DomainVisibility.Public, untouched.Visibility);
         Assert.AreEqual(new LocalTimeValue(10, 0, 0), untouched.StartTime);
-        Assert.AreEqual(new LocalTimeValue(11, 0, 0), untouched.EndTime);
+        // End 11:00 = start (10:00) + 60 minutes.
+        Assert.AreEqual(60, untouched.DurationMinutes);
+        Assert.AreEqual(11 * 60, (untouched.StartMinuteOfDay + untouched.DurationMinutes) % (24 * 60));
     }
 
     [TestMethod]
@@ -328,7 +350,9 @@ public class EventScenarioE2ETests
         Assert.IsTrue(moved.IsMoved);
         Assert.AreEqual(new LocalDateValue(2026, 6, 2), moved.Date);
         Assert.AreEqual(new LocalTimeValue(15, 0, 0), moved.StartTime);
-        Assert.AreEqual(new LocalTimeValue(16, 0, 0), moved.EndTime);
+        // End 16:00 = start (15:00) + 60 minutes.
+        Assert.AreEqual(60, moved.DurationMinutes);
+        Assert.AreEqual(16 * 60, (moved.StartMinuteOfDay + moved.DurationMinutes) % (24 * 60));
         Assert.AreEqual("月次報告会（振替）", moved.Title.Value);
         Assert.AreEqual("会議室E", moved.Location!.Value);
     }

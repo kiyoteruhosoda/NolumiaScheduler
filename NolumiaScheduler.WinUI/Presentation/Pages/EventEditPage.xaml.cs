@@ -41,7 +41,11 @@ public sealed partial class EventEditPage : Page
     private bool _suppressMonthlyWeekdayChanged;
     private bool _suppressYearlyWeekIndexChanged;
     private bool _suppressYearlyWeekdayChanged;
-    private bool _suppressAdjustmentChanged;
+    private bool _suppressAdjustmentDirectionChanged;
+    private bool _suppressAdjustmentDaysChanged;
+    private bool _suppressAdjustmentHolidayShiftChanged;
+    private bool _suppressMonthlyLastDayChanged;
+    private bool _suppressUseCustomIntervalChanged;
     private bool _suppressCalendarPickerChanged;
     private bool _suppressWeekdayChanged;
     private bool _suppressAlarmChanged;
@@ -76,9 +80,13 @@ public sealed partial class EventEditPage : Page
         WLblFri.Text = AppResources.DayFri;
         WLblSat.Text = AppResources.DaySat;
         DayLbl.Text             = AppResources.DayLabel;
+        MonthlyLastDayChk.Content = AppResources.MonthlyLastDay;
         IntervalLabel.Text      = AppResources.IntervalLabel;
+        UseCustomIntervalLabelText.Text = AppResources.UseCustomIntervalLabel;
         EndDateLabel.Text       = AppResources.EndDateLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
+        AdjustmentBusinessDaysLabel.Text = AppResources.AdjustmentBusinessDaysLabel;
+        AdjustmentHolidayShiftChk.Content = AppResources.AdjustmentHolidayShiftLabel;
         BusinessCalendarLabel.Text = AppResources.BusinessCalendarLabel;
         ColorLabel.Text         = AppResources.ColorLabel;
         AlarmLabel.Text         = AppResources.AlarmLabel;
@@ -174,7 +182,7 @@ public sealed partial class EventEditPage : Page
         MonthlyWeekdayPicker.ItemsSource = EventEditViewModel.WeekdayItems;
         YearlyWeekIndexPicker.ItemsSource = EventEditViewModel.WeekIndexItems;
         YearlyWeekdayPicker.ItemsSource   = EventEditViewModel.WeekdayItems;
-        AdjustmentPicker.ItemsSource   = EventEditViewModel.AdjustmentItems;
+        AdjustmentDirectionPicker.ItemsSource = EventEditViewModel.AdjustmentDirectionItems;
 
         _suppressRepeatTypeChanged = true;
         RepeatTypePicker.SelectedIndex = _vm.RepeatTypeIndex;
@@ -207,6 +215,10 @@ public sealed partial class EventEditPage : Page
         DomBox.Text = _vm.DayOfMonth.ToString();
         _suppressDomChanged = false;
 
+        _suppressMonthlyLastDayChanged = true;
+        MonthlyLastDayChk.IsChecked = _vm.MonthlyLastDay;
+        _suppressMonthlyLastDayChanged = false;
+
         _suppressWeekIndexChanged = true;
         WeekIndexPicker.SelectedIndex = _vm.WeekIndexPickerIndex;
         _suppressWeekIndexChanged = false;
@@ -237,6 +249,10 @@ public sealed partial class EventEditPage : Page
         _suppressYearlyWeekdayChanged = false;
 
         // Interval / End Date
+        _suppressUseCustomIntervalChanged = true;
+        UseCustomIntervalSwitch.IsOn = _vm.UseCustomInterval;
+        _suppressUseCustomIntervalChanged = false;
+
         _suppressIntervalChanged = true;
         IntervalBox.Text = _vm.Interval.ToString();
         _suppressIntervalChanged = false;
@@ -248,9 +264,17 @@ public sealed partial class EventEditPage : Page
         _suppressEndDateChanged = false;
 
         // Adjustment
-        _suppressAdjustmentChanged = true;
-        AdjustmentPicker.SelectedIndex = _vm.AdjustmentIndex;
-        _suppressAdjustmentChanged = false;
+        _suppressAdjustmentDirectionChanged = true;
+        AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+        _suppressAdjustmentDirectionChanged = false;
+
+        _suppressAdjustmentDaysChanged = true;
+        AdjustmentDaysBox.Text = _vm.AdjustmentBusinessDays.ToString();
+        _suppressAdjustmentDaysChanged = false;
+
+        _suppressAdjustmentHolidayShiftChanged = true;
+        AdjustmentHolidayShiftChk.IsChecked = _vm.AdjustmentHolidayShift;
+        _suppressAdjustmentHolidayShiftChanged = false;
 
         CalendarPicker.ItemsSource = _vm.AvailableCalendarNames;
         _suppressCalendarPickerChanged = true;
@@ -429,12 +453,24 @@ public sealed partial class EventEditPage : Page
             case nameof(EventEditViewModel.IsYearlyNthWeekday):
             case nameof(EventEditViewModel.HasAdjustment):
             case nameof(EventEditViewModel.HasAvailableCalendars):
+            case nameof(EventEditViewModel.IsDayOfMonthInputEnabled):
+            case nameof(EventEditViewModel.UseCustomInterval):
             case nameof(EventEditViewModel.ShowAlarmNotifyOptions):
                 ApplySectionVisibility();
                 break;
 
             case nameof(EventEditViewModel.IntervalUnitLabel):
                 IntervalUnitLabel.Text = _vm.IntervalUnitLabel;
+                break;
+
+            case nameof(EventEditViewModel.Interval):
+                // Toggling off the custom interval resets the value to 1 in the VM; reflect it.
+                if (!_suppressIntervalChanged)
+                {
+                    _suppressIntervalChanged = true;
+                    IntervalBox.Text = _vm.Interval.ToString();
+                    _suppressIntervalChanged = false;
+                }
                 break;
 
             case nameof(EventEditViewModel.RepeatTypeIndex):
@@ -497,6 +533,13 @@ public sealed partial class EventEditPage : Page
         NthWeekdaySection.Visibility   = _vm.IsMonthlyNthWeekday  ? Visibility.Visible : Visibility.Collapsed;
         YearlyDomSection.Visibility    = _vm.IsYearlyDayOfMonth   ? Visibility.Visible : Visibility.Collapsed;
         YearlyNthSection.Visibility    = _vm.IsYearlyNthWeekday   ? Visibility.Visible : Visibility.Collapsed;
+
+        // The day input is meaningless once "末日" (month-end) is checked.
+        DomBox.IsEnabled = _vm.IsDayOfMonthInputEnabled;
+
+        // The interval input only appears when the user opts into a custom interval.
+        IntervalInputSection.Visibility = _vm.UseCustomInterval
+            ? Visibility.Visible : Visibility.Collapsed;
 
         CalendarPickerSection.Visibility = (_vm.HasAdjustment && _vm.HasAvailableCalendars)
             ? Visibility.Visible : Visibility.Collapsed;
@@ -769,10 +812,35 @@ public sealed partial class EventEditPage : Page
         _suppressEndDateChanged = false;
     }
 
-    private void OnAdjustmentChanged(object sender, SelectionChangedEventArgs e)
+    private void OnAdjustmentHolidayShiftChanged(object sender, RoutedEventArgs e)
     {
-        if (_suppressAdjustmentChanged || _vm == null) return;
-        _vm.AdjustmentIndex = AdjustmentPicker.SelectedIndex;
+        if (_suppressAdjustmentHolidayShiftChanged || _vm == null) return;
+        _vm.AdjustmentHolidayShift = AdjustmentHolidayShiftChk.IsChecked == true;
+    }
+
+    private void OnMonthlyLastDayChanged(object sender, RoutedEventArgs e)
+    {
+        if (_suppressMonthlyLastDayChanged || _vm == null) return;
+        _vm.MonthlyLastDay = MonthlyLastDayChk.IsChecked == true;
+    }
+
+    private void OnUseCustomIntervalToggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUseCustomIntervalChanged || _vm == null) return;
+        _vm.UseCustomInterval = UseCustomIntervalSwitch.IsOn;
+    }
+
+    private void OnAdjustmentDirectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_suppressAdjustmentDirectionChanged || _vm == null) return;
+        _vm.AdjustmentDirectionIndex = AdjustmentDirectionPicker.SelectedIndex;
+    }
+
+    private void OnAdjustmentDaysChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_suppressAdjustmentDaysChanged || _vm == null) return;
+        if (int.TryParse(AdjustmentDaysBox.Text, out var val))
+            _vm.AdjustmentBusinessDays = val;
     }
 
     private void OnCalendarPickerChanged(object sender, SelectionChangedEventArgs e)

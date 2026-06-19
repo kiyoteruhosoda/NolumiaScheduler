@@ -20,6 +20,7 @@ try
         "config" => Commands.ConfigShow(ctx),
         "set-backend" => Commands.SetBackend(ctx, parsed.Positional(0)),
         "migrate" => Commands.Migrate(ctx, parsed.Positional(0), parsed.HasFlag("force")),
+        "migrate-schema" => Commands.MigrateSchema(ctx, parsed.Positional(0), parsed.HasFlag("dry-run")),
         "seed" => Commands.Seed(ctx, parsed.Positional(0)),
         "list" => Commands.List(ctx, parsed.Positional(0)),
         "db-migrate" => Commands.DbMigrate(ctx),
@@ -54,6 +55,9 @@ static void PrintUsage()
           migrate <direction> [--force]        Copy data between backends
                                                direction: json-to-sqlite | sqlite-to-json
                                                (skips when target has data unless --force)
+          migrate-schema [json|sqlite|all] [--dry-run]
+                                               Convert events from the legacy start/end + all-day
+                                               schema to the duration model, in place (default: all)
           seed <backend>                       Seed sample events if the backend is empty
           list <backend>                       List events with their active date span
           db-migrate                           Apply pending SQLite schema migrations

@@ -79,9 +79,18 @@ public class StorageMigratorTests
         Assert.HasCount(1, hits);
     }
 
+    private static DateTimeOffset Anchor(int y, int mo, int d, int h, int mi, TimeZoneId tz)
+    {
+        if (tz.Value == "UTC")
+            return new DateTimeOffset(y, mo, d, h, mi, 0, TimeSpan.Zero);
+        return LocalSchedulePoint
+            .StartInstant(new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), tz.ToTimeZoneInfo())
+            .ToUniversalTime();
+    }
+
     private static CalendarEvent NewSingleEventOn(DateOnly date)
     {
-        var start = new DateTimeOffset(date.Year, date.Month, date.Day, 10, 0, 0, TimeSpan.Zero);
+        var tz = new TimeZoneId("UTC");
         return CalendarEvent.CreateSingle(
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle("Single"),
@@ -89,16 +98,16 @@ public class StorageMigratorTests
             Visibility.Public,
             eventType: null,
             description: null,
-            new TimeZoneId("UTC"),
-            allDay: false,
-            new SingleEventSchedule(start, start.AddHours(1)),
+            tz,
+            new SingleEventSchedule(
+                Anchor(date.Year, date.Month, date.Day, 10, 0, tz), 60),
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     }
 
     private static CalendarEvent NewSingleEvent(string title)
     {
         var now = new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero);
-        var start = new DateTimeOffset(2026, 5, 20, 10, 0, 0, TimeSpan.Zero);
+        var tz = new TimeZoneId("Asia/Tokyo");
         return CalendarEvent.CreateSingle(
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle(title),
@@ -106,9 +115,8 @@ public class StorageMigratorTests
             Visibility.Public,
             eventType: null,
             description: null,
-            new TimeZoneId("Asia/Tokyo"),
-            allDay: false,
-            new SingleEventSchedule(start, start.AddHours(1)),
+            tz,
+            new SingleEventSchedule(Anchor(2026, 5, 20, 10, 0, tz), 60),
             now);
     }
 }

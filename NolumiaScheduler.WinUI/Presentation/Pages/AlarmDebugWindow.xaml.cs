@@ -164,7 +164,6 @@ public sealed partial class AlarmDebugWindow : Window
             evLines.Add($"  ID       : {ev.Id.Value}");
             evLines.Add($"  Kind     : {ev.Kind}");
             evLines.Add($"  TZ       : {ev.TimeZoneId.Value}");
-            evLines.Add($"  AllDay   : {ev.AllDay}");
 
             if (ev.Alarm == null)
                 evLines.Add($"  Alarm    : null ← ★アラーム未設定");
@@ -175,15 +174,14 @@ public sealed partial class AlarmDebugWindow : Window
             if (ev.IsSingle() && ev.SingleSchedule is { } ss)
             {
                 evLines.Add($"  Schedule : Single");
-                evLines.Add($"    Start  : {ss.Start:yyyy/MM/dd HH:mm:ss zzz}");
-                evLines.Add($"    End    : {ss.End:yyyy/MM/dd HH:mm:ss zzz}");
+                evLines.Add($"    StartUtc : {ss.StartUtc:yyyy/MM/dd HH:mm:ss}Z");
+                evLines.Add($"    Duration: {ss.DurationMinutes} min");
                 try
                 {
                     var tz = ev.TimeZoneId.ToTimeZoneInfo();
-                    var localStart = TimeZoneInfo.ConvertTime(ss.Start, tz);
-                    var localDate = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(localStart.DateTime));
-                    evLines.Add($"    Local  : {localStart:yyyy/MM/dd HH:mm:ss} ({ev.TimeZoneId.Value})");
-                    evLines.Add($"    LocalDate: {localDate}");
+                    var local = TimeZoneInfo.ConvertTime(ss.StartUtc, tz);
+                    var localDate = new LocalDateValue(local.Year, local.Month, local.Day);
+                    evLines.Add($"    Local   : {local:yyyy/MM/dd HH:mm} ({ev.TimeZoneId.Value})");
                     var inRange = localDate >= today && localDate <= tomorrow;
                     evLines.Add($"    範囲内? : {inRange}" + (!inRange ? $" ← ★範囲外 (today={today}, tomorrow={tomorrow})" : ""));
                 }
@@ -195,9 +193,7 @@ public sealed partial class AlarmDebugWindow : Window
             else if (ev.RecurringSchedule is { } rs)
             {
                 evLines.Add($"  Schedule : Recurring");
-                evLines.Add($"    StartDate : {rs.StartDate}");
-                evLines.Add($"    Time      : {rs.StartTime} ～ {rs.EndTime}");
-                evLines.Add($"    AllDay    : {rs.AllDay}");
+                evLines.Add($"    AnchorUtc : {rs.AnchorUtc:yyyy/MM/dd HH:mm:ss}Z (+{rs.DurationMinutes} min)");
                 evLines.Add($"    Rule      : {rs.RecurrenceRule.RuleType}, Interval={rs.RecurrenceRule.Interval}");
                 evLines.Add($"    EndDate   : {rs.RecurrenceRule.EndDate}");
             }
@@ -226,15 +222,14 @@ public sealed partial class AlarmDebugWindow : Window
             }
             foreach (var occ in occurrences)
             {
-                var startStr = occ.StartTime != null ? $"{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2}" : "null";
-                var endStr = occ.EndTime != null ? $"{occ.EndTime.Hour:D2}:{occ.EndTime.Minute:D2}" : "null";
+                var startStr = $"{occ.StartTime.Hour:D2}:{occ.StartTime.Minute:D2}";
                 var flags = new List<string>();
-                if (occ.AllDay) flags.Add("AllDay");
+                if (occ.StartMinuteOfDay == 0 && occ.DurationMinutes == 24 * 60) flags.Add("AllDay");
                 if (occ.IsMoved) flags.Add("Moved");
                 if (occ.IsOverridden) flags.Add("Overridden");
-                if (occ.StartTime == null) flags.Add("★StartTime=null");
+                if (occ.CrossesMidnight) flags.Add("CrossesMidnight");
                 var flagStr = flags.Count > 0 ? $" [{string.Join(", ", flags)}]" : "";
-                occLines.Add($"  {occ.Date} {startStr}～{endStr}{flagStr}");
+                occLines.Add($"  {occ.Date} {startStr} (+{occ.DurationMinutes}min){flagStr}");
             }
             occLines.Add("");
         }

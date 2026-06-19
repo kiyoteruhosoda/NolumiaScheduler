@@ -1,5 +1,6 @@
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
+using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
@@ -18,6 +19,7 @@ public class AlarmApplicationServiceTests
     private static readonly DateTimeOffset EventStart = new(2026, 6, 10, 10, 0, 0, TimeSpan.Zero);
 
     private InMemoryCalendarEventRepository _repo = null!;
+    private InMemoryBusinessCalendarRepository _calendarRepo = null!;
     private FakeClock _clock = null!;
     private AlarmApplicationService _service = null!;
 
@@ -25,9 +27,10 @@ public class AlarmApplicationServiceTests
     public void Setup()
     {
         _repo = new InMemoryCalendarEventRepository();
+        _calendarRepo = new InMemoryBusinessCalendarRepository();
         _clock = new FakeClock(EventStart.AddHours(-1));
         _service = new AlarmApplicationService(
-            _repo, _repo, new OccurrenceExpander(new BusinessDayShiftService()), _clock);
+            _repo, _repo, _calendarRepo, new OccurrenceExpander(new BusinessDayShiftService()), _clock);
     }
 
     // ── pending → due ──────────────────────────────────────────────────────
@@ -453,8 +456,10 @@ public class AlarmApplicationServiceTests
         var start = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero);
         var ev = CalendarEvent.CreateSingle(
             new EventId("allday"), new EventTitle("AllDay"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: true,
-            new SingleEventSchedule(start, start.AddDays(1)), start,
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            new SingleEventSchedule(
+                Utc(2026, 6, 10, 0, 0), 24 * 60),
+            start,
             alarm: EventAlarm.Default);
         _repo.Save(ev);
 
@@ -463,14 +468,94 @@ public class AlarmApplicationServiceTests
         Assert.HasCount(0, _service.GetScheduledAlarms());
     }
 
+    // ── per-occurrence alarm suppression ───────────────────────────────────
+
+    [TestMethod]
+    public void 繰り返しのこの回だけアラームを無効化できる()
+    {
+        SaveDailyRecurringEvent("daily");
+
+        // Silence only today's (6/10) occurrence via a per-occurrence override.
+        var ev = _repo.FindById(new EventId("daily"))!;
+        var todayKey = new OccurrenceLocalKey(
+            new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day),
+            new LocalTimeValue(10, 0, 0));
+        ev.OverrideOccurrence(todayKey, new ExceptionOverride(alarmEnabled: false), EventStart.AddDays(-1));
+        _repo.Save(ev);
+
+        // Today's 15-min alarm would normally be due here, but the occurrence is silenced.
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "この回はアラーム無効なので発火しない");
+
+        // The next day's occurrence is unaffected and still planned.
+        Assert.IsTrue(
+            _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddDays(1).AddMinutes(-15).DateTime),
+            "他の回は影響を受けない");
+        Assert.IsFalse(
+            _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddMinutes(-15).DateTime),
+            "無効化した回は予定一覧にも出ない");
+    }
+
+    [TestMethod]
+    public void アラーム無効化は他の回には及ばない()
+    {
+        SaveDailyRecurringEvent("daily");
+        var ev = _repo.FindById(new EventId("daily"))!;
+        // Silence tomorrow (6/11), not today.
+        var tomorrowKey = new OccurrenceLocalKey(
+            new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day).AddDays(1),
+            new LocalTimeValue(10, 0, 0));
+        ev.OverrideOccurrence(tomorrowKey, new ExceptionOverride(alarmEnabled: false), EventStart.AddDays(-1));
+        _repo.Save(ev);
+
+        _clock.SetUtcNow(EventStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms();
+        Assert.HasCount(1, due, "今日の回は通常どおり発火する");
+        Assert.AreEqual(15, due[0].OffsetMinutes);
+    }
+
+    // ── business-day shift ─────────────────────────────────────────────────
+
+    [TestMethod]
+    public void 営業日シフトの繰り返しはシフト後の日付でアラームが鳴る()
+    {
+        // Monthly month-end minus 3 business days with a Mon–Fri calendar:
+        // June 2026 ends Tue 6/30, so 3 business days before is Thu 6/25 at 10:00. The alarm must
+        // follow the shifted date — earlier this used a null calendar and stayed on 6/30.
+        _calendarRepo.Save(new BusinessCalendar(
+            new BusinessCalendarId("jp"), "JP", new TimeZoneId("UTC"),
+            [Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday],
+            []));
+        SaveMonthEndMinusBusinessDaysEvent("bd", "jp", 3);
+
+        var shiftedStart = new DateTimeOffset(2026, 6, 25, 10, 0, 0, TimeSpan.Zero);
+
+        // Nothing fires on the unshifted month-end (6/30): the occurrence moved to 6/25.
+        _clock.SetUtcNow(new DateTimeOffset(2026, 6, 30, 9, 45, 0, TimeSpan.Zero));
+        Assert.HasCount(0, _service.CollectDueAlarms(), "シフト前の月末(6/30)では鳴らない");
+
+        // The 15-min alarm fires before the shifted occurrence on 6/25.
+        _clock.SetUtcNow(shiftedStart.AddMinutes(-15));
+        var due = _service.CollectDueAlarms();
+        Assert.HasCount(1, due);
+        Assert.AreEqual(shiftedStart.DateTime, due[0].OccurrenceStart);
+    }
+
     // ── helpers ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Builds the UTC instant for the given wall-clock components in the event's time zone.
+    /// All events in these tests use the "UTC" zone, so the wall-clock equals the UTC instant.
+    /// </summary>
+    private static DateTimeOffset Utc(int year, int month, int day, int hour, int minute) =>
+        new(year, month, day, hour, minute, 0, TimeSpan.Zero);
 
     private void SaveEvent(string id, EventAlarm? alarm = null)
     {
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle($"Event {id}"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
-            new SingleEventSchedule(EventStart, EventStart.AddHours(1)),
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            new SingleEventSchedule(EventStart, 60),
             EventStart.AddDays(-1),
             alarm: alarm ?? EventAlarm.Default);
         _repo.Save(ev);
@@ -490,13 +575,33 @@ public class AlarmApplicationServiceTests
                 Weekday.Friday, Weekday.Saturday, Weekday.Sunday
             ]));
         var schedule = new RecurringEventSchedule(
-            startDate,
-            new LocalTimeValue(EventStart.Hour, EventStart.Minute, 0),
-            new LocalTimeValue(EventStart.Hour + 1, EventStart.Minute, 0),
-            rule, allDay: false);
+            EventStart,
+            60,
+            rule);
         var ev = CalendarEvent.CreateRecurring(
             new EventId(id), new EventTitle($"Event {id}"), null,
-            Visibility.Public, null, null, new TimeZoneId("UTC"), allDay: false,
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
+            schedule, EventStart.AddDays(-1),
+            alarm: EventAlarm.Default);
+        _repo.Save(ev);
+    }
+
+    /// <summary>
+    /// A monthly "last day of month minus N business days at 10:00" recurring event whose
+    /// business-day adjustment references the given calendar id.
+    /// </summary>
+    private void SaveMonthEndMinusBusinessDaysEvent(string id, string calendarId, int businessDaysBefore)
+    {
+        var rule = new RecurrenceRule(
+            RecurrenceType.Monthly, 1, new LocalDateValue(9999, 12, 31),
+            monthly: new LastDayOfMonthMonthlyRule(),
+            adjustment: new AdjustmentRule(
+                AdjustmentCondition.Always, AdjustmentShiftUnit.BusinessDay,
+                -businessDaysBefore, new BusinessCalendarId(calendarId)));
+        var schedule = new RecurringEventSchedule(Utc(2026, 6, 1, 10, 0), 60, rule);
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle($"Event {id}"), null,
+            Visibility.Public, null, null, new TimeZoneId("UTC"),
             schedule, EventStart.AddDays(-1),
             alarm: EventAlarm.Default);
         _repo.Save(ev);

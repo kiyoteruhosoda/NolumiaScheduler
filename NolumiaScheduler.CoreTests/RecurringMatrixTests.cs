@@ -166,7 +166,8 @@ public class RecurringMatrixTests
 
             var occ = Occurrences(id, Rec.Start(type), expected[^1]);
             CollectionAssert.AreEqual(expected, occ.Select(o => o.Date).ToList(), $"dates type={type}");
-            Assert.IsTrue(occ.All(o => o.StartTime!.Hour == 13 && o.EndTime!.Hour == 14), $"time type={type}");
+            // 13:00–14:30 is now expressed as start 13:00 + 90-minute duration.
+            Assert.IsTrue(occ.All(o => o.StartTime.Hour == 13 && o.DurationMinutes == 90), $"time type={type}");
         }
     }
 

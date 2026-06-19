@@ -8,7 +8,10 @@ public enum AdjustmentDirection
 
 public enum AdjustmentCondition
 {
-    Holiday
+    Holiday,
+    // Always shift, regardless of whether the candidate date is a holiday. Lets a rule express
+    // e.g. "3 business days before the 15th" using the business calendar unconditionally.
+    Always
 }
 
 public enum AdjustmentShiftUnit

@@ -1,52 +1,36 @@
-﻿using NolumiaScheduler.Domain.Exceptions;
-using System;
-using System.Collections.Generic;
-using System.Text;
+using NolumiaScheduler.Domain.Exceptions;
 
 namespace NolumiaScheduler.Domain.ValueObjects
 {
+    /// <summary>
+    /// Recurring schedule held as an absolute UTC anchor instant + duration + recurrence rule, per
+    /// the time model in <c>docs/time-model.md</c> §3-§4. <see cref="AnchorUtc"/> is the first
+    /// occurrence's instant; later occurrences are pinned by integer-day arithmetic from it (see
+    /// the occurrence expander), so they never re-resolve through the tz database. All-day is not a
+    /// domain concept: a full-day recurrence is simply a midnight-local anchor + 1440 minutes.
+    /// </summary>
     public sealed class RecurringEventSchedule
     {
-        public LocalDateValue StartDate { get; }
-        public LocalTimeValue? StartTime { get; }
-        public LocalTimeValue? EndTime { get; }
+        public DateTimeOffset AnchorUtc { get; }
+        public int DurationMinutes { get; }
         public RecurrenceRule RecurrenceRule { get; }
-        public bool AllDay { get; }
 
         public RecurringEventSchedule(
-            LocalDateValue startDate,
-            LocalTimeValue? startTime,
-            LocalTimeValue? endTime,
-            RecurrenceRule recurrenceRule,
-            bool allDay)
+            DateTimeOffset anchorUtc,
+            int durationMinutes,
+            RecurrenceRule recurrenceRule)
         {
-            if (allDay)
-            {
-                if (startTime != null || endTime != null)
-                    throw new DomainException("All-day recurring event must not have times.");
-            }
-            else
-            {
-                if (startTime == null || endTime == null)
-                    throw new DomainException("Timed recurring event requires start/end time.");
+            if (recurrenceRule == null) throw new ArgumentNullException(nameof(recurrenceRule));
+            if (durationMinutes <= 0) throw new DomainException("durationMinutes must be greater than zero.");
 
-                if (startTime.CompareTo(endTime) >= 0)
-                    throw new DomainException("Cross-day recurring timed event is not allowed.");
-            }
-
-            if (startDate.CompareTo(recurrenceRule.EndDate) > 0)
-                throw new DomainException("startDate must be on or before recurrence endDate.");
-
-            StartDate = startDate;
-            StartTime = startTime;
-            EndTime = endTime;
+            AnchorUtc = anchorUtc.ToUniversalTime();
+            DurationMinutes = durationMinutes;
             RecurrenceRule = recurrenceRule;
-            AllDay = allDay;
         }
 
         public RecurringEventSchedule WithRecurrenceRule(RecurrenceRule newRule)
         {
-            return new RecurringEventSchedule(StartDate, StartTime, EndTime, newRule, AllDay);
+            return new RecurringEventSchedule(AnchorUtc, DurationMinutes, newRule);
         }
     }
 }

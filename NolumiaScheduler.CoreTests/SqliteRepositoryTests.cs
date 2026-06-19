@@ -58,6 +58,33 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
+    public void CalendarEvent_月末3営業日前ルールが往復する()
+    {
+        var repo = new SqliteCalendarEventRepository(_factory);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Monthly, 1, new LocalDateValue(2027, 12, 31),
+            monthly: new LastDayOfMonthMonthlyRule(),
+            adjustment: new AdjustmentRule(
+                AdjustmentCondition.Always, AdjustmentShiftUnit.BusinessDay, -3,
+                new BusinessCalendarId("jp")));
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId(Guid.NewGuid().ToString()), new EventTitle("月末3営業日前"),
+            null, Visibility.Public, null, null, new TimeZoneId("Asia/Tokyo"),
+            new RecurringEventSchedule(Utc(2026, 6, 1, 13, 0, "Asia/Tokyo"), 60, rule),
+            new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
+
+        repo.Save(ev);
+        var loaded = repo.FindById(ev.Id)!;
+
+        var loadedRule = loaded.RecurringSchedule!.RecurrenceRule;
+        Assert.IsInstanceOfType<LastDayOfMonthMonthlyRule>(loadedRule.Monthly);
+        Assert.AreEqual(AdjustmentCondition.Always, loadedRule.Adjustment!.Condition);
+        Assert.AreEqual(AdjustmentShiftUnit.BusinessDay, loadedRule.Adjustment.ShiftUnit);
+        Assert.AreEqual(-3, loadedRule.Adjustment.ShiftAmount);
+        Assert.AreEqual("jp", loadedRule.Adjustment.CalendarId!.Value);
+    }
+
+    [TestMethod]
     public void CalendarEvent_別インスタンスからも読み込める()
     {
         var ev = NewSingleEvent("Persisted", null);
@@ -224,10 +251,20 @@ public class SqliteRepositoryTests
         Assert.AreEqual("Week", repo.GetStartupView());
     }
 
+    private static DateTimeOffset Utc(int y, int mo, int d, int h, int mi, string timeZoneId)
+    {
+        if (timeZoneId == "UTC")
+            return new DateTimeOffset(y, mo, d, h, mi, 0, TimeSpan.Zero);
+
+        var tz = new TimeZoneId(timeZoneId).ToTimeZoneInfo();
+        return LocalSchedulePoint
+            .StartInstant(new LocalDateValue(y, mo, d), new LocalTimeValue(h, mi, 0), tz)
+            .ToUniversalTime();
+    }
+
     private static CalendarEvent NewSingleEvent(string title, string? location)
     {
         var now = new DateTimeOffset(2026, 5, 1, 0, 0, 0, TimeSpan.Zero);
-        var start = new DateTimeOffset(2026, 5, 20, 10, 0, 0, TimeSpan.Zero);
         return CalendarEvent.CreateSingle(
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle(title),
@@ -236,14 +273,13 @@ public class SqliteRepositoryTests
             eventType: null,
             description: null,
             new TimeZoneId("Asia/Tokyo"),
-            allDay: false,
-            new SingleEventSchedule(start, start.AddHours(1)),
+            new SingleEventSchedule(
+                Utc(2026, 5, 20, 10, 0, "Asia/Tokyo"), 60),
             now);
     }
 
     private static CalendarEvent NewSingleEventOn(DateOnly date)
     {
-        var start = new DateTimeOffset(date.Year, date.Month, date.Day, 10, 0, 0, TimeSpan.Zero);
         return CalendarEvent.CreateSingle(
             new EventId(Guid.NewGuid().ToString()),
             new EventTitle("Single"),
@@ -252,8 +288,8 @@ public class SqliteRepositoryTests
             eventType: null,
             description: null,
             new TimeZoneId("UTC"),
-            allDay: false,
-            new SingleEventSchedule(start, start.AddHours(1)),
+            new SingleEventSchedule(
+                Utc(date.Year, date.Month, date.Day, 10, 0, "UTC"), 60),
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
     }
 
@@ -266,12 +302,9 @@ public class SqliteRepositoryTests
             eventType: null,
             description: null,
             new TimeZoneId("UTC"),
-            allDay: false,
             new RecurringEventSchedule(
-                startDate,
-                new LocalTimeValue(10, 0, 0),
-                new LocalTimeValue(10, 30, 0),
-                new RecurrenceRule(RecurrenceType.Weekly, 1, endDate, weekly: new WeeklyRule([Weekday.Monday])),
-                allDay: false),
+                Utc(startDate.Year, startDate.Month, startDate.Day, 10, 0, "UTC"),
+                30,
+                new RecurrenceRule(RecurrenceType.Weekly, 1, endDate, weekly: new WeeklyRule([Weekday.Monday]))),
             new DateTimeOffset(2026, 1, 1, 0, 0, 0, TimeSpan.Zero));
 }

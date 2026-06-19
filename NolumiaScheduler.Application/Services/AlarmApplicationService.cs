@@ -36,6 +36,7 @@ public sealed record AlarmScheduleEntry(
 public class AlarmApplicationService
 {
     private readonly ICalendarEventRepository _repository;
+    private readonly IBusinessCalendarRepository _calendarRepository;
     private readonly IOccurrenceExpander _expander;
     private readonly TimeProvider _clock;
     private readonly object _gate = new();
@@ -45,16 +46,27 @@ public class AlarmApplicationService
     public AlarmApplicationService(
         ICalendarEventRepository repository,
         ICalendarEventChanges changes,
+        IBusinessCalendarRepository calendarRepository,
         IOccurrenceExpander expander,
         TimeProvider clock)
     {
         _repository = repository;
+        _calendarRepository = calendarRepository;
         _expander = expander;
         _clock = clock;
 
         // Any event change can invalidate the fired state (times may have moved), so start over.
         // Alarms whose notify time has long passed will not re-fire thanks to the catch-up grace.
         changes.Changed += ResetAllFiredKeys;
+    }
+
+    // Resolves the business calendar a recurring event's business-day adjustment relies on, so the
+    // expander applies the same date shift the calendar view does. Without it, alarms for events
+    // like "3 business days before month-end" would be scheduled on the unshifted date.
+    private BusinessCalendar? CalendarFor(CalendarEvent ev)
+    {
+        var calId = ev.RecurringSchedule?.RecurrenceRule.Adjustment?.CalendarId;
+        return calId != null ? _calendarRepository.FindById(calId) : null;
     }
 
     /// <summary>
@@ -344,19 +356,19 @@ public class AlarmApplicationService
                 continue;
             }
 
-            var occurrences = _expander.Expand(ev, today, tomorrow, null);
+            var occurrences = _expander.Expand(ev, today, tomorrow, CalendarFor(ev));
             lines.Add($"  {evLabel}: Alarm ON, Occurrences in range = {occurrences.Count}");
 
             foreach (var occ in occurrences)
             {
-                if (occ.AllDay)
+                if (IsAllDay(occ))
                 {
-                    lines.Add($"    SKIP occ {occ.Date}: AllDay=true");
+                    lines.Add($"    SKIP occ {occ.Date}: all-day (00:00 + 24h)");
                     continue;
                 }
-                if (occ.StartTime == null)
+                if (!occ.AlarmEnabled)
                 {
-                    lines.Add($"    SKIP occ {occ.Date}: StartTime=null");
+                    lines.Add($"    SKIP occ {occ.Date}: alarm silenced for this occurrence");
                     continue;
                 }
 
@@ -393,9 +405,10 @@ public class AlarmApplicationService
         {
             if (ev.Alarm == null || !ev.Alarm.IsEnabled) continue;
 
-            foreach (var occ in _expander.Expand(ev, today, tomorrow, null))
+            var calendar = CalendarFor(ev);
+            foreach (var occ in _expander.Expand(ev, today, tomorrow, calendar))
             {
-                if (occ.AllDay || occ.StartTime == null) continue;
+                if (IsAllDay(occ) || !occ.AlarmEnabled) continue;
 
                 var occStart = ToOccurrenceStart(occ);
                 foreach (var min in AlarmScheduleCalculator.Offsets)
@@ -409,9 +422,14 @@ public class AlarmApplicationService
         }
     }
 
+    // An all-day occurrence (start 00:00, full 24h) carries no meaningful start instant, so it
+    // never raises an alarm — matching the original all-day behaviour.
+    private static bool IsAllDay(EventOccurrence occ)
+        => occ.StartMinuteOfDay == 0 && occ.DurationMinutes == 24 * 60;
+
     private static DateTime ToOccurrenceStart(EventOccurrence occ) => new(
         occ.Date.Year, occ.Date.Month, occ.Date.Day,
-        occ.StartTime!.Hour, occ.StartTime.Minute, occ.StartTime.Second);
+        occ.StartTime.Hour, occ.StartTime.Minute, occ.StartTime.Second);
 
     private static string BuildKey(CalendarEvent ev, EventOccurrence occ, int offsetMinutes)
         => $"{ev.Id.Value}:{occ.Date}:{offsetMinutes}";
