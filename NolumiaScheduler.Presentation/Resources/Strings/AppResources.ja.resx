@@ -265,7 +265,7 @@
     <value>終了日</value>
   </data>
   <data name="AdjustmentLabel" xml:space="preserve">
-    <value>祝日ずらし</value>
+    <value>営業日調整</value>
   </data>
   <data name="AdjustmentNone" xml:space="preserve">
     <value>なし</value>

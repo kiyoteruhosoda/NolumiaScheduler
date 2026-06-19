@@ -65,7 +65,7 @@
   <data name="NthWeekLast" xml:space="preserve"><value>Last</value></data>
   <data name="IntervalLabel" xml:space="preserve"><value>Interval</value></data>
   <data name="EndDateLabel" xml:space="preserve"><value>End Date</value></data>
-  <data name="AdjustmentLabel" xml:space="preserve"><value>Holiday Shift</value></data>
+  <data name="AdjustmentLabel" xml:space="preserve"><value>Business day adjustment</value></data>
   <data name="AdjustmentNone" xml:space="preserve"><value>None</value></data>
   <data name="AdjustmentForward" xml:space="preserve"><value>Next Business Day</value></data>
   <data name="AdjustmentBackward" xml:space="preserve"><value>Prev Business Day</value></data>
