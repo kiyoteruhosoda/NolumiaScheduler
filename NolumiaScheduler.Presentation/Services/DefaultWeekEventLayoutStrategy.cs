@@ -130,6 +130,7 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             StartMinute = segment.Item.StartMinuteOfDay,
             EndMinute = segment.Item.EndMinuteOfDay,
             Title = segment.Item.Title,
+            Location = segment.Item.Location,
             TimeLabel = segment.Item.TimeRange,
             BackgroundColor = segment.Item.DotColor,
             Top = segment.Start,

@@ -3,6 +3,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using NolumiaScheduler.Presentation.Resources.Strings;
+using NolumiaScheduler.WinUI.Helpers;
 using NolumiaScheduler.WinUI.Presentation.Services;
 using System.Diagnostics;
 using System.Globalization;
@@ -403,23 +404,7 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private void OnOpenLocationClicked(object sender, RoutedEventArgs e)
     {
-        if (string.IsNullOrWhiteSpace(_location)) return;
-
-        try
-        {
-            Process.Start(new ProcessStartInfo(_location) { UseShellExecute = true });
-        }
-        catch
-        {
-            try
-            {
-                Process.Start(new ProcessStartInfo("explorer.exe", _location));
-            }
-            catch
-            {
-                // Silently ignore if location cannot be opened
-            }
-        }
+        EventLocation.Open(_location);
     }
 
     private void Complete(AlarmNotificationAction action, int minutes = 0)

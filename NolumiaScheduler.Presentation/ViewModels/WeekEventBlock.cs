@@ -15,6 +15,7 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
     public required int StartMinute { get; init; }
     public required int EndMinute { get; init; }
     public required string Title { get; init; }
+    public required string? Location { get; init; }
     public required string TimeLabel { get; init; }
     public required Color BackgroundColor { get; init; }
     public required double Top { get; init; }

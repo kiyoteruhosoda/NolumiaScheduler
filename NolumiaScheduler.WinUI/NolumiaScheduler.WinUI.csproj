@@ -76,9 +76,9 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.1839" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.0.1" />
-    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="8.0.1" />
-    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="8.0.1" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
   </ItemGroup>
 
   <ItemGroup>
@@ -125,8 +125,7 @@
        runtime, surfacing as a generic XamlParseException ("XAML parsing failed") at
        MainWindow.InitializeComponent(). Fail fast at publish time with a clear message
        instead of shipping a build that only crashes on launch. -->
-  <Target Name="GuardAgainstAnyCpuPublish" BeforeTargets="Publish"
-          Condition="'$(Platform)' == 'AnyCPU' or '$(Platform)' == 'Any CPU'">
+  <Target Name="GuardAgainstAnyCpuPublish" BeforeTargets="Publish" Condition="'$(Platform)' == 'AnyCPU' or '$(Platform)' == 'Any CPU'">
     <Error Text="WinUI 3 cannot be published with Platform 'Any CPU'. Edit the publish profile (.pubxml) and set &lt;Platform&gt; to x64, x86, or ARM64 to match the RuntimeIdentifier." />
   </Target>
 
@@ -136,11 +135,8 @@
        not its own compiled-XAML index, and crashes at MainWindow.InitializeComponent()
        with XamlParseException (build/F5 works because resources.pri is present there).
        Copy the generated index into the publish output explicitly. -->
-  <Target Name="CopyResourcesPriToPublishDir" AfterTargets="Publish"
-          Condition="Exists('$(OutDir)resources.pri')">
-    <Copy SourceFiles="$(OutDir)resources.pri"
-          DestinationFolder="$(PublishDir)"
-          SkipUnchangedFiles="true" />
+  <Target Name="CopyResourcesPriToPublishDir" AfterTargets="Publish" Condition="Exists('$(OutDir)resources.pri')">
+    <Copy SourceFiles="$(OutDir)resources.pri" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
   </Target>
 
   <!-- Stamps the assembly with the git revision so every built binary maps back to an
@@ -150,17 +146,12 @@
        SourceRevisionId, which the SDK appends to AssemblyInformationalVersion
        (1.0.0 + commit). All values degrade to "unknown" when git is unavailable so
        builds outside a working tree (e.g. a source archive) still succeed. -->
-  <Target Name="SetGitVersionInfo" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo"
-          Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingForLiveUnitTesting)' != 'true'">
-    <Exec Command="git describe --tags --always --long --dirty"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
-          ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
+  <Target Name="SetGitVersionInfo" BeforeTargets="GetAssemblyVersion;GenerateAssemblyInfo" Condition="'$(DesignTimeBuild)' != 'true' And '$(BuildingForLiveUnitTesting)' != 'true'">
+    <Exec Command="git describe --tags --always --long --dirty" WorkingDirectory="$(MSBuildProjectDirectory)" ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="_GitDescribe" />
       <Output TaskParameter="ExitCode" PropertyName="_GitDescribeExit" />
     </Exec>
-    <Exec Command="git rev-parse HEAD"
-          WorkingDirectory="$(MSBuildProjectDirectory)"
-          ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
+    <Exec Command="git rev-parse HEAD" WorkingDirectory="$(MSBuildProjectDirectory)" ConsoleToMSBuild="true" ContinueOnError="true" StandardOutputImportance="low">
       <Output TaskParameter="ConsoleOutput" PropertyName="_GitCommit" />
       <Output TaskParameter="ExitCode" PropertyName="_GitCommitExit" />
     </Exec>

@@ -526,4 +526,10 @@
   <data name="SettingsOpenDataFolderLink" xml:space="preserve">
     <value>データフォルダを開く</value>
   </data>
+  <data name="MenuLocationAlert" xml:space="preserve">
+    <value>ロケーションが設定されていません。</value>
+  </data>
+  <data name="MenuOpenLocation" xml:space="preserve">
+    <value>ロケーションを開く</value>
+  </data>
 </root>

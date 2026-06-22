@@ -1,14 +1,17 @@
-using System.Collections;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.UI.Input;
-using NolumiaScheduler.Presentation.Helpers;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Controls;
+using NolumiaScheduler.Presentation.Helpers;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.WinUI.Helpers;
+using System.Collections;
 using Windows.Foundation;
 
 namespace NolumiaScheduler.WinUI.Presentation.Controls;
@@ -571,6 +574,7 @@ public sealed partial class WeekCalendarView : UserControl
 
         border.Tapped += OnEventBlockTapped;
         border.DoubleTapped += OnEventBlockDoubleTapped;
+        border.RightTapped += OnEventBlockRightTapped;
         border.ManipulationMode = ManipulationModes.TranslateX | ManipulationModes.TranslateY;
         border.ManipulationStarted += OnEventBlockManipulationStarted;
         border.ManipulationDelta += OnEventBlockManipulationDelta;
@@ -785,6 +789,33 @@ public sealed partial class WeekCalendarView : UserControl
         });
     }
 
+    private void OnEventBlockRightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
+
+        var flyout = new MenuFlyout();
+
+        if (block.Location is null)
+        {
+            flyout.Items.Add(new MenuFlyoutItem
+            {
+                Text = AppResources.MenuLocationAlert,
+                IsEnabled = false
+            });
+        }
+        else {
+            flyout.Items.Add(new MenuFlyoutSeparator());
+
+            var openLocation = new MenuFlyoutItem { Text = AppResources.MenuOpenLocation };
+            openLocation.Click += (_, _) => EventLocation.Open(block.Location);
+            flyout.Items.Add(openLocation);
+        }
+
+        // 右クリック位置に表示
+        flyout.ShowAt(b, e.GetPosition(b));
+    }
+    
     private void OnAllDayBlockTapped(object sender, TappedRoutedEventArgs e)
     {
         // Handled so the tap does not bubble to the lane and start a new-event create.

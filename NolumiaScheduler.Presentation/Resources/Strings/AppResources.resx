@@ -1,115 +1,392 @@
 <?xml version="1.0" encoding="utf-8"?>
 <root>
-  <resheader name="resmimetype"><value>text/microsoft-resx</value></resheader>
-  <resheader name="version"><value>2.0</value></resheader>
-  <resheader name="reader"><value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
-  <resheader name="writer"><value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value></resheader>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
 
-  <data name="CalendarTitle" xml:space="preserve"><value>Calendar</value></data>
-  <data name="TodayButton" xml:space="preserve"><value>Today</value></data>
-
-  <data name="DaySun" xml:space="preserve"><value>Sun</value></data>
-  <data name="DayMon" xml:space="preserve"><value>Mon</value></data>
-  <data name="DayTue" xml:space="preserve"><value>Tue</value></data>
-  <data name="DayWed" xml:space="preserve"><value>Wed</value></data>
-  <data name="DayThu" xml:space="preserve"><value>Thu</value></data>
-  <data name="DayFri" xml:space="preserve"><value>Fri</value></data>
-  <data name="DaySat" xml:space="preserve"><value>Sat</value></data>
-
-  <data name="MonthViewLabel" xml:space="preserve"><value>Month</value></data>
-  <data name="WeekViewLabel" xml:space="preserve"><value>Week</value></data>
-  <data name="WeekdaysViewLabel" xml:space="preserve"><value>Weekdays</value></data>
-  <data name="WeekViewHint" xml:space="preserve"><value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value></data>
-
-  <data name="AllDay" xml:space="preserve"><value>All day</value></data>
-  <data name="BadgeMoved" xml:space="preserve"><value>Moved</value></data>
-  <data name="BadgeModified" xml:space="preserve"><value>Modified</value></data>
-  <data name="NoEventsLabel" xml:space="preserve"><value>No events</value></data>
-
-  <!-- Tabs -->
-  <data name="CalendarTab" xml:space="preserve"><value>Calendar</value></data>
-  <data name="BusinessCalendarsTab" xml:space="preserve"><value>Business Calendars</value></data>
-
-  <!-- Business Calendar List -->
-  <data name="NoCalendarsLabel" xml:space="preserve"><value>No business calendars</value></data>
-  <data name="AddCalendarButton" xml:space="preserve"><value>+ New Calendar</value></data>
-
-  <!-- Business Calendar Edit -->
-  <data name="NewCalendarTitle" xml:space="preserve"><value>New Calendar</value></data>
-  <data name="EditCalendarTitle" xml:space="preserve"><value>Edit Calendar</value></data>
-  <data name="CalendarNamePlaceholder" xml:space="preserve"><value>Calendar name</value></data>
-  <data name="WorkdaysLabel" xml:space="preserve"><value>Working Days</value></data>
-  <data name="HolidaysLabel" xml:space="preserve"><value>Holidays</value></data>
-  <data name="AddHolidayButton" xml:space="preserve"><value>Add</value></data>
-  <data name="HolidayNamePlaceholder" xml:space="preserve"><value>Holiday name (optional)</value></data>
-  <data name="SaveButton" xml:space="preserve"><value>Save</value></data>
-  <data name="DeleteCalendarButton" xml:space="preserve"><value>Delete Calendar</value></data>
-
-  <!-- Event Edit -->
-  <data name="NewEventTitle" xml:space="preserve"><value>New Event</value></data>
-  <data name="EventTitlePlaceholder" xml:space="preserve"><value>Title</value></data>
-  <data name="EventLocationPlaceholder" xml:space="preserve"><value>Location (optional)</value></data>
-  <data name="StartLabel" xml:space="preserve"><value>Start</value></data>
-  <data name="EndLabel" xml:space="preserve"><value>End</value></data>
-  <data name="RepeatLabel" xml:space="preserve"><value>Repeat</value></data>
-  <data name="RepeatNone" xml:space="preserve"><value>None</value></data>
-  <data name="RepeatWeekly" xml:space="preserve"><value>Weekly</value></data>
-  <data name="RepeatMonthly" xml:space="preserve"><value>Monthly</value></data>
-  <data name="RepeatYearly" xml:space="preserve"><value>Yearly</value></data>
-  <data name="WeekdaysLabel" xml:space="preserve"><value>Days</value></data>
-  <data name="MonthlyDayOfMonth" xml:space="preserve"><value>Day of month</value></data>
-  <data name="MonthlyNthWeekday" xml:space="preserve"><value>Nth weekday</value></data>
-  <data name="DayLabel" xml:space="preserve"><value>Day</value></data>
-  <data name="MonthLabel" xml:space="preserve"><value>Month</value></data>
-  <data name="WeekIndexLabel" xml:space="preserve"><value>Week No.</value></data>
-  <data name="NthWeekLast" xml:space="preserve"><value>Last</value></data>
-  <data name="IntervalLabel" xml:space="preserve"><value>Interval</value></data>
-  <data name="EndDateLabel" xml:space="preserve"><value>End Date</value></data>
-  <data name="AdjustmentLabel" xml:space="preserve"><value>Business day adjustment</value></data>
-  <data name="AdjustmentNone" xml:space="preserve"><value>None</value></data>
-  <data name="AdjustmentForward" xml:space="preserve"><value>Next Business Day</value></data>
-  <data name="AdjustmentBackward" xml:space="preserve"><value>Prev Business Day</value></data>
-  <data name="AdjustmentOnHoliday" xml:space="preserve"><value>On holidays</value></data>
-  <data name="AdjustmentAlways" xml:space="preserve"><value>Always</value></data>
-  <data name="AdjustmentBefore" xml:space="preserve"><value>Before</value></data>
-  <data name="AdjustmentAfter" xml:space="preserve"><value>After</value></data>
-  <data name="AdjustmentBusinessDaysLabel" xml:space="preserve"><value>Business days</value></data>
-  <data name="MonthlyLastDay" xml:space="preserve"><value>Last day of month</value></data>
-  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve"><value>Shift only on holidays</value></data>
-  <data name="UseCustomIntervalLabel" xml:space="preserve"><value>Custom interval</value></data>
-  <data name="BusinessCalendarLabel" xml:space="preserve"><value>Business Calendar</value></data>
-  <data name="ErrorTitleRequired" xml:space="preserve"><value>Title is required.</value></data>
-  <data name="ErrorWeekdayRequired" xml:space="preserve"><value>Select at least one day.</value></data>
-  <data name="ErrorEndDateBeforeStart" xml:space="preserve"><value>End date must be on or after the start date.</value></data>
-
-  <!-- Event actions -->
-  <data name="EditButton" xml:space="preserve"><value>Edit</value></data>
-  <data name="DeleteButton" xml:space="preserve"><value>Delete</value></data>
-  <data name="CancelButton" xml:space="preserve"><value>Cancel</value></data>
-  <data name="ReplaceButton" xml:space="preserve"><value>Replace</value></data>
-  <data name="ReplaceHolidayMessage" xml:space="preserve"><value>Replace existing holiday "{0}"?</value></data>
-  <data name="DeleteEventTitle" xml:space="preserve"><value>Delete Event</value></data>
-  <data name="DeleteOccurrence" xml:space="preserve"><value>Delete this occurrence</value></data>
-  <data name="DeleteAllOccurrences" xml:space="preserve"><value>Delete all occurrences</value></data>
-  <data name="EditEventTitle" xml:space="preserve"><value>Edit Event</value></data>
-
-  <data name="MonthYearFormat" xml:space="preserve"><value>MMMM yyyy</value></data>
-  <data name="SelectedDayFormat" xml:space="preserve"><value>MMMM d (ddd)</value></data>
-  <data name="HolidayDateFormat" xml:space="preserve"><value>MMMM d, yyyy (ddd)</value></data>
-
-  <data name="ColorLabel" xml:space="preserve"><value>Color</value></data>
-  <data name="ColorDefault" xml:space="preserve"><value>Default</value></data>
-  <data name="ColorTomato" xml:space="preserve"><value>Tomato</value></data>
-  <data name="ColorTangerine" xml:space="preserve"><value>Tangerine</value></data>
-  <data name="ColorBanana" xml:space="preserve"><value>Banana</value></data>
-  <data name="ColorBasil" xml:space="preserve"><value>Basil</value></data>
-  <data name="ColorSage" xml:space="preserve"><value>Sage</value></data>
-  <data name="ColorPeacock" xml:space="preserve"><value>Peacock</value></data>
-  <data name="ColorBlueberry" xml:space="preserve"><value>Blueberry</value></data>
-  <data name="ColorLavender" xml:space="preserve"><value>Lavender</value></data>
-  <data name="ColorGrape" xml:space="preserve"><value>Grape</value></data>
-  <data name="ColorGraphite" xml:space="preserve"><value>Graphite</value></data>
-  <data name="FormatCultureName" xml:space="preserve"><value>en-US</value></data>
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="CalendarTitle" xml:space="preserve">
+    <value>Calendar</value>
+  </data>
+  <data name="TodayButton" xml:space="preserve">
+    <value>Today</value>
+  </data>
+  <data name="DaySun" xml:space="preserve">
+    <value>Sun</value>
+  </data>
+  <data name="DayMon" xml:space="preserve">
+    <value>Mon</value>
+  </data>
+  <data name="DayTue" xml:space="preserve">
+    <value>Tue</value>
+  </data>
+  <data name="DayWed" xml:space="preserve">
+    <value>Wed</value>
+  </data>
+  <data name="DayThu" xml:space="preserve">
+    <value>Thu</value>
+  </data>
+  <data name="DayFri" xml:space="preserve">
+    <value>Fri</value>
+  </data>
+  <data name="DaySat" xml:space="preserve">
+    <value>Sat</value>
+  </data>
+  <data name="MonthViewLabel" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="WeekViewLabel" xml:space="preserve">
+    <value>Week</value>
+  </data>
+  <data name="WeekdaysViewLabel" xml:space="preserve">
+    <value>Weekdays</value>
+  </data>
+  <data name="WeekViewHint" xml:space="preserve">
+    <value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value>
+  </data>
+  <data name="AllDay" xml:space="preserve">
+    <value>All day</value>
+  </data>
+  <data name="BadgeMoved" xml:space="preserve">
+    <value>Moved</value>
+  </data>
+  <data name="BadgeModified" xml:space="preserve">
+    <value>Modified</value>
+  </data>
+  <data name="NoEventsLabel" xml:space="preserve">
+    <value>No events</value>
+  </data>
+  <data name="CalendarTab" xml:space="preserve">
+    <value>Calendar</value>
+  </data>
+  <data name="BusinessCalendarsTab" xml:space="preserve">
+    <value>Business Calendars</value>
+  </data>
+  <data name="NoCalendarsLabel" xml:space="preserve">
+    <value>No business calendars</value>
+  </data>
+  <data name="AddCalendarButton" xml:space="preserve">
+    <value>+ New Calendar</value>
+  </data>
+  <data name="NewCalendarTitle" xml:space="preserve">
+    <value>New Calendar</value>
+  </data>
+  <data name="EditCalendarTitle" xml:space="preserve">
+    <value>Edit Calendar</value>
+  </data>
+  <data name="CalendarNamePlaceholder" xml:space="preserve">
+    <value>Calendar name</value>
+  </data>
+  <data name="WorkdaysLabel" xml:space="preserve">
+    <value>Working Days</value>
+  </data>
+  <data name="HolidaysLabel" xml:space="preserve">
+    <value>Holidays</value>
+  </data>
+  <data name="AddHolidayButton" xml:space="preserve">
+    <value>Add</value>
+  </data>
+  <data name="HolidayNamePlaceholder" xml:space="preserve">
+    <value>Holiday name (optional)</value>
+  </data>
+  <data name="SaveButton" xml:space="preserve">
+    <value>Save</value>
+  </data>
+  <data name="DeleteCalendarButton" xml:space="preserve">
+    <value>Delete Calendar</value>
+  </data>
+  <data name="NewEventTitle" xml:space="preserve">
+    <value>New Event</value>
+  </data>
+  <data name="EventTitlePlaceholder" xml:space="preserve">
+    <value>Title</value>
+  </data>
+  <data name="EventLocationPlaceholder" xml:space="preserve">
+    <value>Location (optional)</value>
+  </data>
+  <data name="StartLabel" xml:space="preserve">
+    <value>Start</value>
+  </data>
+  <data name="EndLabel" xml:space="preserve">
+    <value>End</value>
+  </data>
+  <data name="RepeatLabel" xml:space="preserve">
+    <value>Repeat</value>
+  </data>
+  <data name="RepeatNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="RepeatWeekly" xml:space="preserve">
+    <value>Weekly</value>
+  </data>
+  <data name="RepeatMonthly" xml:space="preserve">
+    <value>Monthly</value>
+  </data>
+  <data name="RepeatYearly" xml:space="preserve">
+    <value>Yearly</value>
+  </data>
+  <data name="WeekdaysLabel" xml:space="preserve">
+    <value>Days</value>
+  </data>
+  <data name="MonthlyDayOfMonth" xml:space="preserve">
+    <value>Day of month</value>
+  </data>
+  <data name="MonthlyNthWeekday" xml:space="preserve">
+    <value>Nth weekday</value>
+  </data>
+  <data name="DayLabel" xml:space="preserve">
+    <value>Day</value>
+  </data>
+  <data name="MonthLabel" xml:space="preserve">
+    <value>Month</value>
+  </data>
+  <data name="WeekIndexLabel" xml:space="preserve">
+    <value>Week No.</value>
+  </data>
+  <data name="NthWeekLast" xml:space="preserve">
+    <value>Last</value>
+  </data>
+  <data name="IntervalLabel" xml:space="preserve">
+    <value>Interval</value>
+  </data>
+  <data name="EndDateLabel" xml:space="preserve">
+    <value>End Date</value>
+  </data>
+  <data name="AdjustmentLabel" xml:space="preserve">
+    <value>Business day adjustment</value>
+  </data>
+  <data name="AdjustmentNone" xml:space="preserve">
+    <value>None</value>
+  </data>
+  <data name="AdjustmentForward" xml:space="preserve">
+    <value>Next Business Day</value>
+  </data>
+  <data name="AdjustmentBackward" xml:space="preserve">
+    <value>Prev Business Day</value>
+  </data>
+  <data name="AdjustmentOnHoliday" xml:space="preserve">
+    <value>On holidays</value>
+  </data>
+  <data name="AdjustmentAlways" xml:space="preserve">
+    <value>Always</value>
+  </data>
+  <data name="AdjustmentBefore" xml:space="preserve">
+    <value>Before</value>
+  </data>
+  <data name="AdjustmentAfter" xml:space="preserve">
+    <value>After</value>
+  </data>
+  <data name="AdjustmentBusinessDaysLabel" xml:space="preserve">
+    <value>Business days</value>
+  </data>
+  <data name="MonthlyLastDay" xml:space="preserve">
+    <value>Last day of month</value>
+  </data>
+  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve">
+    <value>Shift only on holidays</value>
+  </data>
+  <data name="UseCustomIntervalLabel" xml:space="preserve">
+    <value>Custom interval</value>
+  </data>
+  <data name="BusinessCalendarLabel" xml:space="preserve">
+    <value>Business Calendar</value>
+  </data>
+  <data name="ErrorTitleRequired" xml:space="preserve">
+    <value>Title is required.</value>
+  </data>
+  <data name="ErrorWeekdayRequired" xml:space="preserve">
+    <value>Select at least one day.</value>
+  </data>
+  <data name="ErrorEndDateBeforeStart" xml:space="preserve">
+    <value>End date must be on or after the start date.</value>
+  </data>
+  <data name="EditButton" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="DeleteButton" xml:space="preserve">
+    <value>Delete</value>
+  </data>
+  <data name="CancelButton" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
+  <data name="ReplaceButton" xml:space="preserve">
+    <value>Replace</value>
+  </data>
+  <data name="ReplaceHolidayMessage" xml:space="preserve">
+    <value>Replace existing holiday "{0}"?</value>
+  </data>
+  <data name="DeleteEventTitle" xml:space="preserve">
+    <value>Delete Event</value>
+  </data>
+  <data name="DeleteOccurrence" xml:space="preserve">
+    <value>Delete this occurrence</value>
+  </data>
+  <data name="DeleteAllOccurrences" xml:space="preserve">
+    <value>Delete all occurrences</value>
+  </data>
+  <data name="EditEventTitle" xml:space="preserve">
+    <value>Edit Event</value>
+  </data>
+  <data name="MonthYearFormat" xml:space="preserve">
+    <value>MMMM yyyy</value>
+  </data>
+  <data name="SelectedDayFormat" xml:space="preserve">
+    <value>MMMM d (ddd)</value>
+  </data>
+  <data name="HolidayDateFormat" xml:space="preserve">
+    <value>MMMM d, yyyy (ddd)</value>
+  </data>
+  <data name="ColorLabel" xml:space="preserve">
+    <value>Color</value>
+  </data>
+  <data name="ColorDefault" xml:space="preserve">
+    <value>Default</value>
+  </data>
+  <data name="ColorTomato" xml:space="preserve">
+    <value>Tomato</value>
+  </data>
+  <data name="ColorTangerine" xml:space="preserve">
+    <value>Tangerine</value>
+  </data>
+  <data name="ColorBanana" xml:space="preserve">
+    <value>Banana</value>
+  </data>
+  <data name="ColorBasil" xml:space="preserve">
+    <value>Basil</value>
+  </data>
+  <data name="ColorSage" xml:space="preserve">
+    <value>Sage</value>
+  </data>
+  <data name="ColorPeacock" xml:space="preserve">
+    <value>Peacock</value>
+  </data>
+  <data name="ColorBlueberry" xml:space="preserve">
+    <value>Blueberry</value>
+  </data>
+  <data name="ColorLavender" xml:space="preserve">
+    <value>Lavender</value>
+  </data>
+  <data name="ColorGrape" xml:space="preserve">
+    <value>Grape</value>
+  </data>
+  <data name="ColorGraphite" xml:space="preserve">
+    <value>Graphite</value>
+  </data>
+  <data name="FormatCultureName" xml:space="preserve">
+    <value>en-US</value>
+  </data>
   <data name="EditRecurringEventTitle" xml:space="preserve">
     <value>Edit recurring event</value>
   </data>
@@ -131,47 +408,127 @@
   <data name="EditThisAndFollowingNotImplemented" xml:space="preserve">
     <value>Editing this and following is not implemented yet.</value>
   </data>
-
-  <!-- Alarm -->
-  <data name="AlarmLabel" xml:space="preserve"><value>Alarm</value></data>
-  <data name="AlarmEnable" xml:space="preserve"><value>Enable Alarm</value></data>
-  <data name="AlarmNotify15Min" xml:space="preserve"><value>15 minutes before</value></data>
-  <data name="AlarmNotify5Min" xml:space="preserve"><value>5 minutes before</value></data>
-  <data name="AlarmNotify1Min" xml:space="preserve"><value>1 minute before</value></data>
-  <data name="AlarmNotifyAtStart" xml:space="preserve"><value>At start time</value></data>
-  <data name="AlarmDismiss" xml:space="preserve"><value>Dismiss</value></data>
-  <data name="AlarmSnooze5Min" xml:space="preserve"><value>Snooze 5 min</value></data>
-  <data name="AlarmSnooze1Min" xml:space="preserve"><value>Snooze 1 min</value></data>
-  <data name="AlarmSnoozeReminder" xml:space="preserve"><value>Snoozed reminder: {0}</value></data>
-  <data name="AlarmNotify15MinMsg" xml:space="preserve"><value>Starts in 15 minutes</value></data>
-  <data name="AlarmNotify5MinMsg" xml:space="preserve"><value>Starts in 5 minutes</value></data>
-  <data name="AlarmNotify1MinMsg" xml:space="preserve"><value>Starts in 1 minute</value></data>
-  <data name="AlarmNotify0MinMsg" xml:space="preserve"><value>Starting now</value></data>
-  <data name="AlarmWindowTitle" xml:space="preserve"><value>Alarm Notification</value></data>
-  <data name="AlarmOpenLocation" xml:space="preserve"><value>Open Location</value></data>
-  <data name="AlarmSnooze5MinBtn" xml:space="preserve"><value>Remind in 5 min</value></data>
-  <data name="AlarmSnooze1MinBtn" xml:space="preserve"><value>Remind in 1 min</value></data>
-  <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve"><value>Remind 5 min before event</value></data>
-  <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve"><value>Remind 1 min before event</value></data>
-  <data name="AlarmCancelAll" xml:space="preserve"><value>Cancel all remaining alarms</value></data>
-  <data name="AlarmNextAlarmFormat" xml:space="preserve"><value>Next alarm: {0} (in {1} min)</value></data>
-  <data name="AlarmOffsetsHeader" xml:space="preserve"><value>Pre-event alarms</value></data>
-  <data name="AlarmSetNextHeader" xml:space="preserve"><value>Set next alarm time</value></data>
-  <data name="AlarmSetFromNowLabel" xml:space="preserve"><value>Minutes from now</value></data>
-  <data name="AlarmSetBeforeStartLabel" xml:space="preserve"><value>Minutes before event</value></data>
-  <data name="AlarmSetButton" xml:space="preserve"><value>Set</value></data>
-
-  <!-- Settings -->
-  <data name="SettingsTitle" xml:space="preserve"><value>Settings</value></data>
-  <data name="ThemeLabel" xml:space="preserve"><value>Theme</value></data>
-  <data name="ThemeSystem" xml:space="preserve"><value>System</value></data>
-  <data name="ThemeLight" xml:space="preserve"><value>Light</value></data>
-  <data name="ThemeDark" xml:space="preserve"><value>Dark</value></data>
-  <data name="LanguageLabel" xml:space="preserve"><value>Language</value></data>
-  <data name="StartupViewLabel" xml:space="preserve"><value>Startup view</value></data>
-  <data name="LanguageEnglish" xml:space="preserve"><value>English</value></data>
-  <data name="LanguageJapanese" xml:space="preserve"><value>日本語</value></data>
-  <data name="SettingsVersionLabel" xml:space="preserve"><value>Version</value></data>
-  <data name="SettingsStorageLabel" xml:space="preserve"><value>Storage</value></data>
-  <data name="SettingsOpenDataFolderLink" xml:space="preserve"><value>Open data folder</value></data>
+  <data name="AlarmLabel" xml:space="preserve">
+    <value>Alarm</value>
+  </data>
+  <data name="AlarmEnable" xml:space="preserve">
+    <value>Enable Alarm</value>
+  </data>
+  <data name="AlarmNotify15Min" xml:space="preserve">
+    <value>15 minutes before</value>
+  </data>
+  <data name="AlarmNotify5Min" xml:space="preserve">
+    <value>5 minutes before</value>
+  </data>
+  <data name="AlarmNotify1Min" xml:space="preserve">
+    <value>1 minute before</value>
+  </data>
+  <data name="AlarmNotifyAtStart" xml:space="preserve">
+    <value>At start time</value>
+  </data>
+  <data name="AlarmDismiss" xml:space="preserve">
+    <value>Dismiss</value>
+  </data>
+  <data name="AlarmSnooze5Min" xml:space="preserve">
+    <value>Snooze 5 min</value>
+  </data>
+  <data name="AlarmSnooze1Min" xml:space="preserve">
+    <value>Snooze 1 min</value>
+  </data>
+  <data name="AlarmSnoozeReminder" xml:space="preserve">
+    <value>Snoozed reminder: {0}</value>
+  </data>
+  <data name="AlarmNotify15MinMsg" xml:space="preserve">
+    <value>Starts in 15 minutes</value>
+  </data>
+  <data name="AlarmNotify5MinMsg" xml:space="preserve">
+    <value>Starts in 5 minutes</value>
+  </data>
+  <data name="AlarmNotify1MinMsg" xml:space="preserve">
+    <value>Starts in 1 minute</value>
+  </data>
+  <data name="AlarmNotify0MinMsg" xml:space="preserve">
+    <value>Starting now</value>
+  </data>
+  <data name="AlarmWindowTitle" xml:space="preserve">
+    <value>Alarm Notification</value>
+  </data>
+  <data name="AlarmOpenLocation" xml:space="preserve">
+    <value>Open Location</value>
+  </data>
+  <data name="AlarmSnooze5MinBtn" xml:space="preserve">
+    <value>Remind in 5 min</value>
+  </data>
+  <data name="AlarmSnooze1MinBtn" xml:space="preserve">
+    <value>Remind in 1 min</value>
+  </data>
+  <data name="AlarmSnoozeTo5MinBefore" xml:space="preserve">
+    <value>Remind 5 min before event</value>
+  </data>
+  <data name="AlarmSnoozeTo1MinBefore" xml:space="preserve">
+    <value>Remind 1 min before event</value>
+  </data>
+  <data name="AlarmCancelAll" xml:space="preserve">
+    <value>Cancel all remaining alarms</value>
+  </data>
+  <data name="AlarmNextAlarmFormat" xml:space="preserve">
+    <value>Next alarm: {0} (in {1} min)</value>
+  </data>
+  <data name="AlarmOffsetsHeader" xml:space="preserve">
+    <value>Pre-event alarms</value>
+  </data>
+  <data name="AlarmSetNextHeader" xml:space="preserve">
+    <value>Set next alarm time</value>
+  </data>
+  <data name="AlarmSetFromNowLabel" xml:space="preserve">
+    <value>Minutes from now</value>
+  </data>
+  <data name="AlarmSetBeforeStartLabel" xml:space="preserve">
+    <value>Minutes before event</value>
+  </data>
+  <data name="AlarmSetButton" xml:space="preserve">
+    <value>Set</value>
+  </data>
+  <data name="SettingsTitle" xml:space="preserve">
+    <value>Settings</value>
+  </data>
+  <data name="ThemeLabel" xml:space="preserve">
+    <value>Theme</value>
+  </data>
+  <data name="ThemeSystem" xml:space="preserve">
+    <value>System</value>
+  </data>
+  <data name="ThemeLight" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="ThemeDark" xml:space="preserve">
+    <value>Dark</value>
+  </data>
+  <data name="LanguageLabel" xml:space="preserve">
+    <value>Language</value>
+  </data>
+  <data name="StartupViewLabel" xml:space="preserve">
+    <value>Startup view</value>
+  </data>
+  <data name="LanguageEnglish" xml:space="preserve">
+    <value>English</value>
+  </data>
+  <data name="LanguageJapanese" xml:space="preserve">
+    <value>日本語</value>
+  </data>
+  <data name="SettingsVersionLabel" xml:space="preserve">
+    <value>Version</value>
+  </data>
+  <data name="SettingsStorageLabel" xml:space="preserve">
+    <value>Storage</value>
+  </data>
+  <data name="SettingsOpenDataFolderLink" xml:space="preserve">
+    <value>Open data folder</value>
+  </data>
+  <data name="MenuLocationAlert" xml:space="preserve">
+    <value>Location is not set.</value>
+  </data>
+  <data name="MenuOpenLocation" xml:space="preserve">
+    <value>Open Location</value>
+  </data>
 </root>

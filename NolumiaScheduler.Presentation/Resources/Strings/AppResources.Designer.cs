@@ -187,6 +187,8 @@ public static class AppResources
     public static string SettingsVersionLabel => Get(nameof(SettingsVersionLabel));
     public static string SettingsStorageLabel => Get(nameof(SettingsStorageLabel));
     public static string SettingsOpenDataFolderLink => Get(nameof(SettingsOpenDataFolderLink));
+    public static string MenuLocationAlert => Get(nameof(MenuLocationAlert));
+    public static string MenuOpenLocation => Get(nameof(MenuOpenLocation));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
