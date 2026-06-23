@@ -250,6 +250,58 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
+    public void これ以降で保存した新系列にユーザー指定の終了日が反映される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-end-fwd"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-end-fwd", key);
+        vm.HasEndDate = true;
+        vm.EndDate = new DateTime(2026, 9, 30);
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var newSeries = repo.FindAll().Single(e => e.Id.Value != "rec-end-fwd");
+        Assert.AreEqual(new LocalDateValue(2026, 9, 30), newSeries.RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
+    [TestMethod]
+    public void これ以降で終了日を発生日より前にすると検証エラーになる()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-end-fwd-invalid"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-end-fwd-invalid", key);
+        vm.HasEndDate = true;
+        vm.EndDate = new DateTime(2026, 5, 1); // before the occurrence date 2026-05-06
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+
+        Assert.IsTrue(vm.HasValidationError);
+        Assert.HasCount(1, repo.FindAll());
+    }
+
+    [TestMethod]
+    public void これ以降で曜日未選択だと検証エラーになる()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-noday-fwd"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-noday-fwd", key);
+        // Deselect the only pre-selected weekday (Wednesday).
+        vm.WeekWed = false;
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+
+        Assert.IsTrue(vm.HasValidationError);
+        Assert.HasCount(1, repo.FindAll());
+    }
+
+    [TestMethod]
     public void 新規週次は開始日の曜日が初期選択される()
     {
         var vm = CreateViewModel();
