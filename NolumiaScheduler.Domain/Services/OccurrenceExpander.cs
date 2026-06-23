@@ -182,7 +182,7 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 var candidate = DateOnly.FromDayNumber((int)candidateDayNumber);
 
                 if (candidate < startDate.ToDateOnly()) continue;
-                if (candidate > end) yield break;
+                if (candidate > end) continue;
 
                 yield return LocalDateValue.FromDateOnly(candidate);
             }

@@ -859,6 +859,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             return;
         }
 
+        if (IsWeekly)
+        {
+            var selectedDays = CollectWeekdays();
+            if (selectedDays.Count == 0)
+            {
+                ValidationError = AppResources.ErrorWeekdayRequired;
+                return;
+            }
+        }
+
         // The new (following) series starts at the split occurrence date, so the end date must
         // be on or after that date — not the original series start.
         var followingStart = new DateTime(

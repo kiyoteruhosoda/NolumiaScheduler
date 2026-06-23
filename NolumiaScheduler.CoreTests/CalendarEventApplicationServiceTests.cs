@@ -351,6 +351,32 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 6), LocalSchedulePoint.LocalDateOf(newSeries.RecurringSchedule!.AnchorUtc, Tokyo));
     }
 
+    [TestMethod]
+    public void ChangeFollowingOccurrences_新系列にユーザー指定の終了日が反映される()
+    {
+        SaveRecurringEvent("split-end");
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        var userEndDate = new LocalDateValue(2026, 8, 31);
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            userEndDate,
+            weekly: new WeeklyRule([Weekday.Wednesday]));
+
+        _svc.ChangeFollowingOccurrences(new ChangeFollowingOccurrencesCommand(
+            EventId: "split-end",
+            FromOccurrenceKey: fromKey,
+            NewTitle: "Shortened",
+            NewLocation: null,
+            NewVisibility: Visibility.Public,
+            NewAllDay: false,
+            NewStartTime: new LocalTimeValue(9, 30, 0),
+            NewEndTime: new LocalTimeValue(10, 30, 0),
+            NewRecurrenceRule: rule));
+
+        var newSeries = _repo.FindAll().Single(e => e.Id.Value != "split-end");
+        Assert.AreEqual(userEndDate, newSeries.RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
     // ── UpdateRecurringSeries ──────────────────────────────────────────────
 
     [TestMethod]

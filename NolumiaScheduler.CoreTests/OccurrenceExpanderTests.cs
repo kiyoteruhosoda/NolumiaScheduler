@@ -419,6 +419,40 @@ public class OccurrenceExpanderTests
         Assert.AreEqual(key, moved.SeriesKey);
     }
 
+    [TestMethod]
+    public void Expand_週次_日曜が最終週でend超えても他曜日の発生を打ち切らない()
+    {
+        // Weekdays: Sunday + Wednesday.  EndDate = 2026-05-07 (Thursday).
+        // Week starting Mon 2026-05-04: Sunday candidate = 2026-05-10 > end.
+        // The bug caused yield break there, skipping Wednesday 2026-05-06 which IS within range.
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(2026, 5, 7),
+            weekly: new WeeklyRule([Weekday.Sunday, Weekday.Wednesday]));
+
+        var schedule = new RecurringEventSchedule(
+            Utc(2026, 5, 1, 10, 0),
+            60,
+            rule);
+
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("evt_sun_bug"),
+            new EventTitle("日水テスト"),
+            null, Visibility.Public, null, null, Tokyo,
+            schedule, Now);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 5, 1),
+            new LocalDateValue(2026, 5, 7), null);
+
+        // Expected: Sun 5/3, Wed 5/6 (Sun 5/10 is beyond end and must NOT terminate Wed)
+        var dates = results.Select(r => r.Date).ToList();
+        CollectionAssert.Contains(dates, new LocalDateValue(2026, 5, 3));
+        CollectionAssert.Contains(dates, new LocalDateValue(2026, 5, 6));
+        Assert.IsFalse(dates.Any(d => d.Equals(new LocalDateValue(2026, 5, 10))),
+            "Sunday 5/10 is past end date and must not appear");
+    }
+
     // ── calendar upper-bound (year 9999) guards ───────────────────────────
     // "No end date" series persist their end date as 9999-12-31, so expansion must stop
     // cleanly at DateOnly.MaxValue instead of overflowing in AddDays/AddMonths.
