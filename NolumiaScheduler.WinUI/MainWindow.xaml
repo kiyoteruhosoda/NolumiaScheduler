@@ -11,7 +11,7 @@
                     IsBackButtonVisible="Visible"
                     IsBackEnabled="{x:Bind CanGoBack, Mode=OneWay}"
                     BackRequested="OnBackRequested"
-                    SelectionChanged="OnNavSelectionChanged"
+                    ItemInvoked="OnNavItemInvoked"
                     IsPaneToggleButtonVisible="True"
                     IsPaneOpen="False"
                     IsSettingsVisible="True">

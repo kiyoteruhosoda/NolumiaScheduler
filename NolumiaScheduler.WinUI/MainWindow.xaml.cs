@@ -128,17 +128,17 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         _suppressNavChange = false;
     }
 
-    private void OnNavSelectionChanged(NavigationView sender, NavigationViewSelectionChangedEventArgs args)
+    private void OnNavItemInvoked(NavigationView sender, NavigationViewItemInvokedEventArgs args)
     {
         if (_suppressNavChange) return;
 
-        if (args.IsSettingsSelected)
+        if (args.IsSettingsInvoked)
         {
             ContentFrame.Navigate(typeof(SettingsPage));
             return;
         }
 
-        if (args.SelectedItem is NavigationViewItem item)
+        if (args.InvokedItemContainer is NavigationViewItem item)
         {
             switch (item.Tag as string)
             {
