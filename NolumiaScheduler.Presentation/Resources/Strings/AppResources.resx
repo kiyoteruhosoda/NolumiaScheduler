@@ -333,6 +333,9 @@
   <data name="DeleteOccurrence" xml:space="preserve">
     <value>Delete this occurrence</value>
   </data>
+  <data name="DeleteThisAndFollowing" xml:space="preserve">
+    <value>Delete this and following</value>
+  </data>
   <data name="DeleteAllOccurrences" xml:space="preserve">
     <value>Delete all occurrences</value>
   </data>

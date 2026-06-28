@@ -440,6 +440,8 @@ public sealed partial class EventEditPage : Page
             case nameof(EventEditViewModel.ValidationError):
                 ValidationBorder.Visibility = _vm.HasValidationError ? Visibility.Visible : Visibility.Collapsed;
                 ValidationText.Text = _vm.ValidationError;
+                if (_vm.HasValidationError)
+                    MainScrollViewer.ChangeView(null, 0, null);
                 break;
 
             case nameof(EventEditViewModel.ShowTimeSection):
@@ -905,19 +907,20 @@ public sealed partial class EventEditPage : Page
 
         if (_vm.IsRecurring)
         {
-            var dialog = new ContentDialog
+            var scope = await ShowRecurringDeleteScopeDialogAsync();
+            if (scope == null) return;
+            switch (scope)
             {
-                Title               = AppResources.DeleteEventTitle,
-                PrimaryButtonText   = AppResources.DeleteOccurrence,
-                SecondaryButtonText = AppResources.DeleteAllOccurrences,
-                CloseButtonText     = AppResources.CancelButton,
-                XamlRoot            = XamlRoot
-            };
-            var result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
-                _vm.DeleteOccurrence();
-            else if (result == ContentDialogResult.Secondary)
-                _vm.DeleteEntireEvent();
+                case RecurringEditScope.ThisOccurrence:
+                    _vm.DeleteOccurrence();
+                    break;
+                case RecurringEditScope.ThisAndFollowing:
+                    _vm.DeleteOccurrenceAndFollowing();
+                    break;
+                case RecurringEditScope.EntireSeries:
+                    _vm.DeleteEntireEvent();
+                    break;
+            }
         }
         else
         {
@@ -933,6 +936,34 @@ public sealed partial class EventEditPage : Page
             if (result == ContentDialogResult.Primary)
                 _vm.DeleteEntireEvent();
         }
+    }
+
+    private async System.Threading.Tasks.Task<RecurringEditScope?> ShowRecurringDeleteScopeDialogAsync()
+    {
+        var thisOccurrenceRadio   = new RadioButton { Content = AppResources.DeleteOccurrence,        GroupName = "DeleteScope", IsChecked = true };
+        var thisAndFollowingRadio = new RadioButton { Content = AppResources.DeleteThisAndFollowing,   GroupName = "DeleteScope" };
+        var entireSeriesRadio     = new RadioButton { Content = AppResources.DeleteAllOccurrences,     GroupName = "DeleteScope" };
+
+        var panel = new StackPanel { Spacing = 8 };
+        panel.Children.Add(thisOccurrenceRadio);
+        panel.Children.Add(thisAndFollowingRadio);
+        panel.Children.Add(entireSeriesRadio);
+
+        var dialog = new ContentDialog
+        {
+            Title             = AppResources.DeleteEventTitle,
+            Content           = panel,
+            PrimaryButtonText = AppResources.DeleteButton,
+            CloseButtonText   = AppResources.CancelButton,
+            XamlRoot          = XamlRoot
+        };
+
+        var result = await dialog.ShowAsync();
+        if (result != ContentDialogResult.Primary) return null;
+
+        if (entireSeriesRadio.IsChecked == true)     return RecurringEditScope.EntireSeries;
+        if (thisAndFollowingRadio.IsChecked == true) return RecurringEditScope.ThisAndFollowing;
+        return RecurringEditScope.ThisOccurrence;
     }
 
     private async System.Threading.Tasks.Task<RecurringEditScope?> ShowRecurringScopeDialogAsync()

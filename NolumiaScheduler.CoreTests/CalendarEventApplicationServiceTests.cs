@@ -413,6 +413,34 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 6), LocalSchedulePoint.LocalDateOf(newSeries.RecurringSchedule!.AnchorUtc, Tokyo));
     }
 
+    // ── DeleteFollowingOccurrences ─────────────────────────────────────────
+
+    [TestMethod]
+    public void DeleteFollowingOccurrences_元系列が発生日の前日で終了する()
+    {
+        SaveRecurringEvent("del-following-1");
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+
+        _svc.DeleteFollowingOccurrences(new DeleteFollowingOccurrencesCommand("del-following-1", fromKey));
+
+        var all = _repo.FindAll();
+        Assert.HasCount(1, all);
+        var ev = all[0];
+        Assert.AreEqual("del-following-1", ev.Id.Value);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), ev.RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
+    [TestMethod]
+    public void DeleteFollowingOccurrences_系列の先頭の発生日を指定すると系列ごと削除される()
+    {
+        SaveRecurringEvent("del-following-first");
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0));
+
+        _svc.DeleteFollowingOccurrences(new DeleteFollowingOccurrencesCommand("del-following-first", fromKey));
+
+        Assert.HasCount(0, _repo.FindAll());
+    }
+
     // ── UpdateRecurringSeries ──────────────────────────────────────────────
 
     [TestMethod]

@@ -4,7 +4,7 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <ScrollViewer Background="{ThemeResource GCalSurfaceVariant}">
+    <ScrollViewer x:Name="MainScrollViewer" Background="{ThemeResource GCalSurfaceVariant}">
         <StackPanel Padding="16" Spacing="0">
 
             <!-- Validation error -->

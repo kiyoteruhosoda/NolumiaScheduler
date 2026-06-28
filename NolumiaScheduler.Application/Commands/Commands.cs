@@ -94,3 +94,7 @@ public sealed record ChangeFollowingOccurrencesCommand(
     RecurrenceRule NewRecurrenceRule,
     EventAlarm? Alarm = null,
     EventColorKey ColorKey = EventColorKey.Default);
+
+public sealed record DeleteFollowingOccurrencesCommand(
+    string EventId,
+    OccurrenceLocalKey FromOccurrenceKey);

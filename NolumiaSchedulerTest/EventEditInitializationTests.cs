@@ -376,6 +376,34 @@ public class EventEditInitializationTests
         Assert.IsFalse(vm.WeekFri);
     }
 
+    [TestMethod]
+    public void DeleteOccurrenceAndFollowing_元系列が発生日の前日で終了する()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("del-following-vm"));
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("del-following-vm", key);
+
+        vm.DeleteOccurrenceAndFollowing();
+
+        var all = repo.FindAll();
+        Assert.HasCount(1, all);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), all[0].RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
+    [TestMethod]
+    public void DeleteOccurrenceAndFollowing_先頭の発生日を指定すると系列ごと削除される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("del-following-first-vm"));
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("del-following-first-vm", key);
+
+        vm.DeleteOccurrenceAndFollowing();
+
+        Assert.HasCount(0, repo.FindAll());
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();
