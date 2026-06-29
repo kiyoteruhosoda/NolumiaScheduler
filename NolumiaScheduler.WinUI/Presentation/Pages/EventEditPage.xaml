@@ -94,31 +94,31 @@
                         <Grid ColumnDefinitions="*,*,*,*,*,*,*" ColumnSpacing="4" Margin="0,0,0,8">
                             <StackPanel Grid.Column="0" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblSun" FontSize="11" HorizontalAlignment="Center" Foreground="{StaticResource GCalRed}"/>
-                                <CheckBox x:Name="WChkSun" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkSun" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                             <StackPanel Grid.Column="1" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblMon" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
-                                <CheckBox x:Name="WChkMon" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkMon" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                             <StackPanel Grid.Column="2" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblTue" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
-                                <CheckBox x:Name="WChkTue" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkTue" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                             <StackPanel Grid.Column="3" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblWed" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
-                                <CheckBox x:Name="WChkWed" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkWed" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                             <StackPanel Grid.Column="4" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblThu" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
-                                <CheckBox x:Name="WChkThu" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkThu" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                             <StackPanel Grid.Column="5" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblFri" FontSize="11" HorizontalAlignment="Center" Foreground="{ThemeResource GCalTextSecondary}"/>
-                                <CheckBox x:Name="WChkFri" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkFri" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                             <StackPanel Grid.Column="6" HorizontalAlignment="Center" Spacing="2">
                                 <TextBlock x:Name="WLblSat" FontSize="11" HorizontalAlignment="Center" Foreground="{StaticResource GCalBlue}"/>
-                                <CheckBox x:Name="WChkSat" MinWidth="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
+                                <CheckBox x:Name="WChkSat" MinWidth="0" Padding="0" HorizontalAlignment="Center" Checked="OnWeekdayChecked" Unchecked="OnWeekdayChecked"/>
                             </StackPanel>
                         </Grid>
                     </StackPanel>
