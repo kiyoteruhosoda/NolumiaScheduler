@@ -59,7 +59,6 @@ public sealed class CalendarEventItem
         // those states remain visible through their badges.
         DotColor = ColorKey != EventColorKey.Default ? WinColors.ForEventColor(ColorKey) :
                    IsMoved ? WinColors.GCalEventMoved :
-                   IsOverridden ? WinColors.GCalGreen :
                    WinColors.GCalBlue;
     }
 

@@ -236,8 +236,10 @@ public class CalendarEventApplicationService(
 
         var newId = new EventId(Guid.NewGuid().ToString());
         var (newStartTime, newDuration) = ResolveTimes(command.NewStartTime, command.NewEndTime, command.NewAllDay);
-        // The split-off series keeps the original timezone for now (cross-TZ editing is a follow-up).
-        var newAnchorUtc = ToUtc(command.FromOccurrenceKey.Date, newStartTime, ev.TimeZoneId.Value);
+        // NewStartDate lets the caller move the new series to a different date than the occurrence
+        // being split on (e.g. "This and following" where the user also changed the start date).
+        var newAnchorDate = command.NewStartDate ?? command.FromOccurrenceKey.Date;
+        var newAnchorUtc = ToUtc(newAnchorDate, newStartTime, ev.TimeZoneId.Value);
         var newSchedule = new RecurringEventSchedule(newAnchorUtc, newDuration, command.NewRecurrenceRule);
 
         var newEv = CalendarEvent.CreateRecurring(

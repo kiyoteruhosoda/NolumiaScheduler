@@ -413,6 +413,58 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 6), LocalSchedulePoint.LocalDateOf(newSeries.RecurringSchedule!.AnchorUtc, Tokyo));
     }
 
+    [TestMethod]
+    public void ChangeFollowingOccurrences_NewStartDateが指定された場合は新系列のアンカーがその日付になる()
+    {
+        // Scenario: recurring Mon-Fri starting 6/29 (Mon), editing the 6/30 (Tue) occurrence
+        // with "This and following" and moving the new series start to 7/1 (Wed).
+        // Expected: original series ends 6/29 (fromKey.Date-1), new series anchors at 7/1.
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(9999, 12, 31),
+            weekly: new WeeklyRule([Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday]));
+        var schedule = new RecurringEventSchedule(
+            Utc(2026, 6, 29, 9, 0, Tokyo),
+            60,
+            rule);
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("split-newdate"), new EventTitle("Daily"), null,
+            Visibility.Public, null, null, tz,
+            schedule, DateTimeOffset.UtcNow);
+        _repo.Save(ev);
+
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 6, 30), new LocalTimeValue(9, 0, 0));
+        var newStartDate = new LocalDateValue(2026, 7, 1); // moved forward one day
+        var newRule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(9999, 12, 31),
+            weekly: new WeeklyRule([Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday]));
+
+        _svc.ChangeFollowingOccurrences(new ChangeFollowingOccurrencesCommand(
+            EventId: "split-newdate",
+            FromOccurrenceKey: fromKey,
+            NewTitle: "Daily",
+            NewLocation: null,
+            NewVisibility: Visibility.Public,
+            NewAllDay: false,
+            NewStartTime: new LocalTimeValue(9, 0, 0),
+            NewEndTime: new LocalTimeValue(10, 0, 0),
+            NewRecurrenceRule: newRule,
+            NewStartDate: newStartDate));
+
+        var all = _repo.FindAll();
+        Assert.HasCount(2, all);
+
+        // Original series ends the day before the occurrence being edited (6/30 - 1 = 6/29).
+        var original = all.Single(e => e.Id.Value == "split-newdate");
+        Assert.AreEqual(new LocalDateValue(2026, 6, 29), original.RecurringSchedule!.RecurrenceRule.EndDate);
+
+        // New series anchors at 7/1, not 6/30.
+        var newSeries = all.Single(e => e.Id.Value != "split-newdate");
+        Assert.AreEqual(newStartDate, LocalSchedulePoint.LocalDateOf(newSeries.RecurringSchedule!.AnchorUtc, Tokyo));
+    }
+
     // ── DeleteFollowingOccurrences ─────────────────────────────────────────
 
     [TestMethod]

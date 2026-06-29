@@ -869,11 +869,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             }
         }
 
-        // The new (following) series starts at the split occurrence date, so the end date must
-        // be on or after that date — not the original series start.
-        var followingStart = new DateTime(
-            EditingOccurrenceKey.Date.Year, EditingOccurrenceKey.Date.Month, EditingOccurrenceKey.Date.Day);
-        if (!EndDateIsValid(followingStart))
+        // End date must be on or after the new series start date (which may differ from the
+        // occurrence date if the user also moved the start date forward).
+        if (!EndDateIsValid(StartDate))
         {
             ValidationError = AppResources.ErrorEndDateBeforeStart;
             return;
@@ -881,6 +879,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
+        var newStartDate = new LocalDateValue(StartDate.Year, StartDate.Month, StartDate.Day);
 
         var newRule = BuildRecurrenceRule();
 
@@ -895,7 +894,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newEnd,
             newRule,
             Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
-            ColorKey: SelectedColorKey));
+            ColorKey: SelectedColorKey,
+            NewStartDate: newStartDate));
     }
 
     private void SaveEntireSeries(string eventId)

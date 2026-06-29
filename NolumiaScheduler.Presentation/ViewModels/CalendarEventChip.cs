@@ -18,7 +18,6 @@ public sealed class CalendarEventChip(EventOccurrence occ)
     public Color ChipColor { get; } =
         occ.ColorKey != EventColorKey.Default ? WinColors.ForEventColor(occ.ColorKey) :
         occ.IsMoved      ? WinColors.GCalEventMoved :
-        occ.IsOverridden ? WinColors.GCalGreen :
                            WinColors.GCalBlue;
 
     // End-of-day label derived from start + duration; a block ending at the day boundary reads 24:00.
