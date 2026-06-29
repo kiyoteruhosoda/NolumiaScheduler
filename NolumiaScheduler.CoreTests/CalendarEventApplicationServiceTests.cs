@@ -529,6 +529,43 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), LocalSchedulePoint.LocalDateOf(ev.RecurringSchedule.AnchorUtc, Tokyo));
     }
 
+    [TestMethod]
+    public void UpdateRecurringSeries_NewStartDateを指定するとアンカーが移動する()
+    {
+        // Scenario: Mon-Fri series anchored at 6/29 (Mon). User opens the 6/30 (Tue) occurrence,
+        // selects "Entire Series", and saves. StartDate in the form is 6/30, so the anchor must
+        // move to 6/30 — the 6/29 occurrence effectively disappears.
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(9999, 12, 31),
+            weekly: new WeeklyRule([Weekday.Monday, Weekday.Tuesday, Weekday.Wednesday, Weekday.Thursday, Weekday.Friday]));
+        var schedule = new RecurringEventSchedule(
+            Utc(2026, 6, 29, 9, 0, Tokyo),
+            60,
+            rule);
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("series-anchor"), new EventTitle("Daily"), null,
+            Visibility.Public, null, null, tz,
+            schedule, DateTimeOffset.UtcNow);
+        _repo.Save(ev);
+
+        var newStartDate = new LocalDateValue(2026, 6, 30); // opened from 6/30 occurrence
+
+        _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
+            EventId: "series-anchor",
+            Title: "Daily",
+            Location: null,
+            Visibility: Visibility.Public,
+            StartTime: new LocalTimeValue(9, 0, 0),
+            EndTime: new LocalTimeValue(10, 0, 0),
+            RecurrenceRule: rule,
+            NewStartDate: newStartDate));
+
+        var saved = _repo.FindAll().Single();
+        Assert.AreEqual(newStartDate, LocalSchedulePoint.LocalDateOf(saved.RecurringSchedule!.AnchorUtc, Tokyo));
+    }
+
     // ── DeleteEvent ────────────────────────────────────────────────────────
 
     [TestMethod]

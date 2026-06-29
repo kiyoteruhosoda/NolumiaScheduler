@@ -127,13 +127,14 @@ public class CalendarEventApplicationService(
             ev.Description,
             _clock.GetUtcNow());
 
-        // Preserve the original series start date so existing occurrence keys (exceptions and
-        // moves) stay aligned; only the rule and times are redefined for the whole series. A null
-        // start/end pair denotes an all-day (00:00 + 24h) series.
+        // When opened from a specific occurrence the caller may pass a NewStartDate to move the
+        // series anchor forward (e.g. editing the 6/30 occurrence via "Entire Series" moves the
+        // anchor from 6/29 to 6/30, removing the earlier occurrence). Without NewStartDate the
+        // original anchor is kept so existing exception/move keys remain aligned.
         var old = ev.RecurringSchedule;
         var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, allDay: false);
-        // Keep the series anchored on the same local date; only the time-of-day/duration/rule change.
-        var anchorLocalDate = LocalSchedulePoint.LocalDateOf(old.AnchorUtc, ev.TimeZoneId.ToTimeZoneInfo());
+        var anchorLocalDate = command.NewStartDate
+            ?? LocalSchedulePoint.LocalDateOf(old.AnchorUtc, ev.TimeZoneId.ToTimeZoneInfo());
         var anchorUtc = ToUtc(anchorLocalDate, startTime, ev.TimeZoneId.Value);
         var newSchedule = new RecurringEventSchedule(anchorUtc, duration, command.RecurrenceRule);
 
