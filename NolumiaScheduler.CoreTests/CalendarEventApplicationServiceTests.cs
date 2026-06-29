@@ -377,6 +377,70 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(userEndDate, newSeries.RecurringSchedule!.RecurrenceRule.EndDate);
     }
 
+    [TestMethod]
+    public void ChangeFollowingOccurrences_終了日が分割日と同日のとき元系列は前日で終わり新系列も同日が終了日になる()
+    {
+        // Regression: when NewRecurrenceRule.EndDate == fromKey.Date (occurrence date),
+        // the original series must be truncated to fromKey.Date-1 and the new series must
+        // start and end on fromKey.Date (a single-day series).
+        SaveRecurringEvent("split-same-day");
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        var sameEndDate = new LocalDateValue(2026, 5, 6); // EndDate == occurrence date
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            sameEndDate,
+            weekly: new WeeklyRule([Weekday.Wednesday]));
+
+        _svc.ChangeFollowingOccurrences(new ChangeFollowingOccurrencesCommand(
+            EventId: "split-same-day",
+            FromOccurrenceKey: fromKey,
+            NewTitle: "Single-day series",
+            NewLocation: null,
+            NewVisibility: Visibility.Public,
+            NewAllDay: false,
+            NewStartTime: new LocalTimeValue(9, 30, 0),
+            NewEndTime: new LocalTimeValue(10, 30, 0),
+            NewRecurrenceRule: rule));
+
+        var all = _repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var original = all.Single(e => e.Id.Value == "split-same-day");
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), original.RecurringSchedule!.RecurrenceRule.EndDate);
+
+        var newSeries = all.Single(e => e.Id.Value != "split-same-day");
+        Assert.AreEqual(sameEndDate, newSeries.RecurringSchedule!.RecurrenceRule.EndDate);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 6), LocalSchedulePoint.LocalDateOf(newSeries.RecurringSchedule!.AnchorUtc, Tokyo));
+    }
+
+    // ── DeleteFollowingOccurrences ─────────────────────────────────────────
+
+    [TestMethod]
+    public void DeleteFollowingOccurrences_元系列が発生日の前日で終了する()
+    {
+        SaveRecurringEvent("del-following-1");
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+
+        _svc.DeleteFollowingOccurrences(new DeleteFollowingOccurrencesCommand("del-following-1", fromKey));
+
+        var all = _repo.FindAll();
+        Assert.HasCount(1, all);
+        var ev = all[0];
+        Assert.AreEqual("del-following-1", ev.Id.Value);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), ev.RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
+    [TestMethod]
+    public void DeleteFollowingOccurrences_系列の先頭の発生日を指定すると系列ごと削除される()
+    {
+        SaveRecurringEvent("del-following-first");
+        var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0));
+
+        _svc.DeleteFollowingOccurrences(new DeleteFollowingOccurrencesCommand("del-following-first", fromKey));
+
+        Assert.HasCount(0, _repo.FindAll());
+    }
+
     // ── UpdateRecurringSeries ──────────────────────────────────────────────
 
     [TestMethod]

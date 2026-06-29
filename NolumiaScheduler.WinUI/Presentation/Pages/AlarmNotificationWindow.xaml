@@ -83,12 +83,16 @@
                     <TextBlock x:Name="FromNowLabel" Grid.Column="0" FontSize="14"
                                VerticalAlignment="Center" TextWrapping="Wrap"
                                Foreground="{ThemeResource GCalTextPrimary}"/>
-                    <NumberBox x:Name="FromNowInput" Grid.Column="1" Width="110" Height="48"
-                               VerticalAlignment="Center"
+                    <NumberBox x:Name="FromNowInput" Grid.Column="1" 
+                               VerticalAlignment="Center" 
+                               VerticalContentAlignment="Center"
+                               HorizontalAlignment="Right"
+                               HorizontalContentAlignment="Right"
                                Minimum="1" Maximum="1440" Value="5"
                                SmallChange="1" LargeChange="5"
                                SpinButtonPlacementMode="Inline"
-                               KeyDown="OnFromNowKeyDown"/>
+                               KeyDown="OnFromNowKeyDown"
+                               ValueChanged="NumberInput_ValueChanged"/>
                     <Button x:Name="FromNowSetBtn" Grid.Column="2" FontSize="13"
                             Height="48" MinWidth="72" CornerRadius="24"
                             VerticalAlignment="Center"
@@ -101,14 +105,18 @@
                     <TextBlock x:Name="BeforeStartLabel" Grid.Column="0" FontSize="14"
                                VerticalAlignment="Center" TextWrapping="Wrap"
                                Foreground="{ThemeResource GCalTextPrimary}"/>
-                    <NumberBox x:Name="BeforeStartInput" Grid.Column="1" Width="110" Height="48"
-                               VerticalAlignment="Center"
+                    <NumberBox x:Name="BeforeStartInput" Grid.Column="1" 
+                               VerticalAlignment="Center" 
+                               VerticalContentAlignment="Center"
+                               HorizontalAlignment="Right"
+                               HorizontalContentAlignment="Right"
                                Minimum="1" Maximum="1440" Value="5"
                                SmallChange="1" LargeChange="5"
                                SpinButtonPlacementMode="Inline"
-                               KeyDown="OnBeforeStartKeyDown"/>
-                    <Button x:Name="BeforeStartSetBtn" Grid.Column="2" FontSize="13"
-                            Height="48" MinWidth="72" CornerRadius="24"
+                               KeyDown="OnBeforeStartKeyDown"
+                               ValueChanged="NumberInput_ValueChanged"/>
+                        <Button x:Name="BeforeStartSetBtn" Grid.Column="2" FontSize="13"
+                            MinWidth="72" CornerRadius="24"
                             VerticalAlignment="Center"
                             Background="{ThemeResource GCalSurfaceVariant}"
                             BorderBrush="{ThemeResource GCalBorder}"

@@ -266,6 +266,24 @@ public class CalendarEventApplicationService(
         SkipOccurrence(command);
     }
 
+    public void DeleteFollowingOccurrences(DeleteFollowingOccurrencesCommand command)
+    {
+        var ev = GetOrThrow(command.EventId);
+        if (!ev.IsRecurring() || ev.RecurringSchedule == null)
+            throw new DomainException("DeleteFollowingOccurrences is only valid for recurring events.");
+
+        var newEndDate = command.FromOccurrenceKey.Date.AddDays(-1);
+        var seriesStartDate = LocalSchedulePoint.LocalDateOf(
+            ev.RecurringSchedule.AnchorUtc, ev.TimeZoneId.ToTimeZoneInfo());
+        if (newEndDate.CompareTo(seriesStartDate) < 0)
+            _repository.Delete(ev.Id);
+        else
+        {
+            ev.ChangeRecurrenceEndDate(newEndDate, _clock.GetUtcNow());
+            _repository.Save(ev);
+        }
+    }
+
     private CalendarEvent GetOrThrow(string eventId)
     {
         var id = new EventId(eventId);

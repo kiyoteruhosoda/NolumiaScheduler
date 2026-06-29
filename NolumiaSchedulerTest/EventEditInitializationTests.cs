@@ -268,6 +268,32 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
+    public void これ以降で終了日を発生日当日にしても元系列は前日で終わる()
+    {
+        // Regression: EndDate == occurrence_date (the split point) must be accepted and
+        // must truncate the original series to occurrence_date-1, not fail validation.
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("rec-end-same"));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-end-same", key);
+        vm.HasEndDate = true;
+        vm.EndDate = new DateTime(2026, 5, 6); // same as the occurrence date
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var all = repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var original = all.Single(e => e.Id.Value == "rec-end-same");
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), original.RecurringSchedule!.RecurrenceRule.EndDate);
+
+        var newSeries = all.Single(e => e.Id.Value != "rec-end-same");
+        Assert.AreEqual(new LocalDateValue(2026, 5, 6), newSeries.RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
+    [TestMethod]
     public void これ以降で終了日を発生日より前にすると検証エラーになる()
     {
         var vm = CreateViewModel(out var repo);
@@ -348,6 +374,34 @@ public class EventEditInitializationTests
         Assert.IsTrue(vm.WeekTue);
         Assert.IsTrue(vm.WeekThu);
         Assert.IsFalse(vm.WeekFri);
+    }
+
+    [TestMethod]
+    public void DeleteOccurrenceAndFollowing_元系列が発生日の前日で終了する()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("del-following-vm"));
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("del-following-vm", key);
+
+        vm.DeleteOccurrenceAndFollowing();
+
+        var all = repo.FindAll();
+        Assert.HasCount(1, all);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 5), all[0].RecurringSchedule!.RecurrenceRule.EndDate);
+    }
+
+    [TestMethod]
+    public void DeleteOccurrenceAndFollowing_先頭の発生日を指定すると系列ごと削除される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEvent("del-following-first-vm"));
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("del-following-first-vm", key);
+
+        vm.DeleteOccurrenceAndFollowing();
+
+        Assert.HasCount(0, repo.FindAll());
     }
 
     private static EventEditViewModel CreateViewModel()

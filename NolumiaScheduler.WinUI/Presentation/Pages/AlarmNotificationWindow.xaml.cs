@@ -576,4 +576,14 @@ public sealed partial class AlarmNotificationWindow : Window
         [return: MarshalAs(UnmanagedType.Bool)]
         public static partial bool DeleteObject(nint hObject);
     }
+
+
+    private void NumberInput_ValueChanged(NumberBox sender, NumberBoxValueChangedEventArgs args)
+    {
+        if (double.IsNaN(args.NewValue))
+        {
+            sender.Value = 0;
+            return;
+        }
+    }
 }
