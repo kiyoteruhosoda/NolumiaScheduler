@@ -71,6 +71,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private string _validationError = "";
     private string? _editingEventId;
     private bool _wasRecurringAtLoad;
+    // True when the loaded occurrence was individually moved out of the series.
+    // In that case the edit form shows as a single event and scope selection is skipped.
+    private bool _isMovedOccurrence;
     // Set while loading a saved event so changing RepeatTypeIndex does not overwrite the saved
     // recurrence selectors with start-date defaults.
     private bool _suppressRecurrenceDefaults;
@@ -121,9 +124,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
     // Scope selection (this / following / entire) only makes sense when the
     // event was already recurring at load time. Adding recurrence to a single
-    // event is a kind conversion handled separately in Save().
+    // event is a kind conversion handled separately in Save(). Moved occurrences
+    // are treated as standalone single events — no scope selection needed.
     public bool RequiresRecurringEditScopeSelection =>
-        IsEditing && _wasRecurringAtLoad && IsRecurring && IsOccurrenceEditing;
+        IsEditing && _wasRecurringAtLoad && !_isMovedOccurrence && IsRecurring && IsOccurrenceEditing;
 
     public void InitializeNewEvent(DateOnly date, int startMinute, int? endMinute = null)
     {
@@ -201,6 +205,23 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(durationMinutes));
 
             LoadRecurrenceRule(sched.RecurrenceRule);
+
+            // A drag-moved occurrence is stored with a new date but is not part of
+            // the normal recurrence expansion. Detect it by matching the displayed
+            // occurrence date against the Moves list, then treat it as standalone.
+            if (occurrenceKey != null)
+            {
+                var matchedMove = ev.Moves.FirstOrDefault(m => m.NewDate.Equals(occurrenceKey.Date));
+                if (matchedMove != null)
+                {
+                    _isMovedOccurrence = true;
+                    // Switch to the original occurrence key so domain calls target the right slot.
+                    EditingOccurrenceKey = matchedMove.OccurrenceKey;
+                    _suppressRecurrenceDefaults = true;
+                    RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.None;
+                    _suppressRecurrenceDefaults = false;
+                }
+            }
         }
 
         SelectedColorIndex = Math.Max(0, Array.IndexOf(ColorKeys, ev.ColorKey));
@@ -769,6 +790,16 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         {
             if (_editingEventId != null)
             {
+                // A drag-moved occurrence is standalone: re-apply via MoveOccurrence
+                // using the original occurrence key, skipping the scope dialog entirely.
+                if (_isMovedOccurrence)
+                {
+                    SaveMovedOccurrence(_editingEventId);
+                    if (!string.IsNullOrEmpty(ValidationError)) return;
+                    CompleteSaveIfValid();
+                    return;
+                }
+
                 // Changing the event kind (single <-> recurring) cannot be done
                 // through UpdateEvent / OverrideOccurrence / ChangeFollowing,
                 // which all assume the original kind. Replace by delete + create
@@ -958,6 +989,29 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             date,
             start,
             end));
+    }
+
+    private void SaveMovedOccurrence(string eventId)
+    {
+        if (EditingOccurrenceKey == null)
+        {
+            ValidationError = "発生日情報がありません。";
+            return;
+        }
+
+        var newDate = new LocalDateValue(StartDate.Year, StartDate.Month, StartDate.Day);
+        var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
+
+        _eventService.MoveOccurrence(new MoveOccurrenceCommand(
+            eventId,
+            EditingOccurrenceKey,
+            newDate,
+            newStart,
+            newEnd,
+            string.IsNullOrWhiteSpace(Title) ? null : Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public));
     }
 
     private void UpdateExisting(string eventId)
