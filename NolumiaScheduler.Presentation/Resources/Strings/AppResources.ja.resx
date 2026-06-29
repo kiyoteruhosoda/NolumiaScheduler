@@ -328,11 +328,11 @@
     <value>既存の祝日「{0}」を置換しますか？</value>
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
-  <data name="DeleteEventTitle" type="System.Resources.ResXNullRef, System.Windows.Forms">
-    <value />
+  <data name="DeleteEventTitle" xml:space="preserve">
+    <value>予定を削除</value>
   </data>
-  <data name="DeleteOccurrence" type="System.Resources.ResXNullRef, System.Windows.Forms">
-    <value />
+  <data name="DeleteOccurrence" xml:space="preserve">
+    <value>この予定を削除</value>
   </data>
   <data name="DeleteThisAndFollowing" xml:space="preserve">
     <value>これ以降の予定を削除</value>
