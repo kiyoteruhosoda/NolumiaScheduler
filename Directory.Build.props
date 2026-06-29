@@ -11,6 +11,16 @@
       Windows/WinUI: <TargetFramework>$(WindowsTargetFramework)</TargetFramework>
                      <TargetPlatformMinVersion>$(WindowsSdkMinVersion)</TargetPlatformMinVersion>
   -->
+  <!--
+    SQLitePCLRaw.lib.e_sqlite3 2.1.11 (pulled in transitively by Microsoft.Data.Sqlite) is
+    affected by GHSA-2m69-gcr7-jv3q (SQLite < 3.50.2 aggregate-term heap overflow). No patched
+    NuGet package exists yet. Suppress the advisory repo-wide; remove this block once a safe
+    version is published and the transitive reference is upgraded.
+  -->
+  <ItemGroup>
+    <NuGetAuditSuppress Include="https://github.com/advisories/GHSA-2m69-gcr7-jv3q" />
+  </ItemGroup>
+
   <PropertyGroup>
     <!-- Base .NET target framework moniker shared by all projects. -->
     <DotNetTfm>net10.0</DotNetTfm>

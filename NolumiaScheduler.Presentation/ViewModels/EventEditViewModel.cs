@@ -1166,6 +1166,13 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         DeleteCompleted?.Invoke();
     }
 
+    public void DeleteThisAndFollowing()
+    {
+        if (_editingEventId == null || EditingOccurrenceKey == null) return;
+        _eventService.DeleteFollowingOccurrences(new SkipOccurrenceCommand(_editingEventId, EditingOccurrenceKey));
+        DeleteCompleted?.Invoke();
+    }
+
     public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? name = null)

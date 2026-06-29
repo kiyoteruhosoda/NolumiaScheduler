@@ -905,19 +905,33 @@ public sealed partial class EventEditPage : Page
 
         if (_vm.IsRecurring)
         {
+            var thisOccurrenceRadio   = new RadioButton { Content = AppResources.DeleteOccurrence,      GroupName = "DeleteScope", IsChecked = true };
+            var thisAndFollowingRadio = new RadioButton { Content = AppResources.DeleteThisAndFollowing, GroupName = "DeleteScope" };
+            var allOccurrencesRadio   = new RadioButton { Content = AppResources.DeleteAllOccurrences,  GroupName = "DeleteScope" };
+
+            var panel = new StackPanel { Spacing = 8 };
+            panel.Children.Add(thisOccurrenceRadio);
+            panel.Children.Add(thisAndFollowingRadio);
+            panel.Children.Add(allOccurrencesRadio);
+
             var dialog = new ContentDialog
             {
-                Title               = AppResources.DeleteEventTitle,
-                PrimaryButtonText   = AppResources.DeleteOccurrence,
-                SecondaryButtonText = AppResources.DeleteAllOccurrences,
-                CloseButtonText     = AppResources.CancelButton,
-                XamlRoot            = XamlRoot
+                Title             = AppResources.DeleteEventTitle,
+                Content           = panel,
+                PrimaryButtonText = AppResources.DeleteButton,
+                CloseButtonText   = AppResources.CancelButton,
+                XamlRoot          = XamlRoot
             };
             var result = await dialog.ShowAsync();
-            if (result == ContentDialogResult.Primary)
-                _vm.DeleteOccurrence();
-            else if (result == ContentDialogResult.Secondary)
+            if (result != ContentDialogResult.Primary)
+                return;
+
+            if (allOccurrencesRadio.IsChecked == true)
                 _vm.DeleteEntireEvent();
+            else if (thisAndFollowingRadio.IsChecked == true)
+                _vm.DeleteThisAndFollowing();
+            else
+                _vm.DeleteOccurrence();
         }
         else
         {

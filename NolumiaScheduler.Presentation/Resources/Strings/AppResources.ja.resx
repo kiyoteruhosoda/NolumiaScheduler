@@ -337,6 +337,9 @@
   <data name="DeleteAllOccurrences" xml:space="preserve">
     <value>すべての予定を削除</value>
   </data>
+  <data name="DeleteThisAndFollowing" xml:space="preserve">
+    <value>これ以降の予定を削除</value>
+  </data>
   <data name="EditEventTitle" xml:space="preserve">
     <value>イベント編集</value>
   </data>
