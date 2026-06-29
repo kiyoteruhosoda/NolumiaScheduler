@@ -133,6 +133,7 @@ public static class AppResources
     public static string ReplaceHolidayMessage   => Get(nameof(ReplaceHolidayMessage));
     public static string DeleteEventTitle        => Get(nameof(DeleteEventTitle));
     public static string DeleteOccurrence        => Get(nameof(DeleteOccurrence));
+    public static string DeleteThisAndFollowing  => Get(nameof(DeleteThisAndFollowing));
     public static string DeleteAllOccurrences    => Get(nameof(DeleteAllOccurrences));
     public static string EditEventTitle          => Get(nameof(EditEventTitle));
 

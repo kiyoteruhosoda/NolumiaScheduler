@@ -80,7 +80,8 @@ public sealed record UpdateRecurringSeriesCommand(
     LocalTimeValue? EndTime,
     RecurrenceRule RecurrenceRule,
     EventAlarm? Alarm = null,
-    EventColorKey ColorKey = EventColorKey.Default);
+    EventColorKey ColorKey = EventColorKey.Default,
+    LocalDateValue? NewStartDate = null);
 
 public sealed record ChangeFollowingOccurrencesCommand(
     string EventId,
@@ -93,7 +94,8 @@ public sealed record ChangeFollowingOccurrencesCommand(
     LocalTimeValue? NewEndTime,
     RecurrenceRule NewRecurrenceRule,
     EventAlarm? Alarm = null,
-    EventColorKey ColorKey = EventColorKey.Default);
+    EventColorKey ColorKey = EventColorKey.Default,
+    LocalDateValue? NewStartDate = null);
 
 public sealed record DeleteFollowingOccurrencesCommand(
     string EventId,

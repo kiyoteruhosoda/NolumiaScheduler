@@ -58,8 +58,6 @@ public sealed class CalendarEventItem
         // An explicitly assigned event color wins over the moved/overridden tints;
         // those states remain visible through their badges.
         DotColor = ColorKey != EventColorKey.Default ? WinColors.ForEventColor(ColorKey) :
-                   IsMoved ? WinColors.GCalEventMoved :
-                   IsOverridden ? WinColors.GCalGreen :
                    WinColors.GCalBlue;
     }
 
