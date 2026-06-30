@@ -948,8 +948,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         }
 
         var rule = BuildRecurrenceRule();
-        var startTime = new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
-        var endTime   = new LocalTimeValue(EndTime.Hours,   EndTime.Minutes,   0);
+        LocalTimeValue? startTime = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
+        LocalTimeValue? endTime   = AllDay ? null : new LocalTimeValue(EndTime.Hours,   EndTime.Minutes,   0);
         // When opened from a specific occurrence the form's StartDate reflects that occurrence's
         // date, which becomes the new series anchor (earlier occurrences are dropped).
         var newStartDate = new LocalDateValue(StartDate.Year, StartDate.Month, StartDate.Day);
@@ -959,6 +959,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             Title.Trim(),
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
             NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            AllDay,
             startTime,
             endTime,
             rule,

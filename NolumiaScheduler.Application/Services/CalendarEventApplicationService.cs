@@ -132,7 +132,7 @@ public class CalendarEventApplicationService(
         // anchor from 6/29 to 6/30, removing the earlier occurrence). Without NewStartDate the
         // original anchor is kept so existing exception/move keys remain aligned.
         var old = ev.RecurringSchedule;
-        var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, allDay: false);
+        var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, command.AllDay);
         var anchorLocalDate = command.NewStartDate
             ?? LocalSchedulePoint.LocalDateOf(old.AnchorUtc, ev.TimeZoneId.ToTimeZoneInfo());
         var anchorUtc = ToUtc(anchorLocalDate, startTime, ev.TimeZoneId.Value);
@@ -321,7 +321,8 @@ public class CalendarEventApplicationService(
     private static (LocalTimeValue? startTime, int? durationMinutes) ResolveOptionalTimes(
         LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
     {
-        if (allDay || startTime == null || endTime == null) return (null, null);
+        if (allDay) return (Midnight, MinutesPerDay);
+        if (startTime == null || endTime == null) return (null, null);
         return (startTime, LocalSchedulePoint.WrappingDurationMinutes(startTime, endTime));
     }
 
