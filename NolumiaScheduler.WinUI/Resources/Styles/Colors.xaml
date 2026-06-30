@@ -74,6 +74,8 @@
          desktop shows through the layered overlay window -->
     <SolidColorBrush x:Key="GCalAlarmScrim"     Color="#D9101014"/>
     <!-- Soft accent tint for the alarm bell badge -->
-    <SolidColorBrush x:Key="GCalAlarmBadgeTint" Color="#221A73E8"/>
+    <SolidColorBrush x:Key="GCalAlarmBadgeTint"    Color="#221A73E8"/>
+    <!-- Red tint for elapsed-time badge (event has started) -->
+    <SolidColorBrush x:Key="GCalAlarmElapsedTint"  Color="#22D93025"/>
 
 </ResourceDictionary>

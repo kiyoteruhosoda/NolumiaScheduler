@@ -21,6 +21,9 @@ public sealed partial class AlarmNotificationWindow : Window
     private readonly string? _location;
     private readonly bool _initialNotify5Min;
     private readonly bool _initialNotify1Min;
+    private readonly DateTime? _eventStartTime;
+    private readonly TimeProvider _clock;
+    private DispatcherTimer? _countdownTimer;
     private bool _foregroundForced;
 
     public AlarmNotificationWindow(
@@ -35,6 +38,9 @@ public sealed partial class AlarmNotificationWindow : Window
         TimeProvider clock)
     {
         InitializeComponent();
+
+        _eventStartTime = eventStartTime;
+        _clock = clock;
 
         var now = clock.GetLocalNow().DateTime;
 
@@ -114,6 +120,19 @@ public sealed partial class AlarmNotificationWindow : Window
         // first activation shows the bare window being moved/restyled.
         ConfigureOverlayWindow();
 
+        // Start the live countdown/elapsed timer when the event start time is known.
+        if (eventStartTime.HasValue)
+        {
+            UpdateCountdown();
+            _countdownTimer = new DispatcherTimer { Interval = TimeSpan.FromSeconds(1) };
+            _countdownTimer.Tick += (_, _) => UpdateCountdown();
+            _countdownTimer.Start();
+        }
+        else
+        {
+            CountdownBadge.Visibility = Visibility.Collapsed;
+        }
+
         // The foreground push must run after Activate() — doing it in the constructor,
         // before the hosting service calls Activate(), is too early and gets overridden.
         // Re-assert top-most whenever the window loses focus so it stays visible
@@ -122,6 +141,7 @@ public sealed partial class AlarmNotificationWindow : Window
 
         Closed += (_, _) =>
         {
+            _countdownTimer?.Stop();
             DisableOtherWindows(false);
             // Closing without an explicit button (e.g. the title-bar X) still persists toggle changes.
             _tcs.TrySetResult(BuildResult(AlarmNotificationAction.Dismiss));
@@ -141,6 +161,42 @@ public sealed partial class AlarmNotificationWindow : Window
         var minutes = Math.Max(0, (int)Math.Ceiling((nextAlarmAt - now).TotalMinutes));
         var time = nextAlarmAt.ToString("HH:mm", AppResources.FormatCulture);
         return string.Format(AppResources.FormatCulture, AppResources.AlarmNextAlarmFormat, time, minutes);
+    }
+
+    private void UpdateCountdown()
+    {
+        if (_eventStartTime is not { } startTime) return;
+
+        var remaining = startTime - _clock.GetLocalNow().DateTime;
+        CountdownLabel.Text = FormatCountdown(remaining);
+
+        if (remaining < TimeSpan.Zero)
+        {
+            var resources = Application.Current.Resources;
+            if (resources.TryGetValue("GCalRed", out var fg) && fg is Microsoft.UI.Xaml.Media.Brush fgBrush)
+                CountdownLabel.Foreground = fgBrush;
+            if (resources.TryGetValue("GCalAlarmElapsedTint", out var bg) && bg is Microsoft.UI.Xaml.Media.Brush bgBrush)
+                CountdownBadge.Background = bgBrush;
+        }
+    }
+
+    private static string FormatCountdown(TimeSpan delta)
+    {
+        if (delta >= TimeSpan.Zero)
+        {
+            var h = (int)delta.TotalHours;
+            return h >= 1
+                ? $"+{h}:{delta.Minutes:D2}:{delta.Seconds:D2}"
+                : $"+{delta.Minutes:D2}:{delta.Seconds:D2}";
+        }
+        else
+        {
+            var abs = delta.Negate();
+            var h = (int)abs.TotalHours;
+            return h >= 1
+                ? $"-{h}:{abs.Minutes:D2}:{abs.Seconds:D2}"
+                : $"-{abs.Minutes:D2}:{abs.Seconds:D2}";
+        }
     }
 
     private void OnActivated(object sender, WindowActivatedEventArgs args)
