@@ -188,8 +188,8 @@ public sealed partial class AlarmNotificationWindow : Window
         {
             var h = (int)delta.TotalHours;
             return h >= 1
-                ? $"+{h}:{delta.Minutes:D2}:{delta.Seconds:D2}"
-                : $"+{delta.Minutes:D2}:{delta.Seconds:D2}";
+                ? $"{h}:{delta.Minutes:D2}:{delta.Seconds:D2}"
+                : $"{delta.Minutes:D2}:{delta.Seconds:D2}";
         }
         else
         {
