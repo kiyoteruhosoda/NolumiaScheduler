@@ -172,10 +172,12 @@ public sealed partial class AlarmNotificationWindow : Window
 
         if (remaining < TimeSpan.Zero)
         {
-            var resources = Application.Current.Resources;
-            if (resources.TryGetValue("GCalRed", out var fg) && fg is Microsoft.UI.Xaml.Media.Brush fgBrush)
+            var resources = Microsoft.UI.Xaml.Application.Current.Resources;
+            resources.TryGetValue("GCalRed", out var fg);
+            if (fg is Microsoft.UI.Xaml.Media.Brush fgBrush)
                 CountdownLabel.Foreground = fgBrush;
-            if (resources.TryGetValue("GCalAlarmElapsedTint", out var bg) && bg is Microsoft.UI.Xaml.Media.Brush bgBrush)
+            resources.TryGetValue("GCalAlarmElapsedTint", out var bg);
+            if (bg is Microsoft.UI.Xaml.Media.Brush bgBrush)
                 CountdownBadge.Background = bgBrush;
         }
     }
