@@ -294,14 +294,19 @@ public sealed partial class WeekCalendarView : UserControl
         var panel = new StackPanel { Orientation = Orientation.Vertical };
         foreach (var slot in WeekTimeSlots.OfType<WeekTimeSlot>())
         {
-            panel.Children.Add(new TextBlock
+            var container = new Canvas { Height = 60 };
+
+            var hourLabel = new TextBlock
             {
                 Text = slot.HourLabel,
                 FontSize = 10,
-                Height = 60,
                 VerticalAlignment = VerticalAlignment.Top,
                 Margin = new Thickness(2, 0, 0, 0)
-            });
+            };
+            Canvas.SetTop(hourLabel, 0);
+            container.Children.Add(hourLabel);
+
+            panel.Children.Add(container);
         }
         TimeSlotList.Items?.Clear();
         foreach (var child in panel.Children.ToList())

@@ -38,6 +38,16 @@
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"
                            Foreground="{ThemeResource GCalTextPrimary}"/>
 
+                <!-- Countdown to event start / elapsed since start -->
+                <Border x:Name="CountdownBadge" CornerRadius="16" Padding="28,10"
+                        Margin="0,20,0,0" HorizontalAlignment="Center"
+                        Background="{StaticResource GCalAlarmBadgeTint}">
+                    <TextBlock x:Name="CountdownLabel" FontSize="44" FontWeight="Bold"
+                               HorizontalAlignment="Center" TextAlignment="Center"
+                               FontFamily="Segoe UI Mono"
+                               Foreground="{StaticResource GCalBlue}"/>
+                </Border>
+
                 <!-- Alarm message -->
                 <TextBlock x:Name="MessageLabel" FontSize="14" Margin="0,8,0,0"
                            HorizontalAlignment="Center" TextAlignment="Center" TextWrapping="Wrap"

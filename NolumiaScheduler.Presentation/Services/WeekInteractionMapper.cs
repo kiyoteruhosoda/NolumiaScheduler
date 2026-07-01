@@ -26,7 +26,7 @@ public sealed class WeekInteractionMapper : IWeekInteractionMapper
 
     public int SnapToQuarterHour(int minuteOfDay) => (int)(Math.Round(minuteOfDay / 15d) * 15);
 
-    public int SnapToHalfHour(int minuteOfDay) => (int)(Math.Round(minuteOfDay / 30d) * 30);
+    public int SnapToHalfHour(int minuteOfDay) => (int)(Math.Floor(minuteOfDay / 30d) * 30);
 
     public DateTime MapToDateTime(Point point, DateTime weekStartDate, double dayColumnWidth)
     {

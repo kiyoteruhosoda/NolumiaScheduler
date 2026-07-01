@@ -134,9 +134,12 @@
        the publish folder. A published unpackaged app then has every framework PRI but
        not its own compiled-XAML index, and crashes at MainWindow.InitializeComponent()
        with XamlParseException (build/F5 works because resources.pri is present there).
-       Copy the generated index into the publish output explicitly. -->
+       Copy the generated index into the publish output explicitly. SkipUnchangedFiles
+       is intentionally omitted so an incremental republish always overwrites the
+       destination (a stale/newer copy in the publish dir would otherwise be silently
+       kept, leaving a mismatched index that crashes at startup). -->
   <Target Name="CopyResourcesPriToPublishDir" AfterTargets="Publish" Condition="Exists('$(OutDir)resources.pri')">
-    <Copy SourceFiles="$(OutDir)resources.pri" DestinationFolder="$(PublishDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="$(OutDir)resources.pri" DestinationFolder="$(PublishDir)" />
   </Target>
 
   <!-- Stamps the assembly with the git revision so every built binary maps back to an

@@ -76,6 +76,7 @@ public sealed record UpdateRecurringSeriesCommand(
     string Title,
     string? Location,
     Visibility Visibility,
+    bool AllDay,
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime,
     RecurrenceRule RecurrenceRule,

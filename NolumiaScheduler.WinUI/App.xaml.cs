@@ -113,7 +113,32 @@ public partial class App : Microsoft.UI.Xaml.Application
             "NolumiaScheduler");
         Directory.CreateDirectory(logDir);
         var logPath = Path.Combine(logDir, "crash.log");
-        File.WriteAllText(logPath, $"[{DateTime.Now:O}]{Environment.NewLine}{ex}");
+
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine($"[{DateTime.Now:O}]");
+        sb.AppendLine(ex.ToString());
+
+        // Walk the inner exception chain logging type + HResult for each level, since
+        // XamlParseException from the native XAML runtime often carries a COM HRESULT in
+        // its InnerException that ToString() omits or renders as the same generic message.
+        var inner = ex.InnerException;
+        var depth = 1;
+        while (inner != null)
+        {
+            sb.AppendLine($"[InnerException depth={depth}] {inner.GetType().FullName}: 0x{inner.HResult:X8} — {inner.Message}");
+            inner = inner.InnerException;
+            depth++;
+        }
+
+        // Hint: a XamlParseException with no stack trace at startup often means the
+        // compiled XAML index (resources.pri) is missing from the publish directory.
+        if (ex is Microsoft.UI.Xaml.Markup.XamlParseException)
+        {
+            var priPath = Path.Combine(AppContext.BaseDirectory, "resources.pri");
+            sb.AppendLine($"[Hint] resources.pri present: {File.Exists(priPath)} ({priPath})");
+        }
+
+        File.WriteAllText(logPath, sb.ToString());
 
         const uint MB_ICONERROR = 0x10;
         MessageBox(
