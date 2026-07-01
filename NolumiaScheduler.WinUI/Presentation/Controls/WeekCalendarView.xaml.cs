@@ -306,17 +306,6 @@ public sealed partial class WeekCalendarView : UserControl
             Canvas.SetTop(hourLabel, 0);
             container.Children.Add(hourLabel);
 
-            var halfLabel = new TextBlock
-            {
-                Text = $"{slot.Hour:D2}30",
-                FontSize = 9,
-                Opacity = 0.6,
-                VerticalAlignment = VerticalAlignment.Top,
-                Margin = new Thickness(2, 0, 0, 0)
-            };
-            Canvas.SetTop(halfLabel, 30);
-            container.Children.Add(halfLabel);
-
             panel.Children.Add(container);
         }
         TimeSlotList.Items?.Clear();
