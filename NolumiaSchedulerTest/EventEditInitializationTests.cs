@@ -404,6 +404,165 @@ public class EventEditInitializationTests
         Assert.HasCount(0, repo.FindAll());
     }
 
+    // ── シフト（AdjustmentRule）関連テスト ─────────────────────────────────
+
+    [TestMethod]
+    public void シフトあり繰り返しイベントを読み込むとAdjustmentBusinessDaysが設定される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-load", shiftDays: 3));
+
+        vm.LoadEvent("rec-shift-load", new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0)));
+
+        Assert.AreEqual(3, vm.AdjustmentBusinessDays);
+        Assert.AreEqual((int)AdjustmentDirectionIndex.After, vm.AdjustmentDirectionIndex);
+        Assert.IsTrue(vm.HasAdjustment);
+    }
+
+    [TestMethod]
+    public void 系列全体でシフトあり編集を保存するとAdjustmentRuleが維持される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-series", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-series", key);
+        vm.Title = "updated";
+
+        vm.Save(RecurringEditScope.EntireSeries);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var saved = repo.FindById(new EventId("rec-shift-series"))!;
+        Assert.IsNotNull(saved.RecurringSchedule!.RecurrenceRule.Adjustment);
+        Assert.AreEqual(2, saved.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);
+    }
+
+    [TestMethod]
+    public void 系列全体でシフト日数を変更すると保存に反映される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-change", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-change", key);
+        vm.AdjustmentBusinessDays = 5;
+
+        vm.Save(RecurringEditScope.EntireSeries);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var saved = repo.FindById(new EventId("rec-shift-change"))!;
+        Assert.IsNotNull(saved.RecurringSchedule!.RecurrenceRule.Adjustment);
+        Assert.AreEqual(5, saved.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);
+    }
+
+    [TestMethod]
+    public void 系列全体でシフトを解除すると保存後はAdjustmentRuleがなくなる()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-off", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-off", key);
+        vm.AdjustmentBusinessDays = 0;
+
+        vm.Save(RecurringEditScope.EntireSeries);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var saved = repo.FindById(new EventId("rec-shift-off"))!;
+        Assert.IsNull(saved.RecurringSchedule!.RecurrenceRule.Adjustment);
+        Assert.IsFalse(vm.HasAdjustment);
+    }
+
+    [TestMethod]
+    public void これ以降でシフトあり編集が保存できる()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-fwd", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-fwd", key);
+        vm.Title = "future-shifted";
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var all = repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var newSeries = all.Single(e => e.Id.Value != "rec-shift-fwd");
+        Assert.IsNotNull(newSeries.RecurringSchedule!.RecurrenceRule.Adjustment);
+        Assert.AreEqual(2, newSeries.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);
+        Assert.AreEqual("future-shifted", newSeries.Title.Value);
+    }
+
+    [TestMethod]
+    public void これ以降でシフト日数を変更すると新系列に反映される()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-fwd-change", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-fwd-change", key);
+        vm.AdjustmentBusinessDays = 4;
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var all = repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var newSeries = all.Single(e => e.Id.Value != "rec-shift-fwd-change");
+        Assert.IsNotNull(newSeries.RecurringSchedule!.RecurrenceRule.Adjustment);
+        Assert.AreEqual(4, newSeries.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);
+
+        // Original series is truncated but retains its own shift unchanged.
+        var original = all.Single(e => e.Id.Value == "rec-shift-fwd-change");
+        Assert.AreEqual(2, original.RecurringSchedule!.RecurrenceRule.Adjustment!.ShiftAmount);
+    }
+
+    [TestMethod]
+    public void これ以降でシフトを解除すると新系列にはAdjustmentRuleがない()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-fwd-off", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-fwd-off", key);
+        vm.AdjustmentBusinessDays = 0;
+
+        vm.Save(RecurringEditScope.ThisAndFollowing);
+        Assert.IsFalse(vm.HasValidationError);
+
+        var all = repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var newSeries = all.Single(e => e.Id.Value != "rec-shift-fwd-off");
+        Assert.IsNull(newSeries.RecurringSchedule!.RecurrenceRule.Adjustment);
+    }
+
+    [TestMethod]
+    public void この予定のみでシフトあり系列のAdjustmentRuleは変更されない()
+    {
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithShift("rec-shift-single-occ", shiftDays: 2));
+
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-shift-single-occ", key);
+        vm.Title = "overridden-occurrence";
+        vm.StartDate = new DateTime(2026, 5, 6);
+        vm.StartTime = new TimeSpan(10, 0, 0);
+        vm.EndTime = new TimeSpan(11, 0, 0);
+
+        vm.Save(RecurringEditScope.ThisOccurrence);
+        Assert.IsFalse(vm.HasValidationError);
+
+        // Series remains a single event; adjustment rule on the series is unchanged.
+        Assert.HasCount(1, repo.FindAll());
+        var saved = repo.FindById(new EventId("rec-shift-single-occ"))!;
+        Assert.IsNotNull(saved.RecurringSchedule!.RecurrenceRule.Adjustment);
+        Assert.AreEqual(2, saved.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();
@@ -457,6 +616,26 @@ public class EventEditInitializationTests
                 LocalSchedulePoint.StartInstant(start, new LocalTimeValue(9, 30, 0), tz.ToTimeZoneInfo()).ToUniversalTime(),
                 60,
                 new RecurrenceRule(RecurrenceType.Weekly, 1, end, weekly: new WeeklyRule([.. days]))),
+            now);
+    }
+
+    /// <summary>Weekly Wednesday recurring event with a 2-business-day forward adjustment rule.</summary>
+    private static CalendarEvent CreateRecurringEventWithShift(string id, int shiftDays = 2)
+    {
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var now = DateTimeOffset.UtcNow;
+        var adjustment = new AdjustmentRule(
+            AdjustmentCondition.Always,
+            AdjustmentShiftUnit.BusinessDay,
+            shiftDays);
+        return CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle("rec-shift"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz,
+            new RecurringEventSchedule(
+                LocalSchedulePoint.StartInstant(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), tz.ToTimeZoneInfo()).ToUniversalTime(),
+                60,
+                new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31),
+                    weekly: new WeeklyRule([Weekday.Wednesday]),
+                    adjustment: adjustment)),
             now);
     }
 

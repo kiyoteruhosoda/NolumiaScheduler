@@ -141,7 +141,7 @@ public class RecurringMatrixTests
             var expected = Rec.Expected(type, 4);
 
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "renamed", "Room X", Visibility.Public,
+                id, "renamed", "Room X", Visibility.Public, false,
                 Rec.StartTime, Rec.EndTime, Rec.Rule(type)));
 
             var occ = Occurrences(id, Rec.Start(type), expected[^1]);
@@ -161,7 +161,7 @@ public class RecurringMatrixTests
             var expected = Rec.Expected(type, 4);
 
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "orig", null, Visibility.Public,
+                id, "orig", null, Visibility.Public, false,
                 new LocalTimeValue(13, 0, 0), new LocalTimeValue(14, 30, 0), Rec.Rule(type)));
 
             var occ = Occurrences(id, Rec.Start(type), expected[^1]);
@@ -192,7 +192,7 @@ public class RecurringMatrixTests
 
             // Series-wide time change (occurrence keys embed the start time).
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "orig", null, Visibility.Public,
+                id, "orig", null, Visibility.Public, false,
                 new LocalTimeValue(13, 0, 0), new LocalTimeValue(14, 0, 0), Rec.Rule(type)));
 
             var occ = Occurrences(id, Rec.Start(type), expected[^1].AddDays(2));
@@ -217,7 +217,7 @@ public class RecurringMatrixTests
 
             // End the series on its 3rd occurrence.
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "orig", null, Visibility.Public,
+                id, "orig", null, Visibility.Public, false,
                 Rec.StartTime, Rec.EndTime, Rec.Rule(type, end: firstThree[^1])));
 
             // Expand far beyond the new end; only the first three may survive.
@@ -431,7 +431,7 @@ public class RecurringMatrixTests
 
             Assert.ThrowsExactly<DomainException>(() => _svc.UpdateRecurringSeries(
                 new UpdateRecurringSeriesCommand(
-                    id, "orig", null, Visibility.Public,
+                    id, "orig", null, Visibility.Public, false,
                     Rec.StartTime, Rec.EndTime, Rec.Rule(type, end: badEnd))),
                 $"type={type}");
         }

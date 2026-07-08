@@ -510,6 +510,7 @@ public class CalendarEventApplicationServiceTests
             Title: "Renamed",
             Location: "Room B",
             Visibility: Visibility.Public,
+            AllDay: false,
             StartTime: new LocalTimeValue(13, 0, 0),
             EndTime: new LocalTimeValue(14, 0, 0),
             RecurrenceRule: newRule));
@@ -557,6 +558,7 @@ public class CalendarEventApplicationServiceTests
             Title: "Daily",
             Location: null,
             Visibility: Visibility.Public,
+            AllDay: false,
             StartTime: new LocalTimeValue(9, 0, 0),
             EndTime: new LocalTimeValue(10, 0, 0),
             RecurrenceRule: rule,
