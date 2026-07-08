@@ -87,10 +87,17 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_WeeklyRecurring_WithOverride_ReturnsOverriddenValues()
     {
-        var ev = CreateWeeklyMonday();
+        // Backward-compat: events stored before the simplification may have Override exceptions.
+        // The expander must still read them correctly.
+        var base_ = CreateWeeklyMonday();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var ov = new ExceptionOverride(title: new EventTitle("変更済み"));
-        ev.OverrideOccurrence(key, ov, Now);
+        var exceptions = new List<EventException> { EventException.CreateOverride(key, ov) };
+        var ev = CalendarEvent.Reconstitute(
+            base_.Id, base_.Kind, base_.Title, base_.Location, base_.Visibility,
+            base_.EventType, base_.Description, base_.TimeZoneId,
+            base_.SingleSchedule, base_.RecurringSchedule, base_.CreatedAt, base_.UpdatedAt,
+            exceptions, [], base_.Version, base_.Alarm, base_.ColorKey);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 20),
@@ -104,11 +111,17 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_WeeklyRecurring_WithMove_ShowsMovedDate()
     {
-        var ev = CreateWeeklyMonday();
+        // Backward-compat: events stored before the simplification may have EventMove entries.
+        // The expander must still read them correctly.
+        var base_ = CreateWeeklyMonday();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
             new LocalTimeValue(14, 0, 0), 60);
-        ev.MoveOccurrence(move, Now);
+        var ev = CalendarEvent.Reconstitute(
+            base_.Id, base_.Kind, base_.Title, base_.Location, base_.Visibility,
+            base_.EventType, base_.Description, base_.TimeZoneId,
+            base_.SingleSchedule, base_.RecurringSchedule, base_.CreatedAt, base_.UpdatedAt,
+            [], [move], base_.Version, base_.Alarm, base_.ColorKey);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 20),
@@ -123,13 +136,19 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_WeeklyRecurring_OverriddenThenMoved_KeepsOverrideContentAtMovedDate()
     {
+        // Backward-compat: legacy data with both Override and Move on the same occurrence.
         // Edit a single occurrence (override its title), then relocate it (move). The moved
         // occurrence must keep the overridden title and the new date/time.
-        var ev = CreateWeeklyMonday();
+        var base_ = CreateWeeklyMonday();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        ev.OverrideOccurrence(key, new ExceptionOverride(title: new EventTitle("変更済み")), Now);
-        ev.MoveOccurrence(new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60), Now);
+        var ov = new ExceptionOverride(title: new EventTitle("変更済み"));
+        var exceptions = new List<EventException> { EventException.CreateOverride(key, ov) };
+        var move = new EventMove(key, new LocalDateValue(2026, 4, 28), new LocalTimeValue(14, 0, 0), 60);
+        var ev = CalendarEvent.Reconstitute(
+            base_.Id, base_.Kind, base_.Title, base_.Location, base_.Visibility,
+            base_.EventType, base_.Description, base_.TimeZoneId,
+            base_.SingleSchedule, base_.RecurringSchedule, base_.CreatedAt, base_.UpdatedAt,
+            exceptions, [move], base_.Version, base_.Alarm, base_.ColorKey);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 4, 20),
@@ -402,13 +421,16 @@ public class OccurrenceExpanderTests
     [TestMethod]
     public void Expand_範囲外の日付から範囲内へ移動されたオカレンスも展開される()
     {
-        // Original occurrence 4/27 (outside the queried window) moved into 5/13: the occurrence
-        // must show up when expanding May even though its candidate date is in April.
-        var ev = CreateWeeklyMonday();
+        // Backward-compat: original occurrence 4/27 (outside the queried window) moved into 5/13:
+        // the occurrence must show up when expanding May even though its candidate date is in April.
+        var base_ = CreateWeeklyMonday();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        ev.MoveOccurrence(new EventMove(
-            key, new LocalDateValue(2026, 5, 13),
-            new LocalTimeValue(14, 0, 0), 60), Now);
+        var move = new EventMove(key, new LocalDateValue(2026, 5, 13), new LocalTimeValue(14, 0, 0), 60);
+        var ev = CalendarEvent.Reconstitute(
+            base_.Id, base_.Kind, base_.Title, base_.Location, base_.Visibility,
+            base_.EventType, base_.Description, base_.TimeZoneId,
+            base_.SingleSchedule, base_.RecurringSchedule, base_.CreatedAt, base_.UpdatedAt,
+            [], [move], base_.Version, base_.Alarm, base_.ColorKey);
 
         var results = _expander.Expand(ev,
             new LocalDateValue(2026, 5, 10),

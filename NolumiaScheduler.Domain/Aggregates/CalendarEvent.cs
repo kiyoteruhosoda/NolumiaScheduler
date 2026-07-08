@@ -269,37 +269,9 @@ public class CalendarEvent
         DateTimeOffset updatedAt)
     {
         EnsureRecurringEvent();
-        EnsureOccurrenceKeyNotMoved(occurrenceKey);
         RemoveExceptionInternal(occurrenceKey);
 
         _exceptions.Add(EventException.CreateSkip(occurrenceKey));
-        Touch(updatedAt);
-    }
-
-    public void OverrideOccurrence(
-        OccurrenceLocalKey occurrenceKey,
-        ExceptionOverride exceptionOverride,
-        DateTimeOffset updatedAt)
-    {
-        EnsureRecurringEvent();
-        EnsureOccurrenceKeyNotMoved(occurrenceKey);
-        EnsureOverrideCompatible(exceptionOverride);
-
-        RemoveExceptionInternal(occurrenceKey);
-        _exceptions.Add(EventException.CreateOverride(occurrenceKey, exceptionOverride));
-        Touch(updatedAt);
-    }
-
-    public void MoveOccurrence(
-        EventMove move,
-        DateTimeOffset updatedAt)
-    {
-        EnsureRecurringEvent();
-        EnsureOccurrenceKeyNotSkipped(move.OccurrenceKey);
-        EnsureMoveCompatible(move);
-
-        RemoveMoveInternal(move.OccurrenceKey);
-        _moves.Add(move);
         Touch(updatedAt);
     }
 
@@ -314,28 +286,11 @@ public class CalendarEvent
         Touch(updatedAt);
     }
 
-    public void RemoveOccurrenceMove(
-        OccurrenceLocalKey occurrenceKey,
-        DateTimeOffset updatedAt)
-    {
-        EnsureRecurringEvent();
-        var removed = RemoveMoveInternal(occurrenceKey);
-        if (!removed)
-            throw new DomainException("Occurrence move not found.");
-        Touch(updatedAt);
-    }
-
     public bool IsSingle() => Kind == EventKind.Single;
     public bool IsRecurring() => Kind == EventKind.Recurring;
 
     public bool HasExceptionFor(OccurrenceLocalKey occurrenceKey)
         => _exceptions.Any(x => x.OccurrenceKey.Equals(occurrenceKey));
-
-    public bool HasMoveFor(OccurrenceLocalKey occurrenceKey)
-        => _moves.Any(x => x.OccurrenceKey.Equals(occurrenceKey));
-
-    public bool HasOccurrenceCustomization(OccurrenceLocalKey occurrenceKey)
-        => HasExceptionFor(occurrenceKey) || HasMoveFor(occurrenceKey);
 
     /// <summary>
     /// Extra days added on each side of the active span when testing period overlap.
@@ -427,61 +382,11 @@ public class CalendarEvent
             throw new DomainException("startDate must be on or before recurrence endDate.");
     }
 
-    private void EnsureOccurrenceKeyNotMoved(OccurrenceLocalKey occurrenceKey)
-    {
-        if (_moves.Any(x => x.OccurrenceKey.Equals(occurrenceKey)))
-            throw new DomainException("The occurrence is already moved.");
-    }
-
-    // A skipped (cancelled) occurrence cannot be moved, but a content override may coexist with
-    // a move: editing a single occurrence (override) and then relocating it (move) are
-    // orthogonal customizations, so moving an overridden occurrence is allowed.
-    private void EnsureOccurrenceKeyNotSkipped(OccurrenceLocalKey occurrenceKey)
-    {
-        if (_exceptions.Any(x => x.OccurrenceKey.Equals(occurrenceKey) && x.Type == ExceptionType.Skip))
-            throw new DomainException("A skipped occurrence cannot be moved.");
-    }
-
-    private void EnsureOverrideCompatible(ExceptionOverride exceptionOverride)
-    {
-        var hasStart = exceptionOverride.StartTime != null;
-        var hasDuration = exceptionOverride.DurationMinutes != null;
-
-        if (hasStart != hasDuration)
-            throw new DomainException("Override start time and duration must be specified together.");
-
-        if (hasDuration && exceptionOverride.DurationMinutes!.Value <= 0)
-            throw new DomainException("Override duration must be greater than zero.");
-
-        if (exceptionOverride.IsEmpty())
-            throw new DomainException("Override payload must not be empty.");
-    }
-
-    private static void EnsureMoveCompatible(EventMove move)
-    {
-        var hasStart = move.NewStartTime != null;
-        var hasDuration = move.NewDurationMinutes != null;
-
-        if (hasStart != hasDuration)
-            throw new DomainException("Move start time and duration must be specified together.");
-
-        if (hasDuration && move.NewDurationMinutes!.Value <= 0)
-            throw new DomainException("Move duration must be greater than zero.");
-    }
-
     private bool RemoveExceptionInternal(OccurrenceLocalKey occurrenceKey)
     {
         var index = _exceptions.FindIndex(x => x.OccurrenceKey.Equals(occurrenceKey));
         if (index < 0) return false;
         _exceptions.RemoveAt(index);
-        return true;
-    }
-
-    private bool RemoveMoveInternal(OccurrenceLocalKey occurrenceKey)
-    {
-        var index = _moves.FindIndex(x => x.OccurrenceKey.Equals(occurrenceKey));
-        if (index < 0) return false;
-        _moves.RemoveAt(index);
         return true;
     }
 
