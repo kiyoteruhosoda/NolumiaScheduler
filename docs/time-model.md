@@ -128,16 +128,13 @@ end             = occurrenceUtc + DurationMinutes
 |---|---|---|
 | すべて | 系列全体を再定義 | 系列 `TimeZoneId` = 編集者 TZ（(A) 変換） |
 | 以降 | 当該回以降を新系列へ分割 | **新系列**の `TimeZoneId` = 編集者 TZ。**元（以前）系列は時刻も TZ も不変** |
-| この回だけ | 当該回に例外（override / move）を付与 | その例外が**自身の `TimeZoneId`** を持つ。系列は不変 |
+| この回だけ | 当該回をスキップし、新しい単体予定を作成 | 新単体予定の `TimeZoneId` = 系列 TZ（系列は不変） |
 
-### 5-3. 「この回だけ」（per-occurrence）の TZ
+### 5-3. 「この回だけ」（SplitThisOccurrence）の動作
 
-- `ExceptionOverride` / `EventMove` は、その回の開始を **UTC instant ＋ 任意の `TimeZoneId`**（表示用）
-  として持つ。`TimeZoneId` が `null` のときは **系列の TZ** を表示に使う（後方互換）。
-- 一度確定した例外の instant は **ピン留め**：以後の「すべて」編集で系列 TZ が変わっても、その回の
-  instant・表示 TZ は動かさない。
-- **識別キーは系列基準のまま**（候補日＋系列の基準）。例外の TZ／instant はキーを動かさない＝
-  移動 / スキップ / 上書きの同定が壊れない。
+- **操作の流れ**：当該回を系列からスキップ（`SkipOccurrence`）し、同じ内容で新しい単体予定（`SingleEventSchedule`）を作成する。
+- 単体予定は系列と独立しており、以後は通常の単体予定として扱われる。
+- 後方互換：既存データに `ExceptionOverride` / `EventMove` が含まれる場合、`OccurrenceExpander` は引き続きこれらを正しく読み込む。新規の override/move は作成できない。
 
 ### 5-4. 業務日シフト
 

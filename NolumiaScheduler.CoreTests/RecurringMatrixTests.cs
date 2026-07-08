@@ -141,7 +141,7 @@ public class RecurringMatrixTests
             var expected = Rec.Expected(type, 4);
 
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "renamed", "Room X", Visibility.Public,
+                id, "renamed", "Room X", Visibility.Public, false,
                 Rec.StartTime, Rec.EndTime, Rec.Rule(type)));
 
             var occ = Occurrences(id, Rec.Start(type), expected[^1]);
@@ -161,7 +161,7 @@ public class RecurringMatrixTests
             var expected = Rec.Expected(type, 4);
 
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "orig", null, Visibility.Public,
+                id, "orig", null, Visibility.Public, false,
                 new LocalTimeValue(13, 0, 0), new LocalTimeValue(14, 30, 0), Rec.Rule(type)));
 
             var occ = Occurrences(id, Rec.Start(type), expected[^1]);
@@ -172,37 +172,28 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Change_系列全体_時刻変更後もスキップと上書きと移動が維持される()
+    public void Change_系列全体_時刻変更後もスキップが維持される()
     {
         foreach (var type in Rec.AllTypes)
         {
             Setup();
             var id = CreateSeries(type);
-            var expected = Rec.Expected(type, 5);
+            var expected = Rec.Expected(type, 4);
 
-            // Customize three occurrences before the series-wide time change:
-            // skip the 2nd, override the 3rd's title, move the 4th two days later.
+            // Skip the 2nd occurrence before the series-wide time change.
             _svc.DeleteOccurrence(new SkipOccurrenceCommand(id, Key(type, 1)));
-            _svc.OverrideOccurrence(new OverrideOccurrenceCommand(
-                id, Key(type, 2), "special", null, Visibility.Public, false,
-                expected[2], Rec.StartTime, Rec.EndTime));
-            var movedDate = expected[3].AddDays(2);
-            _svc.MoveOccurrence(new MoveOccurrenceCommand(
-                id, Key(type, 3), movedDate, Rec.StartTime, Rec.EndTime, null, null, null));
 
             // Series-wide time change (occurrence keys embed the start time).
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "orig", null, Visibility.Public,
+                id, "orig", null, Visibility.Public, false,
                 new LocalTimeValue(13, 0, 0), new LocalTimeValue(14, 0, 0), Rec.Rule(type)));
 
-            var occ = Occurrences(id, Rec.Start(type), expected[^1].AddDays(2));
+            var occ = Occurrences(id, Rec.Start(type), expected[^1]);
             var dates = occ.Select(o => o.Date).ToList();
 
+            // The skip is maintained after the series time changed (occurrence key is rekeyed).
             CollectionAssert.DoesNotContain(dates, expected[1], $"skip kept type={type}");
-            Assert.AreEqual("special", occ.Single(o => o.Date.Equals(expected[2])).Title.Value,
-                $"override kept type={type}");
-            CollectionAssert.DoesNotContain(dates, expected[3], $"moved-from removed type={type}");
-            CollectionAssert.Contains(dates, movedDate, $"moved-to kept type={type}");
+            Assert.IsTrue(occ.All(o => o.StartTime.Hour == 13), $"new time type={type}");
         }
     }
 
@@ -217,7 +208,7 @@ public class RecurringMatrixTests
 
             // End the series on its 3rd occurrence.
             _svc.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
-                id, "orig", null, Visibility.Public,
+                id, "orig", null, Visibility.Public, false,
                 Rec.StartTime, Rec.EndTime, Rec.Rule(type, end: firstThree[^1])));
 
             // Expand far beyond the new end; only the first three may survive.
@@ -299,7 +290,7 @@ public class RecurringMatrixTests
     // ── CHANGE · THIS OCCURRENCE ─────────────────────────────────────────────
 
     [TestMethod]
-    public void Change_この予定のみ_内容上書きは対象発生だけ変わる()
+    public void Split_この予約のみ_対象発生が除外され単体予定が作成される()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -309,30 +300,36 @@ public class RecurringMatrixTests
             var targetKey = Key(type, 1); // 2nd occurrence
             var targetDate = expected[1];
 
-            _svc.OverrideOccurrence(new OverrideOccurrenceCommand(
+            _svc.SplitThisOccurrence(new SplitThisOccurrenceCommand(
                 EventId: id,
                 OccurrenceKey: targetKey,
                 Title: "special",
                 Location: null,
                 Visibility: Visibility.Public,
                 AllDay: false,
-                Date: targetDate,
+                NewDate: targetDate,
                 StartTime: Rec.StartTime,
                 EndTime: Rec.EndTime));
 
-            var occ = Occurrences(id, Rec.Start(type), expected[^1]);
-            CollectionAssert.AreEqual(expected, occ.Select(o => o.Date).ToList(), $"dates type={type}");
+            // The series now skips the 2nd occurrence
+            var seriesDates = Dates(id, Rec.Start(type), expected[^1]);
+            CollectionAssert.DoesNotContain(seriesDates, targetDate, $"occurrence removed from series type={type}");
+            Assert.HasCount(3, seriesDates, $"series count type={type}");
 
-            var changed = occ.Single(o => o.Date.Equals(targetDate));
-            Assert.AreEqual("special", changed.Title.Value, $"target title type={type}");
-            Assert.IsTrue(changed.IsOverridden, $"overridden flag type={type}");
-            Assert.IsTrue(occ.Where(o => !o.Date.Equals(targetDate)).All(o => o.Title.Value == "orig"),
-                $"others unchanged type={type}");
+            // A new standalone single event was created with the new content
+            var all = _repo.FindAll();
+            Assert.HasCount(2, all, $"total events type={type}");
+            var single = all.Single(e => e.Id.Value != id && e.IsSingle());
+            Assert.AreEqual("special", single.Title.Value, $"single title type={type}");
+            Assert.AreEqual(targetDate, LocalSchedulePoint.LocalDateOf(
+                single.SingleSchedule!.StartUtc, Rec.Start(type).ToDateOnly().DayOfWeek == DayOfWeek.Monday
+                    ? new TimeZoneId("Asia/Tokyo").ToTimeZoneInfo()
+                    : new TimeZoneId("Asia/Tokyo").ToTimeZoneInfo()), $"single date type={type}");
         }
     }
 
     [TestMethod]
-    public void Change_この予定のみ_日付移動は対象発生だけ別日へ動く()
+    public void Split_この予約のみ_日付変更時は新しい単体予定が別日に作成される()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -342,25 +339,30 @@ public class RecurringMatrixTests
             var targetKey = Key(type, 1); // 2nd occurrence
             var movedDate = expected[1].AddDays(2);
 
-            _svc.MoveOccurrence(new MoveOccurrenceCommand(
+            _svc.SplitThisOccurrence(new SplitThisOccurrenceCommand(
                 EventId: id,
                 OccurrenceKey: targetKey,
-                NewDate: movedDate,
-                NewStartTime: Rec.StartTime,
-                NewEndTime: Rec.EndTime,
-                Title: null,
+                Title: "orig",
                 Location: null,
-                Visibility: null));
+                Visibility: Visibility.Public,
+                AllDay: false,
+                NewDate: movedDate,
+                StartTime: Rec.StartTime,
+                EndTime: Rec.EndTime));
 
-            var occ = Occurrences(id, Rec.Start(type), expected[^1].AddDays(2));
-            var dates = occ.Select(o => o.Date).ToList();
+            // The original date is removed from the series
+            var seriesDates = Dates(id, Rec.Start(type), expected[^1].AddDays(2));
+            CollectionAssert.DoesNotContain(seriesDates, expected[1], $"old date removed type={type}");
+            // Other occurrences remain in the series
+            CollectionAssert.Contains(seriesDates, expected[0], $"first kept type={type}");
+            CollectionAssert.Contains(seriesDates, expected[2], $"third kept type={type}");
 
-            CollectionAssert.DoesNotContain(dates, expected[1], $"old date removed type={type}");
-            CollectionAssert.Contains(dates, movedDate, $"moved date present type={type}");
-            Assert.IsTrue(occ.Single(o => o.Date.Equals(movedDate)).IsMoved, $"moved flag type={type}");
-            // Untouched occurrences remain.
-            CollectionAssert.Contains(dates, expected[0], $"first kept type={type}");
-            CollectionAssert.Contains(dates, expected[2], $"third kept type={type}");
+            // The new single event is at the new date
+            var all = _repo.FindAll();
+            var single = all.Single(e => e.Id.Value != id && e.IsSingle());
+            Assert.AreEqual(movedDate, LocalSchedulePoint.LocalDateOf(
+                single.SingleSchedule!.StartUtc, new TimeZoneId("Asia/Tokyo").ToTimeZoneInfo()),
+                $"single at new date type={type}");
         }
     }
 
@@ -431,7 +433,7 @@ public class RecurringMatrixTests
 
             Assert.ThrowsExactly<DomainException>(() => _svc.UpdateRecurringSeries(
                 new UpdateRecurringSeriesCommand(
-                    id, "orig", null, Visibility.Public,
+                    id, "orig", null, Visibility.Public, false,
                     Rec.StartTime, Rec.EndTime, Rec.Rule(type, end: badEnd))),
                 $"type={type}");
         }

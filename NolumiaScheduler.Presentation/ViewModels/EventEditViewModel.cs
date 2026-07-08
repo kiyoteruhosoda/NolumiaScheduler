@@ -790,8 +790,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         {
             if (_editingEventId != null)
             {
-                // A drag-moved occurrence is standalone: re-apply via MoveOccurrence
-                // using the original occurrence key, skipping the scope dialog entirely.
+                // A drag-moved occurrence is split as a new single event at the new date/time,
+                // skipping the scope dialog entirely.
                 if (_isMovedOccurrence)
                 {
                     SaveMovedOccurrence(_editingEventId);
@@ -801,7 +801,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 }
 
                 // Changing the event kind (single <-> recurring) cannot be done
-                // through UpdateEvent / OverrideOccurrence / ChangeFollowing,
+                // through UpdateEvent / SplitThisOccurrence / ChangeFollowing,
                 // which all assume the original kind. Replace by delete + create
                 // so the saved event has the correct schedule shape.
                 if (_wasRecurringAtLoad != IsRecurring)
@@ -980,7 +980,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         var start = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var end = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
 
-        _eventService.OverrideOccurrence(new OverrideOccurrenceCommand(
+        _eventService.SplitThisOccurrence(new SplitThisOccurrenceCommand(
             eventId,
             EditingOccurrenceKey,
             Title.Trim(),
@@ -989,7 +989,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             AllDay,
             date,
             start,
-            end));
+            end,
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            SelectedColorKey));
     }
 
     private void SaveMovedOccurrence(string eventId)
@@ -1004,15 +1006,18 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         var newStart = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         var newEnd = AllDay ? null : new LocalTimeValue(EndTime.Hours, EndTime.Minutes, 0);
 
-        _eventService.MoveOccurrence(new MoveOccurrenceCommand(
+        _eventService.SplitThisOccurrence(new SplitThisOccurrenceCommand(
             eventId,
             EditingOccurrenceKey,
+            string.IsNullOrWhiteSpace(Title) ? null : Title.Trim(),
+            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
+            NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
+            AllDay,
             newDate,
             newStart,
             newEnd,
-            string.IsNullOrWhiteSpace(Title) ? null : Title.Trim(),
-            string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
-            NolumiaScheduler.Domain.ValueObjects.Visibility.Public));
+            _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
+            SelectedColorKey));
     }
 
     private void UpdateExisting(string eventId)

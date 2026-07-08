@@ -48,28 +48,23 @@ public sealed record SkipOccurrenceCommand(
     string EventId,
     OccurrenceLocalKey OccurrenceKey);
 
-public sealed record OverrideOccurrenceCommand(
+/// <summary>
+/// Splits a single occurrence out of a recurring series: the occurrence is excluded from the
+/// series (skip) and a new standalone single event is created with the provided details.
+/// This is the only supported way to edit a single occurrence of a recurring series.
+/// </summary>
+public sealed record SplitThisOccurrenceCommand(
     string EventId,
     OccurrenceLocalKey OccurrenceKey,
     string Title,
     string? Location,
     Visibility Visibility,
     bool AllDay,
-    LocalDateValue Date,
+    LocalDateValue NewDate,
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime,
-    // Per-occurrence alarm override: null inherits the series, false silences just this occurrence.
-    bool? AlarmEnabled = null);
-
-public sealed record MoveOccurrenceCommand(
-    string EventId,
-    OccurrenceLocalKey OccurrenceKey,
-    LocalDateValue NewDate,
-    LocalTimeValue? NewStartTime,
-    LocalTimeValue? NewEndTime,
-    string? Title,
-    string? Location,
-    Visibility? Visibility);
+    EventAlarm? Alarm = null,
+    EventColorKey ColorKey = EventColorKey.Default);
 
 public sealed record UpdateRecurringSeriesCommand(
     string EventId,

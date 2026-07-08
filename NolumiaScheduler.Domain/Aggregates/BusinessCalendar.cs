@@ -10,7 +10,8 @@ public class BusinessCalendar(
     string name,
     TimeZoneId timeZoneId,
     IEnumerable<Weekday> workdays,
-    IEnumerable<Holiday>? holidays = null)
+    IEnumerable<Holiday>? holidays = null,
+    bool shiftOnHolidaysOnly = false)
 {
     public BusinessCalendarId Id { get; } = id ?? throw new ArgumentNullException(nameof(id));
     public string Name { get; private set; } = name ?? throw new ArgumentNullException(nameof(name));
@@ -21,12 +22,20 @@ public class BusinessCalendar(
     public IReadOnlyCollection<Weekday> Workdays => _workdays;
     public IReadOnlyList<Holiday> Holidays => _holidays;
 
-    public void Update(string name, IEnumerable<Weekday> workdays)
+    /// <summary>
+    /// When <see langword="true"/>, <see cref="ShiftBusinessDays"/> skips only
+    /// holidays; non-working weekdays are treated as valid landing days.
+    /// When <see langword="false"/> (default), both holidays and non-workdays are skipped.
+    /// </summary>
+    public bool ShiftOnHolidaysOnly { get; private set; } = shiftOnHolidaysOnly;
+
+    public void Update(string name, IEnumerable<Weekday> workdays, bool shiftOnHolidaysOnly = false)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         _workdays.Clear();
         foreach (var w in workdays)
             _workdays.Add(w);
+        ShiftOnHolidaysOnly = shiftOnHolidaysOnly;
     }
 
     public void AddHoliday(Holiday holiday)
@@ -62,7 +71,8 @@ public class BusinessCalendar(
         while (remaining > 0)
         {
             current = current.AddDays(direction);
-            if (IsBusinessDay(current))
+            var isAcceptable = ShiftOnHolidaysOnly ? !IsHoliday(current) : IsBusinessDay(current);
+            if (isAcceptable)
                 remaining--;
         }
 

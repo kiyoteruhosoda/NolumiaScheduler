@@ -62,6 +62,7 @@ internal class BusinessCalendarDto
     public string TimeZoneId { get; set; } = "";
     public List<string> Workdays { get; set; } = [];
     public List<HolidayDto> Holidays { get; set; } = [];
+    public bool ShiftOnHolidaysOnly { get; set; }
 
     public BusinessCalendar ToDomain()
     {
@@ -77,7 +78,8 @@ internal class BusinessCalendarDto
             Name,
             new TimeZoneId(TimeZoneId),
             workdays,
-            holidays);
+            holidays,
+            ShiftOnHolidaysOnly);
     }
 
     public static BusinessCalendarDto FromDomain(BusinessCalendar cal)
@@ -92,7 +94,8 @@ internal class BusinessCalendarDto
             {
                 Date = h.Date.ToString(),
                 Name = h.Name
-            })]
+            })],
+            ShiftOnHolidaysOnly = cal.ShiftOnHolidaysOnly
         };
     }
 }

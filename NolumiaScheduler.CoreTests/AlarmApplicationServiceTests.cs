@@ -475,13 +475,20 @@ public class AlarmApplicationServiceTests
     {
         SaveDailyRecurringEvent("daily");
 
-        // Silence only today's (6/10) occurrence via a per-occurrence override.
+        // Backward-compat: silence only today's (6/10) occurrence via a legacy per-occurrence override.
+        // In the new model this would be a SplitThisOccurrence, but existing stored data may carry override records.
         var ev = _repo.FindById(new EventId("daily"))!;
         var todayKey = new OccurrenceLocalKey(
             new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day),
             new LocalTimeValue(10, 0, 0));
-        ev.OverrideOccurrence(todayKey, new ExceptionOverride(alarmEnabled: false), EventStart.AddDays(-1));
-        _repo.Save(ev);
+        var ov = new ExceptionOverride(alarmEnabled: false);
+        var exceptions = new List<EventException> { EventException.CreateOverride(todayKey, ov) };
+        var reconstituted = CalendarEvent.Reconstitute(
+            ev.Id, ev.Kind, ev.Title, ev.Location, ev.Visibility,
+            ev.EventType, ev.Description, ev.TimeZoneId,
+            ev.SingleSchedule, ev.RecurringSchedule, ev.CreatedAt, ev.UpdatedAt,
+            exceptions, [], ev.Version, ev.Alarm, ev.ColorKey);
+        _repo.Save(reconstituted);
 
         // Today's 15-min alarm would normally be due here, but the occurrence is silenced.
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -505,8 +512,14 @@ public class AlarmApplicationServiceTests
         var tomorrowKey = new OccurrenceLocalKey(
             new LocalDateValue(EventStart.Year, EventStart.Month, EventStart.Day).AddDays(1),
             new LocalTimeValue(10, 0, 0));
-        ev.OverrideOccurrence(tomorrowKey, new ExceptionOverride(alarmEnabled: false), EventStart.AddDays(-1));
-        _repo.Save(ev);
+        var ov = new ExceptionOverride(alarmEnabled: false);
+        var exceptions = new List<EventException> { EventException.CreateOverride(tomorrowKey, ov) };
+        var reconstituted = CalendarEvent.Reconstitute(
+            ev.Id, ev.Kind, ev.Title, ev.Location, ev.Visibility,
+            ev.EventType, ev.Description, ev.TimeZoneId,
+            ev.SingleSchedule, ev.RecurringSchedule, ev.CreatedAt, ev.UpdatedAt,
+            exceptions, [], ev.Version, ev.Alarm, ev.ColorKey);
+        _repo.Save(reconstituted);
 
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         var due = _service.CollectDueAlarms();

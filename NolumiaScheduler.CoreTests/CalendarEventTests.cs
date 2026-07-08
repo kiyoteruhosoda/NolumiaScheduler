@@ -1,7 +1,6 @@
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Exceptions;
-using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
 using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
 using Location = NolumiaScheduler.Domain.ValueObjects.Location;
@@ -98,73 +97,18 @@ public class CalendarEventTests
     }
 
     [TestMethod]
-    public void OverrideOccurrence_ShouldAddException()
+    public void SkipOccurrence_CanBeCalledAgainToReplaceExistingSkip()
     {
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        var ov = new ExceptionOverride(title: new EventTitle("短縮会議"));
-
-        ev.OverrideOccurrence(key, ov, Now);
-
-        Assert.IsTrue(ev.HasExceptionFor(key));
-        Assert.AreEqual(ExceptionType.Override, ev.Exceptions[0].Type);
-        Assert.AreEqual("短縮会議", ev.Exceptions[0].Override!.Title!.Value);
-    }
-
-    [TestMethod]
-    public void MoveOccurrence_ShouldAddMove()
-    {
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60);
-
-        ev.MoveOccurrence(move, Now);
-
-        Assert.IsTrue(ev.HasMoveFor(key));
-        Assert.HasCount(1, ev.Moves);
-    }
-
-    [TestMethod]
-    public void MoveOccurrence_AlreadyOverridden_ShouldSucceed()
-    {
-        // Editing a single occurrence (override) then relocating it (move) must be allowed,
-        // otherwise the time of a detached occurrence can never be changed again.
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        ev.OverrideOccurrence(key, new ExceptionOverride(title: new EventTitle("短縮会議")), Now);
-
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60);
-        ev.MoveOccurrence(move, Now);
-
-        Assert.IsTrue(ev.HasMoveFor(key));
-        Assert.IsTrue(ev.HasExceptionFor(key));
-    }
-
-    [TestMethod]
-    public void MoveOccurrence_AlreadyExcepted_ShouldThrow()
-    {
+        // Skipping an already-skipped occurrence is idempotent: the result is still skipped.
         var ev = CreateWeeklyRecurring();
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
         ev.SkipOccurrence(key, Now);
 
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60);
+        ev.SkipOccurrence(key, Now);
 
-        Assert.ThrowsExactly<DomainException>(() => ev.MoveOccurrence(move, Now));
-    }
-
-    [TestMethod]
-    public void SkipOccurrence_AlreadyMoved_ShouldThrow()
-    {
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60);
-        ev.MoveOccurrence(move, Now);
-
-        Assert.ThrowsExactly<DomainException>(() => ev.SkipOccurrence(key, Now));
+        Assert.IsTrue(ev.HasExceptionFor(key));
+        Assert.HasCount(1, ev.Exceptions);
+        Assert.AreEqual(ExceptionType.Skip, ev.Exceptions[0].Type);
     }
 
     [TestMethod]
@@ -228,43 +172,6 @@ public class CalendarEventTests
     }
 
     [TestMethod]
-    public void RemoveOccurrenceMove_ShouldRemove()
-    {
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60);
-        ev.MoveOccurrence(move, Now);
-
-        ev.RemoveOccurrenceMove(key, Now);
-
-        Assert.IsFalse(ev.HasMoveFor(key));
-        Assert.IsEmpty(ev.Moves);
-    }
-
-    [TestMethod]
-    public void RemoveOccurrenceMove_NotFound_ShouldThrow()
-    {
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-
-        Assert.ThrowsExactly<DomainException>(() => ev.RemoveOccurrenceMove(key, Now));
-    }
-
-    [TestMethod]
-    public void OverrideOccurrence_AlreadyMoved_ShouldThrow()
-    {
-        var ev = CreateWeeklyRecurring();
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 27), new LocalTimeValue(10, 0, 0));
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 28),
-            new LocalTimeValue(14, 0, 0), 60);
-        ev.MoveOccurrence(move, Now);
-
-        var ov = new ExceptionOverride(title: new EventTitle("変更済み"));
-        Assert.ThrowsExactly<DomainException>(() => ev.OverrideOccurrence(key, ov, Now));
-    }
-
-    [TestMethod]
     public void ChangeDetails_IncreasesVersionByOne()
     {
         var ev = CreateWeeklyRecurring();
@@ -274,22 +181,6 @@ public class CalendarEventTests
         ev.ChangeDetails(new EventTitle("更新2"), null, Visibility.Private, null, null, Now);
 
         Assert.AreEqual(v0 + 2, ev.Version.Value);
-    }
-
-    [TestMethod]
-    public void SingleEvent_MoveOccurrence_ShouldThrow()
-    {
-        var ev = CalendarEvent.CreateSingle(
-            new EventId("evt_s02"),
-            new EventTitle("単発"),
-            null, Visibility.Public, null, null, Tokyo,
-            new SingleEventSchedule(Utc(2026, 4, 20, 10, 0), 60),
-            Now);
-
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 4, 20), new LocalTimeValue(10, 0, 0));
-        var move = new EventMove(key, new LocalDateValue(2026, 4, 21),
-            new LocalTimeValue(10, 0, 0), 60);
-        Assert.ThrowsExactly<DomainException>(() => ev.MoveOccurrence(move, Now));
     }
 
     private static CalendarEvent CreateWeeklyRecurring()

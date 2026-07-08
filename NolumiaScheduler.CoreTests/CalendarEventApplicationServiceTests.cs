@@ -2,6 +2,7 @@ using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Entities;
+using NolumiaScheduler.Domain.Exceptions;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using Visibility = NolumiaScheduler.Domain.ValueObjects.Visibility;
@@ -249,72 +250,81 @@ public class CalendarEventApplicationServiceTests
         Assert.AreEqual(ExceptionType.Skip, saved.Exceptions[0].Type);
     }
 
-    // ── OverrideOccurrence ─────────────────────────────────────────────────
+    // ── SplitThisOccurrence ─────────────────────────────────────────────────
 
     [TestMethod]
-    public void OverrideOccurrence_対象Occurrenceを上書きできる()
+    public void SplitThisOccurrence_対象Occurrenceがスキップされ単体予定が作成される()
     {
-        SaveRecurringEvent("ovr1");
+        SaveRecurringEvent("split-this-1");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
 
-        _svc.OverrideOccurrence(new OverrideOccurrenceCommand(
-            EventId: "ovr1",
+        _svc.SplitThisOccurrence(new SplitThisOccurrenceCommand(
+            EventId: "split-this-1",
             OccurrenceKey: key,
             Title: "Special",
             Location: "Lab",
             Visibility: Visibility.Public,
             AllDay: false,
-            Date: new LocalDateValue(2026, 5, 6),
+            NewDate: new LocalDateValue(2026, 5, 6),
             StartTime: new LocalTimeValue(10, 0, 0),
             EndTime: new LocalTimeValue(11, 0, 0)));
 
-        var saved = _repo.FindById(new EventId("ovr1"))!;
-        Assert.HasCount(1, saved.Exceptions);
-        Assert.AreEqual(ExceptionType.Override, saved.Exceptions[0].Type);
+        var all = _repo.FindAll();
+        Assert.HasCount(2, all);
+
+        // The original series has the occurrence skipped
+        var series = _repo.FindById(new EventId("split-this-1"))!;
+        Assert.HasCount(1, series.Exceptions);
+        Assert.AreEqual(ExceptionType.Skip, series.Exceptions[0].Type);
+        Assert.AreEqual(key, series.Exceptions[0].OccurrenceKey);
+
+        // A new standalone single event was created
+        var single = all.Single(e => e.Id.Value != "split-this-1");
+        Assert.IsTrue(single.IsSingle());
+        Assert.AreEqual("Special", single.Title.Value);
+        Assert.AreEqual("Lab", single.Location!.Value);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 6), LocalSchedulePoint.LocalDateOf(single.SingleSchedule!.StartUtc, Tokyo));
+        Assert.AreEqual(10, LocalSchedulePoint.LocalTimeOf(single.SingleSchedule.StartUtc, Tokyo).Hour);
     }
 
     [TestMethod]
-    public void OverrideOccurrence_日付変更時はMoveも追加される()
+    public void SplitThisOccurrence_日付変更時は新しい単体予定が指定日に作成される()
     {
-        SaveRecurringEvent("ovr2");
+        SaveRecurringEvent("split-this-2");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        var movedDate = new LocalDateValue(2026, 5, 8);
 
-        _svc.OverrideOccurrence(new OverrideOccurrenceCommand(
-            EventId: "ovr2",
+        _svc.SplitThisOccurrence(new SplitThisOccurrenceCommand(
+            EventId: "split-this-2",
             OccurrenceKey: key,
-            Title: "Moved",
+            Title: "Moved Meeting",
             Location: null,
             Visibility: Visibility.Public,
             AllDay: false,
-            Date: new LocalDateValue(2026, 5, 7),
-            StartTime: new LocalTimeValue(9, 30, 0),
-            EndTime: new LocalTimeValue(10, 30, 0)));
+            NewDate: movedDate,
+            StartTime: new LocalTimeValue(11, 0, 0),
+            EndTime: new LocalTimeValue(12, 0, 0)));
 
-        var saved = _repo.FindById(new EventId("ovr2"))!;
-        Assert.IsGreaterThanOrEqualTo(saved.Moves.Count, 1);
+        var all = _repo.FindAll();
+        Assert.HasCount(2, all);
+
+        var single = all.Single(e => e.Id.Value != "split-this-2");
+        Assert.IsTrue(single.IsSingle());
+        Assert.AreEqual(movedDate, LocalSchedulePoint.LocalDateOf(single.SingleSchedule!.StartUtc, Tokyo));
+        Assert.AreEqual(11, LocalSchedulePoint.LocalTimeOf(single.SingleSchedule.StartUtc, Tokyo).Hour);
     }
 
-    // ── MoveOccurrence ─────────────────────────────────────────────────────
-
     [TestMethod]
-    public void MoveOccurrence_対象Occurrenceを別日に移動できる()
+    public void SplitThisOccurrence_単発予定には呼べない()
     {
-        SaveRecurringEvent("mv1");
-        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        CreateAndSaveSingleEvent("single-ev");
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 20), new LocalTimeValue(9, 0, 0));
 
-        _svc.MoveOccurrence(new MoveOccurrenceCommand(
-            EventId: "mv1",
-            OccurrenceKey: key,
-            NewDate: new LocalDateValue(2026, 5, 8),
-            NewStartTime: new LocalTimeValue(11, 0, 0),
-            NewEndTime: new LocalTimeValue(12, 0, 0),
-            Title: null,
-            Location: null,
-            Visibility: null));
-
-        var saved = _repo.FindById(new EventId("mv1"))!;
-        Assert.HasCount(1, saved.Moves);
-        Assert.AreEqual(new LocalDateValue(2026, 5, 8), saved.Moves[0].NewDate);
+        Assert.ThrowsExactly<DomainException>(() =>
+            _svc.SplitThisOccurrence(new SplitThisOccurrenceCommand(
+                "single-ev", key, "X", null, Visibility.Public, false,
+                new LocalDateValue(2026, 5, 20),
+                new LocalTimeValue(9, 0, 0), new LocalTimeValue(10, 0, 0))));
     }
 
     // ── ChangeFollowingOccurrences ─────────────────────────────────────────
@@ -510,6 +520,7 @@ public class CalendarEventApplicationServiceTests
             Title: "Renamed",
             Location: "Room B",
             Visibility: Visibility.Public,
+            AllDay: false,
             StartTime: new LocalTimeValue(13, 0, 0),
             EndTime: new LocalTimeValue(14, 0, 0),
             RecurrenceRule: newRule));
@@ -557,6 +568,7 @@ public class CalendarEventApplicationServiceTests
             Title: "Daily",
             Location: null,
             Visibility: Visibility.Public,
+            AllDay: false,
             StartTime: new LocalTimeValue(9, 0, 0),
             EndTime: new LocalTimeValue(10, 0, 0),
             RecurrenceRule: rule,

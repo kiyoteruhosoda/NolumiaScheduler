@@ -1,6 +1,5 @@
 using NolumiaScheduler.Application.Commands;
 using NolumiaScheduler.Domain.Aggregates;
-using NolumiaScheduler.Domain.Entities;
 using NolumiaScheduler.Domain.Exceptions;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
@@ -162,55 +161,51 @@ public class CalendarEventApplicationService(
         _repository.Save(ev);
     }
 
-    public void OverrideOccurrence(OverrideOccurrenceCommand command)
+    /// <summary>
+    /// Splits a single occurrence out of a recurring series: excludes the occurrence from the
+    /// series (skip) and creates a new standalone single event with the given details.
+    /// This is the only supported way to edit one occurrence of a recurring series.
+    /// </summary>
+    public void SplitThisOccurrence(SplitThisOccurrenceCommand command)
     {
         var ev = GetOrThrow(command.EventId);
         if (!ev.IsRecurring())
-            throw new DomainException("OverrideOccurrence is only valid for recurring events.");
+            throw new DomainException("SplitThisOccurrence is only valid for recurring events.");
 
-        var (ovStart, ovDuration) = ResolveOptionalTimes(command.StartTime, command.EndTime, command.AllDay);
-        var exceptionOverride = new ExceptionOverride(
-            title: new EventTitle(command.Title),
-            location: command.Location != null ? new Location(command.Location) : null,
-            visibility: command.Visibility,
-            startTime: ovStart,
-            durationMinutes: ovDuration,
-            alarmEnabled: command.AlarmEnabled);
-
-        ev.OverrideOccurrence(command.OccurrenceKey, exceptionOverride, _clock.GetUtcNow());
-
-        if (!command.OccurrenceKey.Date.Equals(command.Date))
-        {
-            var move = new EventMove(
-                command.OccurrenceKey,
-                command.Date,
-                ovStart,
-                ovDuration,
-                new EventTitle(command.Title),
-                command.Location != null ? new Location(command.Location) : null,
-                command.Visibility);
-            ev.MoveOccurrence(move, _clock.GetUtcNow());
-        }
-
+        // Exclude the occurrence from the series
+        ev.SkipOccurrence(command.OccurrenceKey, _clock.GetUtcNow());
         _repository.Save(ev);
+
+        // Create a new standalone single event
+        var newId = new EventId(Guid.NewGuid().ToString());
+        var (startTime, duration) = ResolveTimes(command.StartTime, command.EndTime, command.AllDay);
+        var startUtc = ToUtc(command.NewDate, startTime, ev.TimeZoneId.Value);
+        var schedule = new SingleEventSchedule(startUtc, duration);
+
+        var newEv = CalendarEvent.CreateSingle(
+            newId,
+            new EventTitle(command.Title),
+            command.Location != null ? new Location(command.Location) : null,
+            command.Visibility,
+            ev.EventType,
+            ev.Description,
+            ev.TimeZoneId,
+            schedule,
+            _clock.GetUtcNow(),
+            alarm: command.Alarm,
+            colorKey: command.ColorKey);
+
+        _repository.Save(newEv);
     }
 
-    public void MoveOccurrence(MoveOccurrenceCommand command)
+    public void DeleteEvent(string eventId)
     {
-        var ev = GetOrThrow(command.EventId);
+        _repository.Delete(new EventId(eventId));
+    }
 
-        var (mvStart, mvDuration) = ResolveOptionalTimes(command.NewStartTime, command.NewEndTime, allDay: false);
-        var move = new EventMove(
-            command.OccurrenceKey,
-            command.NewDate,
-            mvStart,
-            mvDuration,
-            command.Title != null ? new EventTitle(command.Title) : null,
-            command.Location != null ? new Location(command.Location) : null,
-            command.Visibility);
-
-        ev.MoveOccurrence(move, _clock.GetUtcNow());
-        _repository.Save(ev);
+    public void DeleteOccurrence(SkipOccurrenceCommand command)
+    {
+        SkipOccurrence(command);
     }
 
     public void ChangeFollowingOccurrences(ChangeFollowingOccurrencesCommand command)
@@ -259,16 +254,6 @@ public class CalendarEventApplicationService(
         _repository.Save(newEv);
     }
 
-    public void DeleteEvent(string eventId)
-    {
-        _repository.Delete(new EventId(eventId));
-    }
-
-    public void DeleteOccurrence(SkipOccurrenceCommand command)
-    {
-        SkipOccurrence(command);
-    }
-
     public void DeleteFollowingOccurrences(DeleteFollowingOccurrencesCommand command)
     {
         var ev = GetOrThrow(command.EventId);
@@ -315,14 +300,6 @@ public class CalendarEventApplicationService(
         LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
     {
         if (allDay || startTime == null || endTime == null) return (Midnight, MinutesPerDay);
-        return (startTime, LocalSchedulePoint.WrappingDurationMinutes(startTime, endTime));
-    }
-
-    private static (LocalTimeValue? startTime, int? durationMinutes) ResolveOptionalTimes(
-        LocalTimeValue? startTime, LocalTimeValue? endTime, bool allDay)
-    {
-        if (allDay) return (Midnight, MinutesPerDay);
-        if (startTime == null || endTime == null) return (null, null);
         return (startTime, LocalSchedulePoint.WrappingDurationMinutes(startTime, endTime));
     }
 

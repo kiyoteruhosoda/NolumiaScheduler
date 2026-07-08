@@ -78,13 +78,16 @@ public class EventExpirationServiceTests
     [TestMethod]
     public void 繰り返し_期限はルール終了日より後ろへ移動したオカレンスまで延びる()
     {
-        // Last regular occurrence is 6/15, but that occurrence is moved to 7/20.
-        var ev = WeeklyMondayEvent(endDate: new LocalDateValue(2026, 6, 15));
-        ev.MoveOccurrence(new EventMove(
-            new OccurrenceLocalKey(new LocalDateValue(2026, 6, 15), new LocalTimeValue(9, 0, 0)),
-            new LocalDateValue(2026, 7, 20),
-            new LocalTimeValue(9, 0, 0),
-            60), CreatedAt);
+        // Backward-compat: last regular occurrence is 6/15, but that occurrence is moved to 7/20.
+        // Existing stored data may carry EventMove records; expiration service must honour them.
+        var base_ = WeeklyMondayEvent(endDate: new LocalDateValue(2026, 6, 15));
+        var key = new OccurrenceLocalKey(new LocalDateValue(2026, 6, 15), new LocalTimeValue(9, 0, 0));
+        var move = new EventMove(key, new LocalDateValue(2026, 7, 20), new LocalTimeValue(9, 0, 0), 60);
+        var ev = CalendarEvent.Reconstitute(
+            base_.Id, base_.Kind, base_.Title, base_.Location, base_.Visibility,
+            base_.EventType, base_.Description, base_.TimeZoneId,
+            base_.SingleSchedule, base_.RecurringSchedule, base_.CreatedAt, base_.UpdatedAt,
+            [], [move], base_.Version, base_.Alarm, base_.ColorKey);
 
         var movedEnd = new DateTimeOffset(2026, 7, 20, 10, 0, 0, TimeSpan.Zero);
         Assert.AreEqual(movedEnd, _service.GetLastOccurrenceEnd(ev, null));

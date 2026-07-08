@@ -282,4 +282,52 @@ public class BusinessCalendarServiceTests
         Assert.IsNotNull(foundNew);
         Assert.AreEqual("大晦日", foundNew.Name);
     }
+
+    // ── ShiftOnHolidaysOnly ───────────────────────────────────
+
+    [TestMethod]
+    public void Create_WithShiftOnHolidaysOnly_True_Persists()
+    {
+        var createdId = _service.Create(new CreateBusinessCalendarCommand(
+            "Test Cal", "Asia/Tokyo", [Weekday.Monday], ShiftOnHolidaysOnly: true));
+
+        var loaded = _repo.FindById(new BusinessCalendarId(createdId))!;
+        Assert.IsTrue(loaded.ShiftOnHolidaysOnly);
+    }
+
+    [TestMethod]
+    public void Create_WithShiftOnHolidaysOnly_Default_IsFalse()
+    {
+        var createdId = _service.Create(new CreateBusinessCalendarCommand(
+            "Test Cal", "Asia/Tokyo", [Weekday.Monday]));
+
+        var loaded = _repo.FindById(new BusinessCalendarId(createdId))!;
+        Assert.IsFalse(loaded.ShiftOnHolidaysOnly);
+    }
+
+    [TestMethod]
+    public void Update_ShiftOnHolidaysOnly_Persists()
+    {
+        var createdId = _service.Create(new CreateBusinessCalendarCommand(
+            "Test Cal", "Asia/Tokyo", [Weekday.Monday]));
+
+        _service.Update(new UpdateBusinessCalendarCommand(
+            createdId, "Test Cal", [Weekday.Monday], ShiftOnHolidaysOnly: true));
+
+        var loaded = _repo.FindById(new BusinessCalendarId(createdId))!;
+        Assert.IsTrue(loaded.ShiftOnHolidaysOnly);
+    }
+
+    [TestMethod]
+    public void Update_ShiftOnHolidaysOnly_CanBeUnset()
+    {
+        var createdId = _service.Create(new CreateBusinessCalendarCommand(
+            "Test Cal", "Asia/Tokyo", [Weekday.Monday], ShiftOnHolidaysOnly: true));
+
+        _service.Update(new UpdateBusinessCalendarCommand(
+            createdId, "Test Cal", [Weekday.Monday], ShiftOnHolidaysOnly: false));
+
+        var loaded = _repo.FindById(new BusinessCalendarId(createdId))!;
+        Assert.IsFalse(loaded.ShiftOnHolidaysOnly);
+    }
 }
