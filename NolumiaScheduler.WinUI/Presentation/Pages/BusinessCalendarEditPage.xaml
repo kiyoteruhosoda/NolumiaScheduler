@@ -68,6 +68,13 @@
                 </Grid>
             </Border>
 
+            <!-- Shift on holidays only -->
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,4"
+                    Margin="0,12,0,0">
+                <CheckBox x:Name="ChkShiftOnHolidaysOnly" FontSize="14"
+                          Foreground="{ThemeResource GCalTextPrimary}"/>
+            </Border>
+
             <!-- Holidays -->
             <TextBlock x:Name="HolidaysLabel" FontSize="12" Margin="4,20,0,4"
                        Foreground="{ThemeResource GCalTextSecondary}"/>

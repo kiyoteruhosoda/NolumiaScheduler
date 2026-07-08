@@ -19,7 +19,7 @@ public sealed class BusinessCalendarApplicationService(IBusinessCalendarReposito
     {
         var id = new BusinessCalendarId(Guid.NewGuid().ToString());
         var tz = new TimeZoneId(cmd.TimeZone);
-        var calendar = new BusinessCalendar(id, cmd.Name, tz, cmd.Workdays);
+        var calendar = new BusinessCalendar(id, cmd.Name, tz, cmd.Workdays, shiftOnHolidaysOnly: cmd.ShiftOnHolidaysOnly);
         _repo.Save(calendar);
         return id.Value;
     }
@@ -29,7 +29,7 @@ public sealed class BusinessCalendarApplicationService(IBusinessCalendarReposito
         var existing = _repo.FindById(new BusinessCalendarId(cmd.CalendarId))
             ?? throw new InvalidOperationException($"Business calendar '{cmd.CalendarId}' not found.");
 
-        existing.Update(cmd.Name, cmd.Workdays);
+        existing.Update(cmd.Name, cmd.Workdays, cmd.ShiftOnHolidaysOnly);
         _repo.Save(existing);
     }
 
