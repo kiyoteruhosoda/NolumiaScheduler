@@ -201,6 +201,32 @@ public static class AppResources
     public static string StartupErrorTitle   => Get(nameof(StartupErrorTitle));
     public static string StartupErrorMessage => Get(nameof(StartupErrorMessage));
 
+    // Tray icon context menu
+    public static string TrayShow => Get(nameof(TrayShow));
+    public static string TrayExit => Get(nameof(TrayExit));
+
+    // Validation errors
+    public static string ErrorNoOccurrenceInfo => Get(nameof(ErrorNoOccurrenceInfo));
+
+    // Alarm debug window
+    public static string AlarmDebugTitle        => Get(nameof(AlarmDebugTitle));
+    public static string AlarmDebugRefresh      => Get(nameof(AlarmDebugRefresh));
+    public static string AlarmDebugTestAlarm    => Get(nameof(AlarmDebugTestAlarm));
+    public static string AlarmDebugCopy         => Get(nameof(AlarmDebugCopy));
+    public static string AlarmDebugOpenFolder   => Get(nameof(AlarmDebugOpenFolder));
+    public static string AlarmDebugOpenFolderError => Get(nameof(AlarmDebugOpenFolderError));
+    public static string AlarmDebugCloseButton  => Get(nameof(AlarmDebugCloseButton));
+    public static string AlarmDebugSummaryHeader        => Get(nameof(AlarmDebugSummaryHeader));
+    public static string AlarmDebugAllEventsHeader      => Get(nameof(AlarmDebugAllEventsHeader));
+    public static string AlarmDebugOccurrencesHeader    => Get(nameof(AlarmDebugOccurrencesHeader));
+    public static string AlarmDebugEnginePipelineHeader => Get(nameof(AlarmDebugEnginePipelineHeader));
+    public static string AlarmDebugFiredKeysHeader      => Get(nameof(AlarmDebugFiredKeysHeader));
+    public static string AlarmDebugScheduledAlarmsHeader => Get(nameof(AlarmDebugScheduledAlarmsHeader));
+
+    // Test alarm fixture
+    public static string AlarmTestEventTitle   => Get(nameof(AlarmTestEventTitle));
+    public static string AlarmTestEventMessage => Get(nameof(AlarmTestEventMessage));
+
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
 }

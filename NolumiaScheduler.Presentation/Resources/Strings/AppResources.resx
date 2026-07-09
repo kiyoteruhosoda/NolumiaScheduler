@@ -154,7 +154,7 @@
     <value>Weekdays</value>
   </data>
   <data name="WeekViewHint" xml:space="preserve">
-    <value>週+日+時間帯表示（Outlook風）の基本レイアウトです。時間帯イベント配置は今後拡張できます。</value>
+    <value>Week+day+time-slot layout (Outlook-style). Time-slot event placement can be extended in the future.</value>
   </data>
   <data name="AllDay" xml:space="preserve">
     <value>All day</value>
@@ -562,5 +562,67 @@
 {2}
 
 Log file: {3}</value>
+  </data>
+
+  <!-- Tray icon context menu -->
+  <data name="TrayShow" xml:space="preserve">
+    <value>Show</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>Exit</value>
+  </data>
+
+  <!-- Validation errors -->
+  <data name="ErrorNoOccurrenceInfo" xml:space="preserve">
+    <value>Occurrence date information is missing.</value>
+  </data>
+
+  <!-- Alarm debug window -->
+  <data name="AlarmDebugTitle" xml:space="preserve">
+    <value>Alarm Debug</value>
+  </data>
+  <data name="AlarmDebugRefresh" xml:space="preserve">
+    <value>Refresh</value>
+  </data>
+  <data name="AlarmDebugTestAlarm" xml:space="preserve">
+    <value>Show Test Alarm</value>
+  </data>
+  <data name="AlarmDebugCopy" xml:space="preserve">
+    <value>Copy to Clipboard</value>
+  </data>
+  <data name="AlarmDebugOpenFolder" xml:space="preserve">
+    <value>Open JSON Folder</value>
+  </data>
+  <data name="AlarmDebugOpenFolderError" xml:space="preserve">
+    <value>Cannot Open Folder</value>
+  </data>
+  <data name="AlarmDebugCloseButton" xml:space="preserve">
+    <value>Close</value>
+  </data>
+  <data name="AlarmDebugSummaryHeader" xml:space="preserve">
+    <value>Summary</value>
+  </data>
+  <data name="AlarmDebugAllEventsHeader" xml:space="preserve">
+    <value>All Events (Repository Raw Data)</value>
+  </data>
+  <data name="AlarmDebugOccurrencesHeader" xml:space="preserve">
+    <value>Occurrence Expansion Result (today～tomorrow)</value>
+  </data>
+  <data name="AlarmDebugEnginePipelineHeader" xml:space="preserve">
+    <value>Alarm Engine Decision Pipeline</value>
+  </data>
+  <data name="AlarmDebugFiredKeysHeader" xml:space="preserve">
+    <value>Fired Key List</value>
+  </data>
+  <data name="AlarmDebugScheduledAlarmsHeader" xml:space="preserve">
+    <value>Scheduled Alarms</value>
+  </data>
+
+  <!-- Test alarm fixture -->
+  <data name="AlarmTestEventTitle" xml:space="preserve">
+    <value>Test Alarm</value>
+  </data>
+  <data name="AlarmTestEventMessage" xml:space="preserve">
+    <value>This is a test display of the alarm window.</value>
   </data>
 </root>

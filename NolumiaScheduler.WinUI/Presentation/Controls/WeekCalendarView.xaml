@@ -24,7 +24,7 @@
         <Grid x:Name="WeekHeaderGrid" Grid.Row="0" Grid.Column="1" ColumnSpacing="1" Padding="0,2,0,0"/>
 
         <!-- All-day lane -->
-        <TextBlock Grid.Row="1" Grid.Column="0" Text="終日" FontSize="10"
+        <TextBlock x:Name="AllDayLabel" Grid.Row="1" Grid.Column="0" FontSize="10"
                    VerticalAlignment="Center" Margin="2,0"/>
         <Grid x:Name="WeekAllDayGrid" Grid.Row="1" Grid.Column="1"
               MinHeight="28" ColumnSpacing="1" Background="#1AF5F5F5"/>

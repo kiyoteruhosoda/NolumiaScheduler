@@ -225,9 +225,9 @@ public class AlarmService(
     public async Task ShowTestAlarmAsync()
     {
         var due = new DueAlarm(
-            "test-debug", "テストアラーム", "https://example.com",
+            "test-debug", AppResources.AlarmTestEventTitle, "https://example.com",
             OffsetMinutes: 0, IsSnoozeReminder: false,
             _clock.GetLocalNow().DateTime.AddMinutes(30));
-        await ShowAlarmAsync(due, "これはアラームウィンドウのテスト表示です");
+        await ShowAlarmAsync(due, AppResources.AlarmTestEventMessage);
     }
 }

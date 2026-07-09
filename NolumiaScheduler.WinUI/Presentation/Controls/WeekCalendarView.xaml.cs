@@ -123,6 +123,7 @@ public sealed partial class WeekCalendarView : UserControl
     public WeekCalendarView()
     {
         InitializeComponent();
+        AllDayLabel.Text = AppResources.AllDay;
 
         var services = NolumiaScheduler.WinUI.App.Services;
         _mapper = services?.GetService<IWeekInteractionMapper>() ?? new WeekInteractionMapper();

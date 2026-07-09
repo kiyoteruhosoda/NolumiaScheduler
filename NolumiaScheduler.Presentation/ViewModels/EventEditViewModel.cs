@@ -934,7 +934,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 {
                     if (scope == null)
                     {
-                        ValidationError = "編集範囲を選択してください。";
+                        ValidationError = AppResources.EditRecurringScopeRequired;
                         return;
                     }
 
@@ -995,7 +995,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         if (EditingOccurrenceKey == null)
         {
-            ValidationError = "発生日情報がありません。";
+            ValidationError = AppResources.ErrorNoOccurrenceInfo;
             return;
         }
 
@@ -1083,7 +1083,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         if (EditingOccurrenceKey == null)
         {
-            ValidationError = "発生日情報がありません。";
+            ValidationError = AppResources.ErrorNoOccurrenceInfo;
             return;
         }
 
@@ -1110,7 +1110,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         if (EditingOccurrenceKey == null)
         {
-            ValidationError = "発生日情報がありません。";
+            ValidationError = AppResources.ErrorNoOccurrenceInfo;
             return;
         }
 

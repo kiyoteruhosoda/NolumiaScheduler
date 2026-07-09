@@ -564,4 +564,66 @@
 
 ログファイル: {3}</value>
   </data>
+
+  <!-- Tray icon context menu -->
+  <data name="TrayShow" xml:space="preserve">
+    <value>表示</value>
+  </data>
+  <data name="TrayExit" xml:space="preserve">
+    <value>終了</value>
+  </data>
+
+  <!-- Validation errors -->
+  <data name="ErrorNoOccurrenceInfo" xml:space="preserve">
+    <value>発生日情報がありません。</value>
+  </data>
+
+  <!-- Alarm debug window -->
+  <data name="AlarmDebugTitle" xml:space="preserve">
+    <value>アラームデバッグ</value>
+  </data>
+  <data name="AlarmDebugRefresh" xml:space="preserve">
+    <value>更新</value>
+  </data>
+  <data name="AlarmDebugTestAlarm" xml:space="preserve">
+    <value>テストアラーム表示</value>
+  </data>
+  <data name="AlarmDebugCopy" xml:space="preserve">
+    <value>クリップボードにコピー</value>
+  </data>
+  <data name="AlarmDebugOpenFolder" xml:space="preserve">
+    <value>JSONフォルダを開く</value>
+  </data>
+  <data name="AlarmDebugOpenFolderError" xml:space="preserve">
+    <value>フォルダを開けません</value>
+  </data>
+  <data name="AlarmDebugCloseButton" xml:space="preserve">
+    <value>閉じる</value>
+  </data>
+  <data name="AlarmDebugSummaryHeader" xml:space="preserve">
+    <value>サマリー</value>
+  </data>
+  <data name="AlarmDebugAllEventsHeader" xml:space="preserve">
+    <value>全イベント (リポジトリ生データ)</value>
+  </data>
+  <data name="AlarmDebugOccurrencesHeader" xml:space="preserve">
+    <value>オカレンス展開結果 (today～tomorrow)</value>
+  </data>
+  <data name="AlarmDebugEnginePipelineHeader" xml:space="preserve">
+    <value>アラームエンジン判定パイプライン</value>
+  </data>
+  <data name="AlarmDebugFiredKeysHeader" xml:space="preserve">
+    <value>発火済キー一覧</value>
+  </data>
+  <data name="AlarmDebugScheduledAlarmsHeader" xml:space="preserve">
+    <value>スケジュール済アラーム</value>
+  </data>
+
+  <!-- Test alarm fixture -->
+  <data name="AlarmTestEventTitle" xml:space="preserve">
+    <value>テストアラーム</value>
+  </data>
+  <data name="AlarmTestEventMessage" xml:space="preserve">
+    <value>これはアラームウィンドウのテスト表示です</value>
+  </data>
 </root>
