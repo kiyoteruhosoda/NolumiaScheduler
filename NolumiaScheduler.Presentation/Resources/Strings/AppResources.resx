@@ -552,4 +552,15 @@
   <data name="RedoButton" xml:space="preserve">
     <value>Redo</value>
   </data>
+  <data name="StartupErrorTitle" xml:space="preserve">
+    <value>NolumiaScheduler - Startup Error</value>
+  </data>
+  <data name="StartupErrorMessage" xml:space="preserve">
+    <value>NolumiaScheduler failed to start.
+
+{0} (0x{1})
+{2}
+
+Log file: {3}</value>
+  </data>
 </root>

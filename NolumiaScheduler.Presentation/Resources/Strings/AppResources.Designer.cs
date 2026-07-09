@@ -197,6 +197,10 @@ public static class AppResources
     public static string UndoButton => Get(nameof(UndoButton));
     public static string RedoButton => Get(nameof(RedoButton));
 
+    // Startup error dialog
+    public static string StartupErrorTitle   => Get(nameof(StartupErrorTitle));
+    public static string StartupErrorMessage => Get(nameof(StartupErrorMessage));
+
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
 }

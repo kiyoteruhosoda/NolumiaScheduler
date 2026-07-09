@@ -553,4 +553,15 @@
   <data name="RedoButton" xml:space="preserve">
     <value>やり直す</value>
   </data>
+  <data name="StartupErrorTitle" xml:space="preserve">
+    <value>NolumiaScheduler - 起動エラー</value>
+  </data>
+  <data name="StartupErrorMessage" xml:space="preserve">
+    <value>NolumiaScheduler の起動中にエラーが発生しました。
+
+{0} (0x{1})
+{2}
+
+ログファイル: {3}</value>
+  </data>
 </root>
