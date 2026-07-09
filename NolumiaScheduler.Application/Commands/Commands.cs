@@ -96,3 +96,18 @@ public sealed record ChangeFollowingOccurrencesCommand(
 public sealed record DeleteFollowingOccurrencesCommand(
     string EventId,
     OccurrenceLocalKey FromOccurrenceKey);
+
+/// <summary>
+/// Moves a single occurrence of a recurring series to a new date/time (e.g. drag-and-drop).
+/// Title, Location and Visibility override the series defaults when non-null; null keeps
+/// the series value.
+/// </summary>
+public sealed record MoveOccurrenceCommand(
+    string EventId,
+    OccurrenceLocalKey OccurrenceKey,
+    LocalDateValue NewDate,
+    LocalTimeValue NewStartTime,
+    LocalTimeValue NewEndTime,
+    string? Title = null,
+    string? Location = null,
+    Visibility? Visibility = null);

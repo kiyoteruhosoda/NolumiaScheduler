@@ -286,6 +286,26 @@ public class CalendarEvent
         Touch(updatedAt);
     }
 
+    public void MoveOccurrence(
+        OccurrenceLocalKey occurrenceKey,
+        LocalDateValue newDate,
+        LocalTimeValue newStartTime,
+        int durationMinutes,
+        EventTitle? title,
+        Location? location,
+        Visibility? visibility,
+        DateTimeOffset updatedAt)
+    {
+        EnsureRecurringEvent();
+
+        var index = _moves.FindIndex(m => m.OccurrenceKey.Equals(occurrenceKey));
+        if (index >= 0)
+            _moves.RemoveAt(index);
+
+        _moves.Add(new EventMove(occurrenceKey, newDate, newStartTime, durationMinutes, title, location, visibility));
+        Touch(updatedAt);
+    }
+
     public bool IsSingle() => Kind == EventKind.Single;
     public bool IsRecurring() => Kind == EventKind.Recurring;
 
