@@ -340,6 +340,14 @@ public sealed partial class CalendarPage : Page
             OccurrenceStartMinute: e.StartMinute));
     }
 
+    private void OnWeekEventBlockCloneRequested(object sender, WeekEventBlockTappedEventArgs e)
+    {
+        OpenEditWindow(new EventEditParams(
+            CloneEventId: e.EventId,
+            OccurrenceDate: e.Date.ToString("yyyy-MM-dd"),
+            OccurrenceStartMinute: e.StartMinute));
+    }
+
     private void OnWeekSlotDragCreated(object sender, WeekSlotDragCreatedEventArgs e)
     {
         OpenEditWindow(new EventEditParams(

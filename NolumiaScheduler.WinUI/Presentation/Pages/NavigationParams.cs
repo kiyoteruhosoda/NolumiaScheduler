@@ -8,7 +8,8 @@ public sealed record EventEditParams(
     string? OccurrenceDate = null,
     int? OccurrenceStartMinute = null,
     int? OccurrenceEndMinute = null,
-    bool AllDay = false);
+    bool AllDay = false,
+    string? CloneEventId = null);
 
 public sealed record BusinessCalendarEditParams(
     string? CalendarId = null);

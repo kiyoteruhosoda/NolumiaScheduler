@@ -237,6 +237,67 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         AlarmNotifyAtStart = ev.Alarm?.NotifyAtStart ?? true;
     }
 
+    /// <summary>
+    /// Loads the data of an existing event into the form but does NOT set the editing ID,
+    /// so saving will create a new independent copy (clone) of the event.
+    /// </summary>
+    public void LoadEventForClone(string eventId, OccurrenceLocalKey? occurrenceKey = null)
+    {
+        var ev = _eventService.FindById(eventId);
+        if (ev == null) return;
+
+        // Do NOT assign _editingEventId — this remains a new-event form.
+        _timeZoneId = ev.TimeZoneId.Value;
+        Title = ev.Title.Value;
+        Location = ev.Location?.Value ?? "";
+
+        const int minutesPerDay = 24 * 60;
+        var tz = ev.TimeZoneId.ToTimeZoneInfo();
+
+        if (ev.IsSingle() && ev.SingleSchedule != null)
+        {
+            var sched = ev.SingleSchedule;
+            var local = TimeZoneInfo.ConvertTime(sched.StartUtc, tz);
+            AllDay = local.Hour == 0 && local.Minute == 0 && sched.DurationMinutes == minutesPerDay;
+            StartDate = local.Date;
+            StartTime = local.TimeOfDay;
+            EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(sched.DurationMinutes));
+            RepeatTypeIndex = (int)ViewModels.RepeatTypeIndex.None;
+        }
+        else if (ev.IsRecurring() && ev.RecurringSchedule != null)
+        {
+            var sched = ev.RecurringSchedule;
+            var anchorLocal = TimeZoneInfo.ConvertTime(sched.AnchorUtc, tz);
+            AllDay = anchorLocal.Hour == 0 && anchorLocal.Minute == 0 && sched.DurationMinutes == minutesPerDay;
+
+            var anchorDate = DateOnly.FromDateTime(anchorLocal.DateTime);
+            var anchorTime = anchorLocal.TimeOfDay;
+            var effectiveDate = occurrenceKey?.Date is { } kd
+                ? new DateTime(kd.Year, kd.Month, kd.Day)
+                : anchorLocal.Date;
+            var effectiveStart = occurrenceKey?.Time is { } kt
+                ? new TimeSpan(kt.Hour, kt.Minute, 0)
+                : anchorTime;
+
+            _seriesStartDate = new DateTime(anchorDate.Year, anchorDate.Month, anchorDate.Day);
+            StartDate = effectiveDate;
+            StartTime = effectiveStart;
+
+            var durationMinutes = Math.Max(EventEditDefaults.MinEventDurationMinutes, sched.DurationMinutes);
+            EndTime = AllDay ? StartTime : StartTime.Add(TimeSpan.FromMinutes(durationMinutes));
+
+            LoadRecurrenceRule(sched.RecurrenceRule);
+        }
+
+        SelectedColorIndex = Math.Max(0, Array.IndexOf(ColorKeys, ev.ColorKey));
+
+        AlarmEnabled       = ev.Alarm?.IsEnabled    ?? false;
+        AlarmNotify15Min   = ev.Alarm?.Notify15Min  ?? true;
+        AlarmNotify5Min    = ev.Alarm?.Notify5Min   ?? true;
+        AlarmNotify1Min    = ev.Alarm?.Notify1Min   ?? true;
+        AlarmNotifyAtStart = ev.Alarm?.NotifyAtStart ?? true;
+    }
+
     private void LoadRecurrenceRule(RecurrenceRule rule)
     {
         // Loading assigns the saved recurrence selectors explicitly, so suppress the start-date
@@ -318,6 +379,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         if (rule.Adjustment != null)
         {
+            // Reveal the adjustment sub-section first so the backup field is primed before the
+            // actual values are assigned (the setter restores _savedAdjustmentBusinessDays, which
+            // would overwrite the real value if set afterward).
+            UseBusinessDayAdjustment = true;
+
             // Holiday-only restriction is the opt-in checkbox; the default (unchecked) shifts always.
             AdjustmentHolidayShift = rule.Adjustment.Condition == AdjustmentCondition.Holiday;
 
@@ -325,9 +391,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 ? (int)ViewModels.AdjustmentDirectionIndex.Before
                 : (int)ViewModels.AdjustmentDirectionIndex.After;
 
+            // Set the real days AFTER UseBusinessDayAdjustment so it is not clobbered by the
+            // restore logic inside that setter.
             AdjustmentBusinessDays = Math.Abs(rule.Adjustment.ShiftAmount);
-            // Reveal the adjustment sub-section for existing events that already have one set.
-            UseBusinessDayAdjustment = true;
 
             if (rule.Adjustment.CalendarId != null)
             {

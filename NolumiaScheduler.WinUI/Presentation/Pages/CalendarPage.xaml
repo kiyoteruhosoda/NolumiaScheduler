@@ -165,6 +165,7 @@
                                    EmptySlotTapped="OnWeekEmptySlotTapped"
                                    AllDaySlotTapped="OnWeekAllDaySlotTapped"
                                    EventBlockTapped="OnWeekEventBlockTapped"
+                                   EventBlockCloneRequested="OnWeekEventBlockCloneRequested"
                                    EventDragCompleted="OnWeekEventDragCompleted"
                                    EventResizeCompleted="OnWeekEventResizeCompleted"
                                    SlotDragCreated="OnWeekSlotDragCreated"/>
