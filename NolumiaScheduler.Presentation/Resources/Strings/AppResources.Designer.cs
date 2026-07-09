@@ -92,6 +92,7 @@ public static class AppResources
     public static string NewEventTitle            => Get(nameof(NewEventTitle));
     public static string EventTitlePlaceholder    => Get(nameof(EventTitlePlaceholder));
     public static string EventLocationPlaceholder => Get(nameof(EventLocationPlaceholder));
+    public static string EventMemoPlaceholder     => Get(nameof(EventMemoPlaceholder));
     public static string StartLabel               => Get(nameof(StartLabel));
     public static string EndLabel                 => Get(nameof(EndLabel));
     public static string RepeatLabel              => Get(nameof(RepeatLabel));

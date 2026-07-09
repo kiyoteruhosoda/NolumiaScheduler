@@ -216,6 +216,9 @@
   <data name="EventLocationPlaceholder" xml:space="preserve">
     <value>Location (optional)</value>
   </data>
+  <data name="EventMemoPlaceholder" xml:space="preserve">
+    <value>Memo (optional)</value>
+  </data>
   <data name="StartLabel" xml:space="preserve">
     <value>Start</value>
   </data>

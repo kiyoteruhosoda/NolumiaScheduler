@@ -27,10 +27,18 @@
             </Border>
 
             <!-- Location -->
-            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,16" MinHeight="48">
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2" MinHeight="48">
                 <TextBox x:Name="LocationBox" BorderThickness="0" FontSize="14"
                          Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
                          VerticalAlignment="Center" VerticalContentAlignment="Center"/>
+            </Border>
+
+            <!-- Memo -->
+            <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,8" Margin="0,0,0,16">
+                <TextBox x:Name="MemoBox" BorderThickness="0" FontSize="14"
+                         Background="Transparent" Foreground="{ThemeResource GCalTextPrimary}"
+                         AcceptsReturn="True" TextWrapping="Wrap"
+                         MinHeight="48" MaxHeight="160"/>
             </Border>
 
             <!-- Date / Time section -->

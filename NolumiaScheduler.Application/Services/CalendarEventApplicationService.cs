@@ -91,7 +91,7 @@ public class CalendarEventApplicationService(
             command.Location != null ? new Location(command.Location) : null,
             command.Visibility,
             ev.EventType,
-            ev.Description,
+            command.Description != null ? new Description(command.Description) : null,
             _clock.GetUtcNow());
 
         var canReschedule = command.NewDate.HasValue && ev.IsSingle() &&
@@ -123,7 +123,7 @@ public class CalendarEventApplicationService(
             command.Location != null ? new Location(command.Location) : null,
             command.Visibility,
             ev.EventType,
-            ev.Description,
+            command.Description != null ? new Description(command.Description) : null,
             _clock.GetUtcNow());
 
         // When opened from a specific occurrence the caller may pass a NewStartDate to move the
@@ -211,7 +211,7 @@ public class CalendarEventApplicationService(
             command.Location != null ? new Location(command.Location) : null,
             command.Visibility,
             ev.EventType,
-            ev.Description,
+            command.Description != null ? new Description(command.Description) : null,
             ev.TimeZoneId,
             schedule,
             _clock.GetUtcNow(),
@@ -267,7 +267,7 @@ public class CalendarEventApplicationService(
             command.NewLocation != null ? new Location(command.NewLocation) : null,
             command.NewVisibility,
             ev.EventType,
-            ev.Description,
+            command.Description != null ? new Description(command.Description) : null,
             ev.TimeZoneId,
             newSchedule,
             _clock.GetUtcNow(),

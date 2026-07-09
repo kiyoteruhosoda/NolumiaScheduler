@@ -29,6 +29,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     // ── Basic fields ────────────────────────────────────────────
     private string _title = "";
     private string _location = "";
+    private string _memo = "";
     private bool _allDay;
     private DateTime _startDate;
 
@@ -167,6 +168,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         _timeZoneId = ev.TimeZoneId.Value;
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
+        Memo = ev.Description?.Value ?? "";
 
         _wasRecurringAtLoad = ev.IsRecurring();
 
@@ -250,6 +252,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         _timeZoneId = ev.TimeZoneId.Value;
         Title = ev.Title.Value;
         Location = ev.Location?.Value ?? "";
+        Memo = ev.Description?.Value ?? "";
 
         const int minutesPerDay = 24 * 60;
         var tz = ev.TimeZoneId.ToTimeZoneInfo();
@@ -490,6 +493,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         get => _location;
         set { _location = value; OnPropertyChanged(); }
+    }
+
+    public string Memo
+    {
+        get => _memo;
+        set { _memo = value; OnPropertyChanged(); }
     }
 
     public bool AllDay
@@ -1026,7 +1035,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newRule,
             Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
             ColorKey: SelectedColorKey,
-            NewStartDate: newStartDate));
+            NewStartDate: newStartDate,
+            Description: string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim()));
     }
 
     private void SaveEntireSeries(string eventId)
@@ -1065,7 +1075,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             rule,
             Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
             ColorKey: SelectedColorKey,
-            NewStartDate: newStartDate));
+            NewStartDate: newStartDate,
+            Description: string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim()));
     }
 
     private void SaveThisOccurrence(string eventId)
@@ -1091,7 +1102,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             start,
             end,
             _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
-            SelectedColorKey));
+            SelectedColorKey,
+            Description: string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim()));
     }
 
     private void SaveMovedOccurrence(string eventId)
@@ -1117,7 +1129,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newStart,
             newEnd,
             _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
-            SelectedColorKey));
+            SelectedColorKey,
+            Description: string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim()));
     }
 
     private void UpdateExisting(string eventId)
@@ -1143,7 +1156,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             newStartTime,
             newEndTime,
             _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
-            ColorKey: SelectedColorKey));
+            ColorKey: SelectedColorKey,
+            Description: string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim()));
     }
 
     private void SaveSingle()
@@ -1152,7 +1166,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             Title.Trim(),
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
             NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
-            null, null,
+            null,
+            string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim(),
             _timeZoneId,
             AllDay,
             DateOnly.FromDateTime(StartDate),
@@ -1189,7 +1204,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             Title.Trim(),
             string.IsNullOrWhiteSpace(Location) ? null : Location.Trim(),
             NolumiaScheduler.Domain.ValueObjects.Visibility.Public,
-            null, null,
+            null,
+            string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim(),
             "Asia/Tokyo",
             AllDay,
             startDate, startTime, endTime,
