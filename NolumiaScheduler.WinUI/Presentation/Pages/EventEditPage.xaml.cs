@@ -46,6 +46,7 @@ public sealed partial class EventEditPage : Page
     private bool _suppressAdjustmentHolidayShiftChanged;
     private bool _suppressMonthlyLastDayChanged;
     private bool _suppressUseCustomIntervalChanged;
+    private bool _suppressUseBusinessDayAdjustmentChanged;
     private bool _suppressCalendarPickerChanged;
     private bool _suppressWeekdayChanged;
     private bool _suppressAlarmChanged;
@@ -84,6 +85,7 @@ public sealed partial class EventEditPage : Page
         IntervalLabel.Text      = AppResources.IntervalLabel;
         UseCustomIntervalLabelText.Text = AppResources.UseCustomIntervalLabel;
         EndDateLabel.Text       = AppResources.EndDateLabel;
+        UseBusinessDayAdjustmentLabelText.Text = AppResources.UseBusinessDayAdjustmentLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
         AdjustmentBusinessDaysLabel.Text = AppResources.AdjustmentBusinessDaysLabel;
         AdjustmentHolidayShiftChk.Content = AppResources.AdjustmentHolidayShiftLabel;
@@ -96,6 +98,7 @@ public sealed partial class EventEditPage : Page
         Notify1Label.Text       = AppResources.AlarmNotify1Min;
         Notify0Label.Text       = AppResources.AlarmNotifyAtStart;
         SaveBtn.Content         = AppResources.SaveButton;
+        FloatingSaveBtn.Content = AppResources.SaveButton;
     }
 
     protected override void OnNavigatedTo(NavigationEventArgs e)
@@ -264,6 +267,10 @@ public sealed partial class EventEditPage : Page
         _suppressEndDateChanged = false;
 
         // Adjustment
+        _suppressUseBusinessDayAdjustmentChanged = true;
+        UseBusinessDayAdjustmentSwitch.IsOn = _vm.UseBusinessDayAdjustment;
+        _suppressUseBusinessDayAdjustmentChanged = false;
+
         _suppressAdjustmentDirectionChanged = true;
         AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
         _suppressAdjustmentDirectionChanged = false;
@@ -457,6 +464,7 @@ public sealed partial class EventEditPage : Page
             case nameof(EventEditViewModel.HasAvailableCalendars):
             case nameof(EventEditViewModel.IsDayOfMonthInputEnabled):
             case nameof(EventEditViewModel.UseCustomInterval):
+            case nameof(EventEditViewModel.UseBusinessDayAdjustment):
             case nameof(EventEditViewModel.ShowAlarmNotifyOptions):
                 ApplySectionVisibility();
                 break;
@@ -466,12 +474,21 @@ public sealed partial class EventEditPage : Page
                 break;
 
             case nameof(EventEditViewModel.Interval):
-                // Toggling off the custom interval resets the value to 1 in the VM; reflect it.
                 if (!_suppressIntervalChanged)
                 {
                     _suppressIntervalChanged = true;
                     IntervalBox.Text = _vm.Interval.ToString();
                     _suppressIntervalChanged = false;
+                }
+                break;
+
+            case nameof(EventEditViewModel.AdjustmentBusinessDays):
+                // Toggling UseBusinessDayAdjustment restores the saved value; sync the textbox.
+                if (!_suppressAdjustmentDaysChanged)
+                {
+                    _suppressAdjustmentDaysChanged = true;
+                    AdjustmentDaysBox.Text = _vm.AdjustmentBusinessDays.ToString();
+                    _suppressAdjustmentDaysChanged = false;
                 }
                 break;
 
@@ -541,6 +558,10 @@ public sealed partial class EventEditPage : Page
 
         // The interval input only appears when the user opts into a custom interval.
         IntervalInputSection.Visibility = _vm.UseCustomInterval
+            ? Visibility.Visible : Visibility.Collapsed;
+
+        // The adjustment detail section only appears when the toggle is on.
+        AdjustmentDetailSection.Visibility = _vm.UseBusinessDayAdjustment
             ? Visibility.Visible : Visibility.Collapsed;
 
         CalendarPickerSection.Visibility = (_vm.HasAdjustment && _vm.HasAvailableCalendars)
@@ -830,6 +851,21 @@ public sealed partial class EventEditPage : Page
     {
         if (_suppressUseCustomIntervalChanged || _vm == null) return;
         _vm.UseCustomInterval = UseCustomIntervalSwitch.IsOn;
+    }
+
+    private void OnUseBusinessDayAdjustmentToggled(object sender, RoutedEventArgs e)
+    {
+        if (_suppressUseBusinessDayAdjustmentChanged || _vm == null) return;
+        _vm.UseBusinessDayAdjustment = UseBusinessDayAdjustmentSwitch.IsOn;
+    }
+
+    // Floating Save button: visible when not scrolled to the bottom (where the in-content
+    // Save button is accessible). Hides once the bottom is within reach.
+    private void OnMainScrollViewerViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
+    {
+        if (e.IsIntermediate) return;
+        var atBottom = MainScrollViewer.ScrollableHeight - MainScrollViewer.VerticalOffset < 80;
+        FloatingSaveBorder.Visibility = atBottom ? Visibility.Collapsed : Visibility.Visible;
     }
 
     private void OnAdjustmentDirectionChanged(object sender, SelectionChangedEventArgs e)

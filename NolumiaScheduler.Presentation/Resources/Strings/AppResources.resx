@@ -534,4 +534,16 @@
   <data name="MenuOpenLocation" xml:space="preserve">
     <value>Open Location</value>
   </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>Edit</value>
+  </data>
+  <data name="UseBusinessDayAdjustmentLabel" xml:space="preserve">
+    <value>Business day adjustment</value>
+  </data>
+  <data name="UndoButton" xml:space="preserve">
+    <value>Undo</value>
+  </data>
+  <data name="RedoButton" xml:space="preserve">
+    <value>Redo</value>
+  </data>
 </root>

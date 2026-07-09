@@ -535,4 +535,16 @@
   <data name="MenuOpenLocation" xml:space="preserve">
     <value>ロケーションを開く</value>
   </data>
+  <data name="MenuEdit" xml:space="preserve">
+    <value>編集</value>
+  </data>
+  <data name="UseBusinessDayAdjustmentLabel" xml:space="preserve">
+    <value>営業日調整</value>
+  </data>
+  <data name="UndoButton" xml:space="preserve">
+    <value>元に戻す</value>
+  </data>
+  <data name="RedoButton" xml:space="preserve">
+    <value>やり直す</value>
+  </data>
 </root>

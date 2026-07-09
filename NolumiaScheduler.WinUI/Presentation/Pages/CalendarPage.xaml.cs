@@ -139,8 +139,37 @@ public sealed partial class CalendarPage : Page
                 case nameof(CalendarViewModel.CurrentTimeLineTop):
                     WeekView.CurrentTimeLineTop = _vm.CurrentTimeLineTop;
                     break;
+                case nameof(CalendarViewModel.CanUndo):
+                    BtnUndo.IsEnabled = _vm.CanUndo;
+                    break;
+                case nameof(CalendarViewModel.CanRedo):
+                    BtnRedo.IsEnabled = _vm.CanRedo;
+                    break;
             }
         };
+
+        // Initial undo/redo button state
+        BtnUndo.IsEnabled = _vm.CanUndo;
+        BtnRedo.IsEnabled = _vm.CanRedo;
+        ToolTipService.SetToolTip(BtnUndo, AppResources.UndoButton);
+        ToolTipService.SetToolTip(BtnRedo, AppResources.RedoButton);
+
+        // Ctrl+Z / Ctrl+Y keyboard shortcuts for undo/redo
+        var undoAccelerator = new KeyboardAccelerator
+        {
+            Key = Windows.System.VirtualKey.Z,
+            Modifiers = Windows.System.VirtualKeyModifiers.Control
+        };
+        undoAccelerator.Invoked += (_, _) => _vm?.Undo();
+        KeyboardAccelerators.Add(undoAccelerator);
+
+        var redoAccelerator = new KeyboardAccelerator
+        {
+            Key = Windows.System.VirtualKey.Y,
+            Modifiers = Windows.System.VirtualKeyModifiers.Control
+        };
+        redoAccelerator.Invoked += (_, _) => _vm?.Redo();
+        KeyboardAccelerators.Add(redoAccelerator);
     }
 
     private void OnCalendarAreaSizeChanged(object sender, SizeChangedEventArgs e)
@@ -334,10 +363,15 @@ public sealed partial class CalendarPage : Page
     private void OnWeekEventDragCompleted(object sender, WeekEventDragCompletedEventArgs e)
         => _vm?.MoveEventOccurrence(
             e.EventId, e.OccurrenceKey,
-            DateOnly.FromDateTime(e.TargetDateTime), e.TargetStartMinute, e.DurationMinutes);
+            DateOnly.FromDateTime(e.TargetDateTime), e.TargetStartMinute, e.DurationMinutes,
+            DateOnly.FromDateTime(e.OriginalDate), e.OriginalStartMinute, e.OriginalEndMinute);
 
     private void OnWeekEventResizeCompleted(object sender, WeekEventResizeCompletedEventArgs e)
         => _vm?.ResizeEventOccurrence(
             e.EventId, e.OccurrenceKey,
-            DateOnly.FromDateTime(e.Date), e.StartMinute, e.EndMinute);
+            DateOnly.FromDateTime(e.Date), e.StartMinute, e.EndMinute,
+            e.OriginalStartMinute, e.OriginalEndMinute);
+
+    private void OnUndoClicked(object sender, RoutedEventArgs e) => _vm?.Undo();
+    private void OnRedoClicked(object sender, RoutedEventArgs e) => _vm?.Redo();
 }

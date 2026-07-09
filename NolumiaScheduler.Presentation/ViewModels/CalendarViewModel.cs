@@ -35,6 +35,22 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private CalendarDisplayMode _displayMode = CalendarDisplayMode.Week;
     private DateTime _weekStartDate;
 
+    // Undo/redo stacks for week-view drag-move and resize operations.
+    private sealed record DragUndoEntry(
+        string EventId,
+        OccurrenceLocalKey? MoveKey,
+        DateOnly BeforeDate, int BeforeStart, int BeforeEnd,
+        DateOnly AfterDate,  int AfterStart,  int AfterEnd);
+
+    private readonly Stack<DragUndoEntry> _undoStack = new();
+    private readonly Stack<DragUndoEntry> _redoStack = new();
+
+    public bool CanUndo => _undoStack.Count > 0;
+    public bool CanRedo => _redoStack.Count > 0;
+
+    public RelayCommand UndoCommand { get; }
+    public RelayCommand RedoCommand { get; }
+
     public CalendarViewModel(
         CalendarEventApplicationService eventService,
         BusinessCalendarApplicationService calendarService,
@@ -68,6 +84,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         SwitchToWeekViewCommand = new RelayCommand(() => SetDisplayMode(CalendarDisplayMode.Week));
         SwitchToWeekdaysViewCommand = new RelayCommand(() => SetDisplayMode(CalendarDisplayMode.Weekdays));
         CloseSelectedDayCommand = new RelayCommand(ClearSelection);
+        UndoCommand = new RelayCommand(Undo, () => CanUndo);
+        RedoCommand = new RelayCommand(Redo, () => CanRedo);
 
         BuildWeekScaffold();
         LoadMonth();
@@ -298,38 +316,82 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     // day + start time directly. Recurring events detach only the dragged occurrence.
     public void MoveEventOccurrence(
         string eventId, OccurrenceLocalKey? occurrenceKey,
-        DateOnly newDate, int newStartMinute, int durationMinutes)
+        DateOnly newDate, int newStartMinute, int durationMinutes,
+        DateOnly originalDate, int originalStartMinute, int originalEndMinute)
     {
         var duration = Math.Clamp(durationMinutes, 15, MinutesPerDay - 15);
         var startMinute = Math.Clamp(newStartMinute, 0, MinutesPerDay - 15);
         var endMinute = Math.Min(startMinute + duration, MinutesPerDay - 1);
-        ApplyOccurrenceReschedule(eventId, occurrenceKey, newDate, startMinute, endMinute);
+        var entry = new DragUndoEntry(
+            eventId, occurrenceKey,
+            originalDate, originalStartMinute, originalEndMinute,
+            newDate, startMinute, endMinute);
+        if (ApplyOccurrenceReschedule(eventId, occurrenceKey, newDate, startMinute, endMinute))
+            PushUndo(entry);
     }
 
     // Confirms a week-view resize: applies the new start/end time directly on the same day.
     public void ResizeEventOccurrence(
         string eventId, OccurrenceLocalKey? occurrenceKey,
-        DateOnly date, int startMinute, int endMinute)
+        DateOnly date, int startMinute, int endMinute,
+        int originalStartMinute, int originalEndMinute)
     {
         var start = Math.Clamp(startMinute, 0, MinutesPerDay - 15);
         var end = Math.Clamp(endMinute, start + 15, MinutesPerDay - 1);
-        ApplyOccurrenceReschedule(eventId, occurrenceKey, date, start, end);
+        var entry = new DragUndoEntry(
+            eventId, occurrenceKey,
+            date, originalStartMinute, originalEndMinute,
+            date, start, end);
+        if (ApplyOccurrenceReschedule(eventId, occurrenceKey, date, start, end))
+            PushUndo(entry);
+    }
+
+    public void Undo()
+    {
+        if (!_undoStack.TryPop(out var entry)) return;
+        if (ApplyOccurrenceReschedule(entry.EventId, entry.MoveKey, entry.BeforeDate, entry.BeforeStart, entry.BeforeEnd))
+            _redoStack.Push(entry);
+        NotifyUndoRedoChanged();
+    }
+
+    public void Redo()
+    {
+        if (!_redoStack.TryPop(out var entry)) return;
+        if (ApplyOccurrenceReschedule(entry.EventId, entry.MoveKey, entry.AfterDate, entry.AfterStart, entry.AfterEnd))
+            _undoStack.Push(entry);
+        NotifyUndoRedoChanged();
+    }
+
+    private void PushUndo(DragUndoEntry entry)
+    {
+        _undoStack.Push(entry);
+        _redoStack.Clear();
+        NotifyUndoRedoChanged();
+    }
+
+    private void NotifyUndoRedoChanged()
+    {
+        OnPropertyChanged(nameof(CanUndo));
+        OnPropertyChanged(nameof(CanRedo));
+        UndoCommand.RaiseCanExecuteChanged();
+        RedoCommand.RaiseCanExecuteChanged();
     }
 
     private const int MinutesPerDay = 24 * 60;
 
-    private void ApplyOccurrenceReschedule(
+    // Returns true if the reschedule was applied successfully.
+    private bool ApplyOccurrenceReschedule(
         string eventId, OccurrenceLocalKey? occurrenceKey,
         DateOnly date, int startMinute, int endMinute)
     {
         var ev = _eventService.FindById(eventId);
-        if (ev == null) return;
+        if (ev == null) return false;
 
         try
         {
             if (ev.IsRecurring())
             {
-                if (occurrenceKey == null) return;
+                if (occurrenceKey == null) return false;
                 _eventService.MoveOccurrence(new MoveOccurrenceCommand(
                     eventId,
                     occurrenceKey,
@@ -352,11 +414,13 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                     ev.Alarm));
             }
             RefreshAfterChange();
+            return true;
         }
         catch (Exception)
         {
             // Invalid reschedule (e.g. dragging an already-overridden occurrence): leave the
             // event unchanged so the chip snaps back to its original position.
+            return false;
         }
     }
 
