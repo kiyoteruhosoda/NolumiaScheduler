@@ -5,6 +5,7 @@ using Microsoft.UI.Xaml.Media;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 
 namespace NolumiaScheduler.WinUI.Presentation.Pages;
@@ -25,6 +26,19 @@ public sealed partial class AlarmDebugWindow : Window
         TimeProvider clock)
     {
         InitializeComponent();
+
+        // Set localized UI strings
+        Title = AppResources.AlarmDebugTitle;
+        RefreshButton.Content      = AppResources.AlarmDebugRefresh;
+        TestAlarmButton.Content    = AppResources.AlarmDebugTestAlarm;
+        CopyButton.Content         = AppResources.AlarmDebugCopy;
+        OpenJsonFolderButton.Content = AppResources.AlarmDebugOpenFolder;
+        SummaryHeaderLabel.Text        = $"■ {AppResources.AlarmDebugSummaryHeader}";
+        AllEventsHeaderLabel.Text      = $"■ {AppResources.AlarmDebugAllEventsHeader}";
+        OccurrenceHeaderLabel.Text     = $"■ {AppResources.AlarmDebugOccurrencesHeader}";
+        EnginePipelineHeaderLabel.Text = $"■ {AppResources.AlarmDebugEnginePipelineHeader}";
+        FiredKeysHeaderLabel.Text      = $"■ {AppResources.AlarmDebugFiredKeysHeader}";
+        ScheduledAlarmsHeaderLabel.Text = $"■ {AppResources.AlarmDebugScheduledAlarmsHeader}";
 
         _alarmService = alarmService;
         _eventService = eventService;
@@ -79,15 +93,15 @@ public sealed partial class AlarmDebugWindow : Window
         Refresh();
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"=== アラームデバッグ {_clock.GetLocalNow():yyyy/MM/dd HH:mm:ss} ===");
-        AppendSection(sb, "サマリー", SummaryLabel.Text);
-        AppendSection(sb, "全イベント (リポジトリ生データ)", AllEventsLabel.Text);
-        AppendSection(sb, "オカレンス展開結果 (today～tomorrow)", OccurrenceLabel.Text);
-        AppendSection(sb, "アラームエンジン判定パイプライン", EngineDiagLabel.Text);
-        AppendSection(sb, "発火済キー一覧", FiredKeysLabel.Text);
+        sb.AppendLine($"=== Alarm Debug {_clock.GetLocalNow():yyyy/MM/dd HH:mm:ss} ===");
+        AppendSection(sb, AppResources.AlarmDebugSummaryHeader, SummaryLabel.Text);
+        AppendSection(sb, AppResources.AlarmDebugAllEventsHeader, AllEventsLabel.Text);
+        AppendSection(sb, AppResources.AlarmDebugOccurrencesHeader, OccurrenceLabel.Text);
+        AppendSection(sb, AppResources.AlarmDebugEnginePipelineHeader, EngineDiagLabel.Text);
+        AppendSection(sb, AppResources.AlarmDebugFiredKeysHeader, FiredKeysLabel.Text);
 
         var alarmItems = AlarmList.ItemsSource as IEnumerable<AlarmDebugItem> ?? [];
-        AppendSection(sb, "スケジュール済アラーム", string.Join("\n", alarmItems.Select(i => i.ToClipboardLine())));
+        AppendSection(sb, AppResources.AlarmDebugScheduledAlarmsHeader, string.Join("\n", alarmItems.Select(i => i.ToClipboardLine())));
 
         var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
         package.SetText(sb.ToString());
@@ -119,9 +133,9 @@ public sealed partial class AlarmDebugWindow : Window
         {
             var dlg = new Microsoft.UI.Xaml.Controls.ContentDialog
             {
-                Title = "フォルダを開けません",
+                Title = AppResources.AlarmDebugOpenFolderError,
                 Content = ex.Message,
-                CloseButtonText = "閉じる"
+                CloseButtonText = AppResources.AlarmDebugCloseButton
             };
             _ = dlg.ShowAsync();
         }
@@ -131,7 +145,7 @@ public sealed partial class AlarmDebugWindow : Window
     {
         sb.AppendLine();
         sb.AppendLine($"■ {title}");
-        sb.AppendLine(string.IsNullOrWhiteSpace(body) ? "(なし)" : body);
+        sb.AppendLine(string.IsNullOrWhiteSpace(body) ? "(none)" : body);
     }
 
     private void Refresh()
@@ -146,13 +160,13 @@ public sealed partial class AlarmDebugWindow : Window
         // ── Section 1: Summary ──
         var summary = new List<string>
         {
-            $"現在時刻      : {now:yyyy/MM/dd HH:mm:ss}",
-            $"検索範囲      : {today} ～ {tomorrow}",
-            $"イベント総数  : {allEvents.Count}",
-            $"  Alarm有効   : {allEvents.Count(e => e.Alarm is { IsEnabled: true })}",
-            $"  Alarm無効/null: {allEvents.Count(e => e.Alarm == null || !e.Alarm.IsEnabled)}",
-            $"発火済キー数  : {firedKeys.Count}",
-            $"タイマー稼働  : {(_refreshTimer?.IsRunning == true ? "はい" : "いいえ")}",
+            $"Current time  : {now:yyyy/MM/dd HH:mm:ss}",
+            $"Search range  : {today} ～ {tomorrow}",
+            $"Total events  : {allEvents.Count}",
+            $"  Alarm on    : {allEvents.Count(e => e.Alarm is { IsEnabled: true })}",
+            $"  Alarm off/null: {allEvents.Count(e => e.Alarm == null || !e.Alarm.IsEnabled)}",
+            $"Fired keys    : {firedKeys.Count}",
+            $"Timer running : {(_refreshTimer?.IsRunning == true ? "yes" : "no")}",
         };
         SummaryLabel.Text = string.Join("\n", summary);
 
@@ -166,10 +180,10 @@ public sealed partial class AlarmDebugWindow : Window
             evLines.Add($"  TZ       : {ev.TimeZoneId.Value}");
 
             if (ev.Alarm == null)
-                evLines.Add($"  Alarm    : null ← ★アラーム未設定");
+                evLines.Add($"  Alarm    : null ← ★alarm not set");
             else
                 evLines.Add($"  Alarm    : Enabled={ev.Alarm.IsEnabled}, 15m={ev.Alarm.Notify15Min}, 5m={ev.Alarm.Notify5Min}, 1m={ev.Alarm.Notify1Min}"
-                    + (!ev.Alarm.IsEnabled ? " ← ★無効" : ""));
+                    + (!ev.Alarm.IsEnabled ? " ← ★disabled" : ""));
 
             if (ev.IsSingle() && ev.SingleSchedule is { } ss)
             {
@@ -183,11 +197,11 @@ public sealed partial class AlarmDebugWindow : Window
                     var localDate = new LocalDateValue(local.Year, local.Month, local.Day);
                     evLines.Add($"    Local   : {local:yyyy/MM/dd HH:mm} ({ev.TimeZoneId.Value})");
                     var inRange = localDate >= today && localDate <= tomorrow;
-                    evLines.Add($"    範囲内? : {inRange}" + (!inRange ? $" ← ★範囲外 (today={today}, tomorrow={tomorrow})" : ""));
+                    evLines.Add($"    In range? : {inRange}" + (!inRange ? $" ← ★out of range (today={today}, tomorrow={tomorrow})" : ""));
                 }
                 catch (Exception ex)
                 {
-                    evLines.Add($"    TZ変換エラー: {ex.Message}");
+                    evLines.Add($"    TZ convert error: {ex.Message}");
                 }
             }
             else if (ev.RecurringSchedule is { } rs)
@@ -203,22 +217,22 @@ public sealed partial class AlarmDebugWindow : Window
             }
 
             if (ev.Exceptions.Count > 0)
-                evLines.Add($"  Exceptions: {ev.Exceptions.Count}件");
+                evLines.Add($"  Exceptions: {ev.Exceptions.Count}");
             if (ev.Moves.Count > 0)
-                evLines.Add($"  Moves     : {ev.Moves.Count}件");
+                evLines.Add($"  Moves     : {ev.Moves.Count}");
             evLines.Add("");
         }
-        AllEventsLabel.Text = evLines.Count > 0 ? string.Join("\n", evLines) : "(イベントなし)";
+        AllEventsLabel.Text = evLines.Count > 0 ? string.Join("\n", evLines) : "(no events)";
 
         // ── Section 3: Occurrence Expansion ──
         var occLines = new List<string>();
         foreach (var ev in allEvents)
         {
             var occurrences = _expander.Expand(ev, today, tomorrow, null);
-            occLines.Add($"▶ {ev.Title.Value} → {occurrences.Count}件");
+            occLines.Add($"▶ {ev.Title.Value} → {occurrences.Count}");
             if (occurrences.Count == 0)
             {
-                occLines.Add($"  (範囲内のオカレンスなし)");
+                occLines.Add($"  (no occurrences in range)");
             }
             foreach (var occ in occurrences)
             {
@@ -233,7 +247,7 @@ public sealed partial class AlarmDebugWindow : Window
             }
             occLines.Add("");
         }
-        OccurrenceLabel.Text = occLines.Count > 0 ? string.Join("\n", occLines) : "(イベントなし)";
+        OccurrenceLabel.Text = occLines.Count > 0 ? string.Join("\n", occLines) : "(no events)";
 
         // ── Section 4: Engine Pipeline ──
         var engineDiag = _alarmService.GetDiagnosticLines();
@@ -242,7 +256,7 @@ public sealed partial class AlarmDebugWindow : Window
         // ── Section 5: Fired Keys ──
         FiredKeysLabel.Text = firedKeys.Count > 0
             ? string.Join("\n", firedKeys.Select(k => $"  {k}"))
-            : "(なし)";
+            : "(none)";
 
         // ── Section 6: Alarm Cards ──
         var entries = _alarmService.GetScheduledAlarms();
@@ -269,38 +283,38 @@ internal class AlarmDebugItem
             // Due snoozes always fire on the next tick (no catch-up grace), so they are either
             // counting down or about to ring.
             StatusBadge = remaining.TotalSeconds <= 0
-                ? "  [スヌーズ 発火待ち]"
-                : $"  [スヌーズ あと{remaining.TotalMinutes:F0}分]";
+                ? "  [snooze pending]"
+                : $"  [snooze in {remaining.TotalMinutes:F0} min]";
             StatusBrush = new SolidColorBrush(Colors.Orange);
         }
         else if (entry.AlreadyFired)
         {
-            StatusBadge = "  [発火済]";
+            StatusBadge = "  [fired]";
             StatusBrush = new SolidColorBrush(Colors.Gray);
         }
         else if (now > entry.NotifyAt + AlarmScheduleCalculator.CatchUpGrace)
         {
             // The notify time passed beyond the catch-up grace: this alarm will never ring
             // (e.g. the event was already over when the app started).
-            StatusBadge = "  [期限切れ]";
+            StatusBadge = "  [expired]";
             StatusBrush = new SolidColorBrush(Colors.Gray);
         }
         else if (remaining.TotalSeconds <= 0)
         {
-            StatusBadge = "  [発火待ち]";
+            StatusBadge = "  [pending]";
             StatusBrush = new SolidColorBrush(Colors.Red);
         }
         else
         {
-            StatusBadge = $"  [あと{remaining.TotalMinutes:F0}分]";
+            StatusBadge = $"  [in {remaining.TotalMinutes:F0} min]";
             StatusBrush = new SolidColorBrush(Colors.Green);
         }
 
         Detail = entry.IsSnoozed
-            ? "スヌーズ再通知"
-            : $"開始: {entry.OccurrenceStart:HH:mm}  |  {entry.MinutesBefore}分前通知";
+            ? "snooze reminder"
+            : $"start: {entry.OccurrenceStart:HH:mm}  |  {entry.MinutesBefore} min before";
 
-        NotifyAtText = $"通知時刻: {entry.NotifyAt:yyyy/MM/dd HH:mm:ss}  |  EventId: {entry.EventId}";
+        NotifyAtText = $"notify at: {entry.NotifyAt:yyyy/MM/dd HH:mm:ss}  |  EventId: {entry.EventId}";
     }
 
     public string ToClipboardLine()

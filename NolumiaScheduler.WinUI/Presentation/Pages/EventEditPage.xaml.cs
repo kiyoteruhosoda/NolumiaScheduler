@@ -67,6 +67,7 @@ public sealed partial class EventEditPage : Page
         // Static string labels
         TitleBox.PlaceholderText    = AppResources.EventTitlePlaceholder;
         LocationBox.PlaceholderText = AppResources.EventLocationPlaceholder;
+        MemoBox.PlaceholderText     = AppResources.EventMemoPlaceholder;
         AllDayLabel.Text            = AppResources.AllDay;
         StartLabel.Text             = AppResources.StartLabel;
         StartTimeLabel.Text         = AppResources.StartLabel;
@@ -168,11 +169,13 @@ public sealed partial class EventEditPage : Page
     {
         if (_vm == null) return;
 
-        // Title / Location
+        // Title / Location / Memo
         TitleBox.Text    = _vm.Title;
         LocationBox.Text = _vm.Location;
+        MemoBox.Text     = _vm.Memo;
         TitleBox.TextChanged    += (_, _) => _vm.Title    = TitleBox.Text;
         LocationBox.TextChanged += (_, _) => _vm.Location = LocationBox.Text;
+        MemoBox.TextChanged     += (_, _) => _vm.Memo     = MemoBox.Text;
 
         // All Day
         AllDaySwitch.IsOn = _vm.AllDay;

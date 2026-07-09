@@ -42,7 +42,8 @@ public sealed record UpdateEventCommand(
     TimeSpan? NewStartTime,
     TimeSpan? NewEndTime,
     EventAlarm? Alarm,
-    EventColorKey ColorKey = EventColorKey.Default);
+    EventColorKey ColorKey = EventColorKey.Default,
+    string? Description = null);
 
 public sealed record SkipOccurrenceCommand(
     string EventId,
@@ -64,7 +65,8 @@ public sealed record SplitThisOccurrenceCommand(
     LocalTimeValue? StartTime,
     LocalTimeValue? EndTime,
     EventAlarm? Alarm = null,
-    EventColorKey ColorKey = EventColorKey.Default);
+    EventColorKey ColorKey = EventColorKey.Default,
+    string? Description = null);
 
 public sealed record UpdateRecurringSeriesCommand(
     string EventId,
@@ -77,7 +79,8 @@ public sealed record UpdateRecurringSeriesCommand(
     RecurrenceRule RecurrenceRule,
     EventAlarm? Alarm = null,
     EventColorKey ColorKey = EventColorKey.Default,
-    LocalDateValue? NewStartDate = null);
+    LocalDateValue? NewStartDate = null,
+    string? Description = null);
 
 public sealed record ChangeFollowingOccurrencesCommand(
     string EventId,
@@ -91,7 +94,8 @@ public sealed record ChangeFollowingOccurrencesCommand(
     RecurrenceRule NewRecurrenceRule,
     EventAlarm? Alarm = null,
     EventColorKey ColorKey = EventColorKey.Default,
-    LocalDateValue? NewStartDate = null);
+    LocalDateValue? NewStartDate = null,
+    string? Description = null);
 
 public sealed record DeleteFollowingOccurrencesCommand(
     string EventId,

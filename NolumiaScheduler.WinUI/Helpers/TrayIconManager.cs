@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
+using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.WinUI.Helpers;
 
@@ -129,8 +130,8 @@ internal partial class TrayIconManager : IDisposable
     private void ShowContextMenu()
     {
         var hMenu = CreatePopupMenu();
-        AppendMenu(hMenu, MF_STRING, ID_SHOW, "表示");
-        AppendMenu(hMenu, MF_STRING, ID_EXIT, "終了");
+        AppendMenu(hMenu, MF_STRING, ID_SHOW, AppResources.TrayShow);
+        AppendMenu(hMenu, MF_STRING, ID_EXIT, AppResources.TrayExit);
 
         GetCursorPos(out var pt);
         SetForegroundWindow(_hWnd);

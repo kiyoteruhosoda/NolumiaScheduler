@@ -143,8 +143,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         const uint MB_ICONERROR = 0x10;
         MessageBox(
             IntPtr.Zero,
-            $"NolumiaScheduler の起動中にエラーが発生しました。\n\n{ex.Message}\n\nログファイル: {logPath}",
-            "NolumiaScheduler - 起動エラー",
+            string.Format(AppResources.StartupErrorMessage,
+                ex.GetType().Name, $"{ex.HResult:X8}", ex.Message, logPath),
+            AppResources.StartupErrorTitle,
             MB_ICONERROR);
     }
 
