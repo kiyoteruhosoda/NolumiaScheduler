@@ -53,6 +53,7 @@ public sealed partial class WeekCalendarView : UserControl
     public event EventHandler<WeekEmptySlotTappedEventArgs>? EmptySlotTapped;
     public event EventHandler<WeekEmptySlotTappedEventArgs>? AllDaySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
+    public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockCloneRequested;
     public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
     public event EventHandler<WeekEventResizeCompletedEventArgs>? EventResizeCompleted;
     public event EventHandler<WeekSlotDragCreatedEventArgs>? SlotDragCreated;
@@ -818,6 +819,20 @@ public sealed partial class WeekCalendarView : UserControl
         };
         flyout.Items.Add(edit);
 
+        // Clone item — opens the edit form with the event's data pre-filled but saves as new.
+        var clone = new MenuFlyoutItem { Text = AppResources.MenuClone };
+        clone.Click += (_, _) =>
+        {
+            EventBlockCloneRequested?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.Date,
+                StartMinute = block.StartMinute,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        };
+        flyout.Items.Add(clone);
+
         if (block.Location is null)
         {
             flyout.Items.Add(new MenuFlyoutSeparator());
@@ -884,6 +899,19 @@ public sealed partial class WeekCalendarView : UserControl
             });
         };
         flyout.Items.Add(edit);
+
+        var clone = new MenuFlyoutItem { Text = AppResources.MenuClone };
+        clone.Click += (_, _) =>
+        {
+            EventBlockCloneRequested?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.StartDate,
+                StartMinute = 0,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        };
+        flyout.Items.Add(clone);
 
         flyout.ShowAt(b, e.GetPosition(b));
     }

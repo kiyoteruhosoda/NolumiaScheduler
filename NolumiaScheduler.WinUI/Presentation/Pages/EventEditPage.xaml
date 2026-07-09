@@ -234,9 +234,13 @@
                                            Foreground="{ThemeResource GCalTextSecondary}"/>
                             </Grid>
                             <!-- Optional: restrict the shift to holidays only (default shifts always). -->
-                            <CheckBox x:Name="AdjustmentHolidayShiftChk" MinHeight="44"
-                                      VerticalAlignment="Center" VerticalContentAlignment="Center"
-                                      Checked="OnAdjustmentHolidayShiftChanged" Unchecked="OnAdjustmentHolidayShiftChanged"/>
+                            <Grid ColumnDefinitions="*,Auto" MinHeight="44">
+                                <TextBlock x:Name="AdjustmentHolidayShiftLabel" Grid.Column="0" FontSize="14"
+                                           Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                                <ToggleSwitch x:Name="AdjustmentHolidayShiftSwitch" Grid.Column="1"
+                                              OnContent="" OffContent="" Margin="0" MinWidth="0"
+                                              Toggled="OnAdjustmentHolidayShiftToggled"/>
+                            </Grid>
                             <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
                                 <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
                                 <Grid ColumnDefinitions="Auto,*" MinHeight="48">

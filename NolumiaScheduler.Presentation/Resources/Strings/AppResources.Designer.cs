@@ -191,6 +191,7 @@ public static class AppResources
     public static string MenuLocationAlert => Get(nameof(MenuLocationAlert));
     public static string MenuOpenLocation => Get(nameof(MenuOpenLocation));
     public static string MenuEdit => Get(nameof(MenuEdit));
+    public static string MenuClone => Get(nameof(MenuClone));
     public static string UseBusinessDayAdjustmentLabel => Get(nameof(UseBusinessDayAdjustmentLabel));
     public static string UndoButton => Get(nameof(UndoButton));
     public static string RedoButton => Get(nameof(RedoButton));

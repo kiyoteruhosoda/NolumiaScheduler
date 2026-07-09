@@ -88,7 +88,7 @@ public sealed partial class EventEditPage : Page
         UseBusinessDayAdjustmentLabelText.Text = AppResources.UseBusinessDayAdjustmentLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
         AdjustmentBusinessDaysLabel.Text = AppResources.AdjustmentBusinessDaysLabel;
-        AdjustmentHolidayShiftChk.Content = AppResources.AdjustmentHolidayShiftLabel;
+        AdjustmentHolidayShiftLabel.Text = AppResources.AdjustmentHolidayShiftLabel;
         BusinessCalendarLabel.Text = AppResources.BusinessCalendarLabel;
         ColorLabel.Text         = AppResources.ColorLabel;
         AlarmLabel.Text         = AppResources.AlarmLabel;
@@ -126,6 +126,20 @@ public sealed partial class EventEditPage : Page
                     _vm.StartTime = TimeSpan.FromMinutes(p.OccurrenceStartMinute.Value);
                 if (p.OccurrenceEndMinute.HasValue)
                     _vm.EndTime = TimeSpan.FromMinutes(p.OccurrenceEndMinute.Value);
+            }
+            else if (p.CloneEventId != null)
+            {
+                NolumiaScheduler.Domain.ValueObjects.OccurrenceLocalKey? occKey = null;
+                if (p.OccurrenceDate != null && p.OccurrenceStartMinute.HasValue
+                    && DateTime.TryParse(p.OccurrenceDate, out var occDt))
+                {
+                    var occDate = NolumiaScheduler.Domain.ValueObjects.LocalDateValue.FromDateOnly(DateOnly.FromDateTime(occDt));
+                    var occTime = new NolumiaScheduler.Domain.ValueObjects.LocalTimeValue(
+                        p.OccurrenceStartMinute.Value / 60,
+                        p.OccurrenceStartMinute.Value % 60, 0);
+                    occKey = new NolumiaScheduler.Domain.ValueObjects.OccurrenceLocalKey(occDate, occTime);
+                }
+                _vm.LoadEventForClone(p.CloneEventId, occKey);
             }
             else if (p.StartDate != null
                      && DateTime.TryParse(p.StartDate, out var startDt))
@@ -280,7 +294,7 @@ public sealed partial class EventEditPage : Page
         _suppressAdjustmentDaysChanged = false;
 
         _suppressAdjustmentHolidayShiftChanged = true;
-        AdjustmentHolidayShiftChk.IsChecked = _vm.AdjustmentHolidayShift;
+        AdjustmentHolidayShiftSwitch.IsOn = _vm.AdjustmentHolidayShift;
         _suppressAdjustmentHolidayShiftChanged = false;
 
         CalendarPicker.ItemsSource = _vm.AvailableCalendarNames;
@@ -465,6 +479,7 @@ public sealed partial class EventEditPage : Page
             case nameof(EventEditViewModel.IsDayOfMonthInputEnabled):
             case nameof(EventEditViewModel.UseCustomInterval):
             case nameof(EventEditViewModel.UseBusinessDayAdjustment):
+            case nameof(EventEditViewModel.AdjustmentHolidayShift):
             case nameof(EventEditViewModel.ShowAlarmNotifyOptions):
                 ApplySectionVisibility();
                 break;
@@ -564,7 +579,7 @@ public sealed partial class EventEditPage : Page
         AdjustmentDetailSection.Visibility = _vm.UseBusinessDayAdjustment
             ? Visibility.Visible : Visibility.Collapsed;
 
-        CalendarPickerSection.Visibility = (_vm.HasAdjustment && _vm.HasAvailableCalendars)
+        CalendarPickerSection.Visibility = (_vm.HasAdjustment && _vm.HasAvailableCalendars && !_vm.AdjustmentHolidayShift)
             ? Visibility.Visible : Visibility.Collapsed;
 
         AlarmNotifySection.Visibility  = _vm.ShowAlarmNotifyOptions ? Visibility.Visible : Visibility.Collapsed;
@@ -835,10 +850,10 @@ public sealed partial class EventEditPage : Page
         _suppressEndDateChanged = false;
     }
 
-    private void OnAdjustmentHolidayShiftChanged(object sender, RoutedEventArgs e)
+    private void OnAdjustmentHolidayShiftToggled(object sender, RoutedEventArgs e)
     {
         if (_suppressAdjustmentHolidayShiftChanged || _vm == null) return;
-        _vm.AdjustmentHolidayShift = AdjustmentHolidayShiftChk.IsChecked == true;
+        _vm.AdjustmentHolidayShift = AdjustmentHolidayShiftSwitch.IsOn;
     }
 
     private void OnMonthlyLastDayChanged(object sender, RoutedEventArgs e)
