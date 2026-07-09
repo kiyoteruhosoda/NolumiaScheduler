@@ -9,4 +9,8 @@ public sealed class WeekEventDragCompletedEventArgs : EventArgs
     public required DateTime TargetDateTime { get; init; }
     public required int TargetStartMinute { get; init; }
     public required int DurationMinutes { get; init; }
+    // Original position before the drag started (used for undo).
+    public required DateTime OriginalDate { get; init; }
+    public required int OriginalStartMinute { get; init; }
+    public required int OriginalEndMinute { get; init; }
 }

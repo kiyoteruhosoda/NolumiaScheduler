@@ -4,8 +4,12 @@
       xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
       Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
 
-    <ScrollViewer x:Name="MainScrollViewer" Background="{ThemeResource GCalSurfaceVariant}">
-        <StackPanel Padding="16" Spacing="0">
+    <!-- Grid wraps scroll content + the floating Save overlay -->
+    <Grid>
+    <ScrollViewer x:Name="MainScrollViewer" Background="{ThemeResource GCalSurfaceVariant}"
+                  ViewChanged="OnMainScrollViewerViewChanged">
+        <!-- Extra bottom padding prevents content from hiding under the floating Save button. -->
+        <StackPanel Padding="16,16,16,76" Spacing="0">
 
             <!-- Validation error -->
             <Border x:Name="ValidationBorder" Visibility="Collapsed" CornerRadius="8"
@@ -202,36 +206,47 @@
 
                     <!-- Adjustment (recurring only) -->
                     <StackPanel x:Name="AdjustmentSection" Visibility="Collapsed">
-                        <TextBlock x:Name="AdjustmentLabel" FontSize="12" Margin="0,12,0,4"
-                                   Foreground="{ThemeResource GCalTextSecondary}"/>
-                        <!-- N business days before/after the candidate date is the primary input;
-                             0 days means no business-day shift at all. -->
-                        <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" MinHeight="48">
-                            <ComboBox x:Name="AdjustmentDirectionPicker" Grid.Column="0" FontSize="14"
-                                      MinWidth="88" VerticalAlignment="Center"
-                                      SelectionChanged="OnAdjustmentDirectionChanged"/>
-                            <TextBox x:Name="AdjustmentDaysBox" Grid.Column="1" FontSize="14" Width="72"
-                                     InputScope="Number"
-                                     Foreground="{ThemeResource GCalTextPrimary}"
-                                     VerticalAlignment="Center" VerticalContentAlignment="Center"
-                                     TextChanged="OnAdjustmentDaysChanged"/>
-                            <TextBlock x:Name="AdjustmentBusinessDaysLabel" Grid.Column="2" FontSize="13"
-                                       Margin="4,0,0,0" VerticalAlignment="Center"
-                                       Foreground="{ThemeResource GCalTextSecondary}"/>
+                        <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                        <!-- Toggle: reveal the detail inputs only when the user opts in. -->
+                        <Grid ColumnDefinitions="*,Auto" MinHeight="48">
+                            <TextBlock x:Name="UseBusinessDayAdjustmentLabelText" Grid.Column="0" FontSize="14"
+                                       Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                            <ToggleSwitch x:Name="UseBusinessDayAdjustmentSwitch" Grid.Column="1"
+                                          OnContent="" OffContent="" Margin="0" MinWidth="0"
+                                          Toggled="OnUseBusinessDayAdjustmentToggled"/>
                         </Grid>
-                        <!-- Optional: restrict the shift to holidays only (default shifts always). -->
-                        <CheckBox x:Name="AdjustmentHolidayShiftChk" MinHeight="44"
-                                  VerticalAlignment="Center" VerticalContentAlignment="Center"
-                                  Checked="OnAdjustmentHolidayShiftChanged" Unchecked="OnAdjustmentHolidayShiftChanged"/>
-                        <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
-                            <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
-                            <Grid ColumnDefinitions="Auto,*" MinHeight="48">
-                                <TextBlock x:Name="BusinessCalendarLabel" Grid.Column="0" FontSize="13"
-                                           Margin="0,0,12,0" TextWrapping="NoWrap"
-                                           Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
-                                <ComboBox x:Name="CalendarPicker" Grid.Column="1" FontSize="14" MinHeight="48"
-                                          HorizontalAlignment="Stretch" SelectionChanged="OnCalendarPickerChanged"/>
+                        <StackPanel x:Name="AdjustmentDetailSection" Visibility="Collapsed">
+                            <TextBlock x:Name="AdjustmentLabel" FontSize="12" Margin="0,4,0,4"
+                                       Foreground="{ThemeResource GCalTextSecondary}"/>
+                            <!-- N business days before/after the candidate date is the primary input;
+                                 0 days means no business-day shift at all. -->
+                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" MinHeight="48">
+                                <ComboBox x:Name="AdjustmentDirectionPicker" Grid.Column="0" FontSize="14"
+                                          MinWidth="88" VerticalAlignment="Center"
+                                          SelectionChanged="OnAdjustmentDirectionChanged"/>
+                                <TextBox x:Name="AdjustmentDaysBox" Grid.Column="1" FontSize="14" Width="72"
+                                         InputScope="Number"
+                                         Foreground="{ThemeResource GCalTextPrimary}"
+                                         VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                         TextChanged="OnAdjustmentDaysChanged"/>
+                                <TextBlock x:Name="AdjustmentBusinessDaysLabel" Grid.Column="2" FontSize="13"
+                                           Margin="4,0,0,0" VerticalAlignment="Center"
+                                           Foreground="{ThemeResource GCalTextSecondary}"/>
                             </Grid>
+                            <!-- Optional: restrict the shift to holidays only (default shifts always). -->
+                            <CheckBox x:Name="AdjustmentHolidayShiftChk" MinHeight="44"
+                                      VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                      Checked="OnAdjustmentHolidayShiftChanged" Unchecked="OnAdjustmentHolidayShiftChanged"/>
+                            <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
+                                <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
+                                <Grid ColumnDefinitions="Auto,*" MinHeight="48">
+                                    <TextBlock x:Name="BusinessCalendarLabel" Grid.Column="0" FontSize="13"
+                                               Margin="0,0,12,0" TextWrapping="NoWrap"
+                                               Foreground="{ThemeResource GCalTextSecondary}" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="CalendarPicker" Grid.Column="1" FontSize="14" MinHeight="48"
+                                              HorizontalAlignment="Stretch" SelectionChanged="OnCalendarPickerChanged"/>
+                                </Grid>
+                            </StackPanel>
                         </StackPanel>
                     </StackPanel>
                 </StackPanel>
@@ -303,12 +318,25 @@
                     Foreground="{StaticResource GCalRed}"
                     Click="OnDeleteClicked"/>
 
-            <!-- Save -->
+            <!-- Save (in-content; becomes visible when user scrolls to the bottom) -->
             <Button x:Name="SaveBtn" FontSize="15" CornerRadius="8" Height="48"
-                    HorizontalAlignment="Stretch" Margin="0,8,0,32"
+                    HorizontalAlignment="Stretch" Margin="0,8,0,0"
                     Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
                     Click="OnSaveClicked"/>
 
         </StackPanel>
     </ScrollViewer>
+
+    <!-- Floating Save button — sits at the bottom of the viewport and hides when
+         the in-content Save button scrolls into view. -->
+    <Border x:Name="FloatingSaveBorder"
+            VerticalAlignment="Bottom" Padding="16,0,16,16"
+            Background="{ThemeResource GCalSurfaceVariant}">
+        <Button x:Name="FloatingSaveBtn" FontSize="15" CornerRadius="8" Height="48"
+                HorizontalAlignment="Stretch"
+                Background="{StaticResource GCalBlue}" Foreground="{StaticResource GCalWhite}"
+                Click="OnSaveClicked"/>
+    </Border>
+
+    </Grid>
 </Page>

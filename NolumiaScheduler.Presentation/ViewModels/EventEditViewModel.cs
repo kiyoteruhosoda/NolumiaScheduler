@@ -67,6 +67,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private int _adjustmentDirectionIndex = (int)ViewModels.AdjustmentDirectionIndex.Before;
     private int _adjustmentBusinessDays;   // 0 = no business-day shift
     private int _selectedCalendarIndex = -1;
+    // Toggle that reveals the adjustment sub-section (default OFF); the backup retains the last
+    // entered value so it reappears when the user toggles the switch back on.
+    private bool _useBusinessDayAdjustment;
+    private int _savedAdjustmentBusinessDays = 1;
 
     private string _validationError = "";
     private string? _editingEventId;
@@ -322,6 +326,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 : (int)ViewModels.AdjustmentDirectionIndex.After;
 
             AdjustmentBusinessDays = Math.Abs(rule.Adjustment.ShiftAmount);
+            // Reveal the adjustment sub-section for existing events that already have one set.
+            UseBusinessDayAdjustment = true;
 
             if (rule.Adjustment.CalendarId != null)
             {
@@ -536,8 +542,9 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set
         {
             _useCustomInterval = value;
-            // Collapsing the custom interval resets to the implicit default of every period.
-            if (!value) Interval = 1;
+            // The interval input value is intentionally preserved when the switch is turned off
+            // so it reappears unchanged if the user toggles the switch back on.
+            // BuildRecurrenceRule() already uses 1 when UseCustomInterval is false.
             OnPropertyChanged();
         }
     }
@@ -674,6 +681,33 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             OnPropertyChanged();
             // A zero offset means no business-day shift at all.
             OnPropertyChanged(nameof(HasAdjustment));
+        }
+    }
+
+    /// <summary>
+    /// Whether the business-day adjustment sub-section is enabled. When turned off the entered
+    /// value is preserved in a backup field and restored when toggled back on.
+    /// </summary>
+    public bool UseBusinessDayAdjustment
+    {
+        get => _useBusinessDayAdjustment;
+        set
+        {
+            _useBusinessDayAdjustment = value;
+            if (!value)
+            {
+                // Save the current days before clearing so they can be restored.
+                if (_adjustmentBusinessDays > 0)
+                    _savedAdjustmentBusinessDays = _adjustmentBusinessDays;
+                AdjustmentBusinessDays = 0;
+            }
+            else
+            {
+                // Restore the last-entered value (default 1 on first activation).
+                AdjustmentBusinessDays = _savedAdjustmentBusinessDays > 0
+                    ? _savedAdjustmentBusinessDays : 1;
+            }
+            OnPropertyChanged();
         }
     }
 

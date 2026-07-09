@@ -526,6 +526,7 @@ public sealed partial class WeekCalendarView : UserControl
             ToolTipService.SetToolTip(chip, block.Title);
             chip.Tapped += OnAllDayBlockTapped;
             chip.DoubleTapped += OnAllDayBlockDoubleTapped;
+            chip.RightTapped += OnAllDayBlockRightTapped;
             Canvas.SetLeft(chip, 0);
             Canvas.SetTop(chip, block.Top + 1);
             canvas.Children.Add(chip);
@@ -801,8 +802,25 @@ public sealed partial class WeekCalendarView : UserControl
 
         var flyout = new MenuFlyout();
 
+        // Edit item — same action as double-clicking the block.
+        var edit = new MenuFlyoutItem { Text = AppResources.MenuEdit };
+        edit.Click += (_, _) =>
+        {
+            _selectedEventId = block.EventId;
+            UpdateSelectionState();
+            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.Date,
+                StartMinute = block.StartMinute,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        };
+        flyout.Items.Add(edit);
+
         if (block.Location is null)
         {
+            flyout.Items.Add(new MenuFlyoutSeparator());
             flyout.Items.Add(new MenuFlyoutItem
             {
                 Text = AppResources.MenuLocationAlert,
@@ -844,6 +862,30 @@ public sealed partial class WeekCalendarView : UserControl
                 OccurrenceKey = block.OccurrenceKey
             });
         }
+    }
+
+    private void OnAllDayBlockRightTapped(object sender, RightTappedRoutedEventArgs e)
+    {
+        e.Handled = true;
+        if (sender is not Border b || b.Tag is not WeekAllDayEventBlock block) return;
+
+        var flyout = new MenuFlyout();
+
+        var edit = new MenuFlyoutItem { Text = AppResources.MenuEdit };
+        edit.Click += (_, _) =>
+        {
+            _selectedEventId = block.EventId;
+            EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.StartDate,
+                StartMinute = 0,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        };
+        flyout.Items.Add(edit);
+
+        flyout.ShowAt(b, e.GetPosition(b));
     }
 
     private void OnAllDayLaneTapped(object sender, TappedRoutedEventArgs e)
@@ -1005,7 +1047,9 @@ public sealed partial class WeekCalendarView : UserControl
                 OccurrenceKey = block.MoveKey,
                 Date = block.Date,
                 StartMinute = startMin,
-                EndMinute = endMin
+                EndMinute = endMin,
+                OriginalStartMinute = _resizeOriginalStartMinute,
+                OriginalEndMinute = _resizeOriginalEndMinute
             });
         }
         else if (_activeResizeEdge == ResizeEdge.None && _activeBlock != null && totalMovement >= 8)
@@ -1022,7 +1066,10 @@ public sealed partial class WeekCalendarView : UserControl
                 OccurrenceKey = block.MoveKey,
                 TargetDateTime = dt.Date,
                 TargetStartMinute = startMinute,
-                DurationMinutes = block.EndMinute - block.StartMinute
+                DurationMinutes = block.EndMinute - block.StartMinute,
+                OriginalDate = block.Date,
+                OriginalStartMinute = block.StartMinute,
+                OriginalEndMinute = block.EndMinute
             });
             _suppressTapUntilUtc = DateTime.UtcNow.AddMilliseconds(300);
         }
