@@ -162,6 +162,29 @@ public class CalendarEventApplicationService(
     }
 
     /// <summary>
+    /// Moves a single occurrence of a recurring series to a new date/time (e.g. drag-and-drop).
+    /// </summary>
+    public void MoveOccurrence(MoveOccurrenceCommand command)
+    {
+        var ev = GetOrThrow(command.EventId);
+        if (!ev.IsRecurring())
+            throw new DomainException("MoveOccurrence is only valid for recurring events.");
+
+        var (startTime, duration) = ResolveTimes(command.NewStartTime, command.NewEndTime, false);
+        ev.MoveOccurrence(
+            command.OccurrenceKey,
+            command.NewDate,
+            startTime,
+            duration,
+            command.Title != null ? new EventTitle(command.Title) : null,
+            command.Location != null ? new Location(command.Location) : null,
+            command.Visibility,
+            _clock.GetUtcNow());
+
+        _repository.Save(ev);
+    }
+
+    /// <summary>
     /// Splits a single occurrence out of a recurring series: excludes the occurrence from the
     /// series (skip) and creates a new standalone single event with the given details.
     /// This is the only supported way to edit one occurrence of a recurring series.
