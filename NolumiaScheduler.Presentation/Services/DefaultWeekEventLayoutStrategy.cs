@@ -138,6 +138,7 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
             LeftRatio = leftRatio,
             WidthRatio = widthRatio,
             Bounds = new Windows.Foundation.Rect(leftRatio, segment.Start, widthRatio, duration),
+            IsRecurring = segment.Item.IsRecurring,
             ResizeHandleBounds = new Windows.Foundation.Rect(
                 leftRatio,
                 Math.Max(segment.Start, segment.Start + duration - 16),

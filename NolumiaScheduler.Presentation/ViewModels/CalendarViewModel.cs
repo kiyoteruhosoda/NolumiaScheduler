@@ -760,6 +760,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                 LeftRatio = b.LeftRatio,
                 WidthRatio = b.WidthRatio,
                 IsHoliday = b.IsHoliday,
+                IsRecurring = b.IsRecurring,
             }).ToList();
             WeekAllDayEventBlocks.Clear();
             foreach (var b in shifted) WeekAllDayEventBlocks.Add(b);
