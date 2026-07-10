@@ -35,6 +35,7 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
             PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(LayoutBounds)));
         }
     }
+    public required bool IsRecurring { get; init; }
     public required Rect ResizeHandleBounds { get; init; }
 
     private bool _isResizePreview;

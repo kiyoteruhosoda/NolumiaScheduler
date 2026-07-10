@@ -77,6 +77,7 @@ public sealed class CalendarEventItem
     public bool IsAllDay { get; }
     public bool IsMoved { get; }
     public bool IsOverridden { get; }
+    public bool IsRecurring => SeriesKey != null;
     public int StartMinuteOfDay { get; }
     public int EndMinuteOfDay { get; }
     public bool CrossesMidnight { get; }

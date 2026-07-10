@@ -525,7 +525,28 @@ public sealed partial class WeekCalendarView : UserControl
                 FontSize = 10,
                 Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
             };
-            chip.Child = label;
+
+            if (block.IsRecurring)
+            {
+                var grid = new Grid();
+                grid.Children.Add(label);
+                grid.Children.Add(new TextBlock
+                {
+                    Text = "\uE8EE",
+                    FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+                    FontSize = 8,
+                    Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    IsHitTestVisible = false,
+                });
+                chip.Child = grid;
+            }
+            else
+            {
+                chip.Child = label;
+            }
+
             ToolTipService.SetToolTip(chip, block.Title);
             chip.Tapped += OnAllDayBlockTapped;
             chip.DoubleTapped += OnAllDayBlockDoubleTapped;
@@ -571,7 +592,8 @@ public sealed partial class WeekCalendarView : UserControl
         // No visible resize bars: the top/bottom edges are grab zones detected via the
         // cursor + manipulation hit-testing (see OnChipPointerMoved / EdgeAt).
         border.Padding = new Thickness(4, 0, 4, 0);
-        border.Child = new TextBlock
+
+        var titleLabel = new TextBlock
         {
             Text = block.Title,
             FontSize = 10,
@@ -580,6 +602,27 @@ public sealed partial class WeekCalendarView : UserControl
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis
         };
+
+        if (block.IsRecurring)
+        {
+            var grid = new Grid();
+            grid.Children.Add(titleLabel);
+            grid.Children.Add(new TextBlock
+            {
+                Text = "\uE8EE",
+                FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+                FontSize = 8,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+                HorizontalAlignment = HorizontalAlignment.Right,
+                VerticalAlignment = VerticalAlignment.Bottom,
+                IsHitTestVisible = false,
+            });
+            border.Child = grid;
+        }
+        else
+        {
+            border.Child = titleLabel;
+        }
 
         ToolTipService.SetToolTip(border, $"{block.Title}\n{block.TimeLabel}");
 

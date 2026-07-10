@@ -43,6 +43,7 @@ public sealed class DefaultWeekAllDayLayoutStrategy : IWeekAllDayLayoutStrategy
             BackgroundColor = s.Item.DotColor,
             LeftRatio = s.LeftColumn / 7d,
             WidthRatio = s.WidthColumns / 7d,
+            IsRecurring = s.Item.IsRecurring,
         })];
     }
 
