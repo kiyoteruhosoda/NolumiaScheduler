@@ -882,7 +882,7 @@ public sealed partial class EventEditPage : Page
     private void OnMainScrollViewerViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
         if (e.IsIntermediate) return;
-        var atBottom = MainScrollViewer.ScrollableHeight - MainScrollViewer.VerticalOffset < 80;
+        var atBottom = MainScrollViewer.ScrollableHeight - MainScrollViewer.VerticalOffset < 1;
         FloatingSaveBorder.Visibility = atBottom ? Visibility.Collapsed : Visibility.Visible;
     }
 

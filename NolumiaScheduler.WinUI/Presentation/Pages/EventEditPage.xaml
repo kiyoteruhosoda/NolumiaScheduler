@@ -9,7 +9,7 @@
     <ScrollViewer x:Name="MainScrollViewer" Background="{ThemeResource GCalSurfaceVariant}"
                   ViewChanged="OnMainScrollViewerViewChanged">
         <!-- Extra bottom padding prevents content from hiding under the floating Save button. -->
-        <StackPanel Padding="16,16,16,76" Spacing="0">
+        <StackPanel Padding="16,16,16,16" Spacing="0">
 
             <!-- Validation error -->
             <Border x:Name="ValidationBorder" Visibility="Collapsed" CornerRadius="8"
