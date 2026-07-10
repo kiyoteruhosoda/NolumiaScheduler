@@ -31,6 +31,7 @@ public sealed class WeekAllDayEventBlock : System.ComponentModel.INotifyProperty
     /// </summary>
     public bool IsHoliday { get; init; }
     public bool IsRecurring { get; init; }
+    public bool IsModifiedOccurrence { get; init; }
     public double Top => Row * 24;
     public static double Height => 22;
     public Rect LayoutBounds => new(LeftRatio, Top, WidthRatio, Height);
