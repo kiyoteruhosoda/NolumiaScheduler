@@ -54,6 +54,7 @@ public sealed partial class WeekCalendarView : UserControl
     public event EventHandler<WeekEmptySlotTappedEventArgs>? AllDaySlotTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockTapped;
     public event EventHandler<WeekEventBlockTappedEventArgs>? EventBlockCloneRequested;
+    public event EventHandler<WeekEventBlockTappedEventArgs>? EventInfoRequested;
     public event EventHandler<WeekEventDragCompletedEventArgs>? EventDragCompleted;
     public event EventHandler<WeekEventResizeCompletedEventArgs>? EventResizeCompleted;
     public event EventHandler<WeekSlotDragCreatedEventArgs>? SlotDragCreated;
@@ -834,6 +835,21 @@ public sealed partial class WeekCalendarView : UserControl
         };
         flyout.Items.Add(clone);
 
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var info = new MenuFlyoutItem { Text = AppResources.MenuInfo };
+        info.Click += (_, _) =>
+        {
+            EventInfoRequested?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.Date,
+                StartMinute = block.StartMinute,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        };
+        flyout.Items.Add(info);
+
         if (block.Location is null)
         {
             flyout.Items.Add(new MenuFlyoutSeparator());
@@ -913,6 +929,21 @@ public sealed partial class WeekCalendarView : UserControl
             });
         };
         flyout.Items.Add(clone);
+
+        flyout.Items.Add(new MenuFlyoutSeparator());
+
+        var info = new MenuFlyoutItem { Text = AppResources.MenuInfo };
+        info.Click += (_, _) =>
+        {
+            EventInfoRequested?.Invoke(this, new WeekEventBlockTappedEventArgs
+            {
+                EventId = block.EventId,
+                Date = block.StartDate,
+                StartMinute = 0,
+                OccurrenceKey = block.OccurrenceKey
+            });
+        };
+        flyout.Items.Add(info);
 
         flyout.ShowAt(b, e.GetPosition(b));
     }

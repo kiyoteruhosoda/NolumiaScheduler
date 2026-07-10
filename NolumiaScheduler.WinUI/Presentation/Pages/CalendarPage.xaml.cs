@@ -348,6 +348,15 @@ public sealed partial class CalendarPage : Page
             OccurrenceStartMinute: e.StartMinute));
     }
 
+    private void OnWeekEventInfoRequested(object sender, WeekEventBlockTappedEventArgs e)
+    {
+        var json = _vm?.GetEventJson(e.EventId);
+        if (json == null) return;
+        var package = new Windows.ApplicationModel.DataTransfer.DataPackage();
+        package.SetText(json);
+        Windows.ApplicationModel.DataTransfer.Clipboard.SetContent(package);
+    }
+
     private void OnWeekSlotDragCreated(object sender, WeekSlotDragCreatedEventArgs e)
     {
         OpenEditWindow(new EventEditParams(

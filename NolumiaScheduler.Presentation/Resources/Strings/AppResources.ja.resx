@@ -544,6 +544,9 @@
   <data name="MenuClone" xml:space="preserve">
     <value>複製</value>
   </data>
+  <data name="MenuInfo" xml:space="preserve">
+    <value>情報をコピー</value>
+  </data>
   <data name="UseBusinessDayAdjustmentLabel" xml:space="preserve">
     <value>営業日調整</value>
   </data>
