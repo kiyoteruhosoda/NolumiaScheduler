@@ -226,29 +226,38 @@
                         <StackPanel x:Name="AdjustmentDetailSection" Visibility="Collapsed">
                             <TextBlock x:Name="AdjustmentLabel" FontSize="12" Margin="0,4,0,4"
                                        Foreground="{ThemeResource GCalTextSecondary}"/>
-                            <!-- N business days before/after the candidate date is the primary input;
-                                 0 days means no business-day shift at all. -->
-                            <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" MinHeight="48">
-                                <ComboBox x:Name="AdjustmentDirectionPicker" Grid.Column="0" FontSize="14"
-                                          MinWidth="88" VerticalAlignment="Center"
-                                          SelectionChanged="OnAdjustmentDirectionChanged"/>
-                                <TextBox x:Name="AdjustmentDaysBox" Grid.Column="1" FontSize="14" Width="72"
-                                         InputScope="Number"
-                                         Foreground="{ThemeResource GCalTextPrimary}"
-                                         VerticalAlignment="Center" VerticalContentAlignment="Center"
-                                         TextChanged="OnAdjustmentDaysChanged"/>
-                                <TextBlock x:Name="AdjustmentBusinessDaysLabel" Grid.Column="2" FontSize="13"
-                                           Margin="4,0,0,0" VerticalAlignment="Center"
-                                           Foreground="{ThemeResource GCalTextSecondary}"/>
-                            </Grid>
-                            <!-- Optional: restrict the shift to holidays only (default shifts always). -->
-                            <Grid ColumnDefinitions="*,Auto" MinHeight="44">
-                                <TextBlock x:Name="AdjustmentHolidayShiftLabel" Grid.Column="0" FontSize="14"
+                            <!-- Date type: Scheduled Date (予定日) or Base Date (基準日) -->
+                            <Grid ColumnDefinitions="Auto,*" MinHeight="48" ColumnSpacing="8">
+                                <TextBlock x:Name="AdjustmentDateTypeLabel" Grid.Column="0" FontSize="14"
                                            Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
-                                <ToggleSwitch x:Name="AdjustmentHolidayShiftSwitch" Grid.Column="1"
-                                              OnContent="" OffContent="" Margin="0" MinWidth="0"
-                                              Toggled="OnAdjustmentHolidayShiftToggled"/>
+                                <ComboBox x:Name="AdjustmentDateTypePicker" Grid.Column="1" FontSize="14"
+                                          HorizontalAlignment="Stretch" MinHeight="48" VerticalAlignment="Center"/>
                             </Grid>
+                            <!-- N business days before/after: shown only in Base Date mode -->
+                            <StackPanel x:Name="AdjustmentDaysSection">
+                                <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="8" MinHeight="48">
+                                    <ComboBox x:Name="AdjustmentDirectionPicker" Grid.Column="0" FontSize="14"
+                                              MinWidth="88" VerticalAlignment="Center"
+                                              SelectionChanged="OnAdjustmentDirectionChanged"/>
+                                    <TextBox x:Name="AdjustmentDaysBox" Grid.Column="1" FontSize="14" Width="72"
+                                             InputScope="Number"
+                                             Foreground="{ThemeResource GCalTextPrimary}"
+                                             VerticalAlignment="Center" VerticalContentAlignment="Center"
+                                             TextChanged="OnAdjustmentDaysChanged"/>
+                                    <TextBlock x:Name="AdjustmentBusinessDaysLabel" Grid.Column="2" FontSize="13"
+                                               Margin="4,0,0,0" VerticalAlignment="Center"
+                                               Foreground="{ThemeResource GCalTextSecondary}"/>
+                                </Grid>
+                            </StackPanel>
+                            <!-- Direction picker for Scheduled Date mode (no days input) -->
+                            <StackPanel x:Name="AdjustmentScheduledDirectionSection" Visibility="Collapsed">
+                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8" MinHeight="48">
+                                    <TextBlock x:Name="AdjustmentScheduledDirectionLabel" Grid.Column="0" FontSize="14"
+                                               Foreground="{ThemeResource GCalTextPrimary}" VerticalAlignment="Center"/>
+                                    <ComboBox x:Name="AdjustmentScheduledDirectionPicker" Grid.Column="1" FontSize="14"
+                                              HorizontalAlignment="Stretch" MinHeight="48" VerticalAlignment="Center"/>
+                                </Grid>
+                            </StackPanel>
                             <StackPanel x:Name="CalendarPickerSection" Visibility="Collapsed">
                                 <Rectangle Height="0.5" Fill="{ThemeResource GCalBorder}"/>
                                 <Grid ColumnDefinitions="Auto,*" MinHeight="48">

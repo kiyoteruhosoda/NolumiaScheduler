@@ -17,6 +17,11 @@ public sealed class WeekAllDayEventBlock
     public required Color BackgroundColor { get; init; }
     public required double LeftRatio { get; init; }
     public required double WidthRatio { get; init; }
+    /// <summary>
+    /// <see langword="true"/> when this block represents a holiday from a business calendar
+    /// rather than a user-created event. Holiday blocks are read-only (no tap-to-edit).
+    /// </summary>
+    public bool IsHoliday { get; init; }
     public double Top => Row * 24;
     public static double Height => 22;
     public Rect LayoutBounds => new(LeftRatio, Top, WidthRatio, Height);
