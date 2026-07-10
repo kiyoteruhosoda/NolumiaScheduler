@@ -120,6 +120,7 @@ public sealed partial class WeekCalendarView : UserControl
     public int InteractionFrameThrottleMs { get; set; } = 20;
 
     private string? _selectedEventId;
+    private OccurrenceLocalKey? _selectedOccurrenceKey;
 
     public WeekCalendarView()
     {
@@ -525,7 +526,7 @@ public sealed partial class WeekCalendarView : UserControl
                 Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
             };
 
-            if (block.IsRecurring)
+            if (block.IsRecurring && !block.IsModifiedOccurrence)
             {
                 var grid = new Grid();
                 grid.Children.Add(label);
@@ -607,7 +608,7 @@ public sealed partial class WeekCalendarView : UserControl
             TextTrimming = TextTrimming.CharacterEllipsis
         };
 
-        if (block.IsRecurring)
+        if (block.IsRecurring && !block.IsModifiedOccurrence)
         {
             var grid = new Grid();
             grid.Children.Add(titleLabel);
@@ -692,11 +693,15 @@ public sealed partial class WeekCalendarView : UserControl
         if (WeekDayColumns is IEnumerable cols)
             foreach (var day in cols.OfType<WeekDayColumn>())
                 foreach (var b in day.EventBlocks)
-                    b.IsSelected = b.EventId == _selectedEventId;
+                    b.IsSelected = b.EventId == _selectedEventId &&
+                                   (_selectedOccurrenceKey == null || b.OccurrenceKey == null ||
+                                    b.OccurrenceKey.Equals(_selectedOccurrenceKey));
 
         if (WeekAllDayEventBlocks is IEnumerable allDay)
             foreach (var b in allDay.OfType<WeekAllDayEventBlock>())
-                b.IsSelected = b.EventId == _selectedEventId;
+                b.IsSelected = b.EventId == _selectedEventId &&
+                               (_selectedOccurrenceKey == null || b.OccurrenceKey == null ||
+                                b.OccurrenceKey.Equals(_selectedOccurrenceKey));
     }
 
     private static void ApplyChipSelectionVisual(Border border, Windows.UI.Color bgColor, bool isSelected)
@@ -853,6 +858,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
         _selectedEventId = block.EventId;
+        _selectedOccurrenceKey = block.OccurrenceKey;
         UpdateSelectionState();
     }
 
@@ -862,6 +868,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
         _selectedEventId = block.EventId;
+        _selectedOccurrenceKey = block.OccurrenceKey;
         UpdateSelectionState();
         EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
         {
@@ -878,6 +885,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
         _selectedEventId = block.EventId;
+        _selectedOccurrenceKey = block.OccurrenceKey;
         UpdateSelectionState();
 
         var flyout = new MenuFlyout();
@@ -954,6 +962,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block && !block.IsHoliday)
         {
             _selectedEventId = block.EventId;
+            _selectedOccurrenceKey = block.OccurrenceKey;
             UpdateSelectionState();
         }
     }
@@ -964,6 +973,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block && !block.IsHoliday)
         {
             _selectedEventId = block.EventId;
+            _selectedOccurrenceKey = block.OccurrenceKey;
             UpdateSelectionState();
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
             {
@@ -984,6 +994,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (block.IsHoliday) return;
 
         _selectedEventId = block.EventId;
+        _selectedOccurrenceKey = block.OccurrenceKey;
         UpdateSelectionState();
 
         var flyout = new MenuFlyout();
@@ -1223,6 +1234,7 @@ public sealed partial class WeekCalendarView : UserControl
             // handler, so don't suppress taps here or the double click would be swallowed.
             RestoreMoveChipOpacity();
             _selectedEventId = block.EventId;
+            _selectedOccurrenceKey = block.OccurrenceKey;
             UpdateSelectionState();
         }
 

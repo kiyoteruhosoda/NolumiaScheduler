@@ -36,6 +36,7 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
         }
     }
     public required bool IsRecurring { get; init; }
+    public required bool IsModifiedOccurrence { get; init; }
     public required Rect ResizeHandleBounds { get; init; }
 
     private bool _isResizePreview;
