@@ -4,8 +4,16 @@ using Windows.UI;
 
 namespace NolumiaScheduler.Presentation.ViewModels;
 
-public sealed class WeekAllDayEventBlock
+public sealed class WeekAllDayEventBlock : System.ComponentModel.INotifyPropertyChanged
 {
+    public event System.ComponentModel.PropertyChangedEventHandler? PropertyChanged;
+
+    private bool _isSelected;
+    public bool IsSelected
+    {
+        get => _isSelected;
+        set { _isSelected = value; PropertyChanged?.Invoke(this, new System.ComponentModel.PropertyChangedEventArgs(nameof(IsSelected))); }
+    }
     public required string EventId { get; init; }
     public OccurrenceLocalKey? OccurrenceKey { get; init; }
     public required DateTime StartDate { get; init; }

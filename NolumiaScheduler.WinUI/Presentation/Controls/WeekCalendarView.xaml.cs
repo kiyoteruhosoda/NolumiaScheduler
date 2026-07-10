@@ -510,8 +510,6 @@ public sealed partial class WeekCalendarView : UserControl
             var chip = new Border
             {
                 Background = new SolidColorBrush(block.BackgroundColor),
-                BorderBrush = new SolidColorBrush(DarkenColor(block.BackgroundColor, 0.72)),
-                BorderThickness = new Thickness(1),
                 CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(6, 2, 6, 2),
                 Height = 20,
@@ -519,6 +517,7 @@ public sealed partial class WeekCalendarView : UserControl
                 Tag = block,
                 Width = chipColWidth - 4
             };
+            ApplyChipSelectionVisual(chip, block.BackgroundColor, block.IsSelected);
             var label = new TextBlock
             {
                 Text = block.Title,
@@ -532,6 +531,12 @@ public sealed partial class WeekCalendarView : UserControl
             chip.RightTapped += OnAllDayBlockRightTapped;
             if (block.IsHoliday)
                 chip.IsHitTestVisible = false;
+            var bgColor = block.BackgroundColor;
+            block.PropertyChanged += (_, e) =>
+            {
+                if (e.PropertyName == nameof(WeekAllDayEventBlock.IsSelected))
+                    ApplyChipSelectionVisual(chip, bgColor, block.IsSelected);
+            };
             Canvas.SetLeft(chip, 0);
             Canvas.SetTop(chip, block.Top + 1);
             canvas.Children.Add(chip);
@@ -555,11 +560,10 @@ public sealed partial class WeekCalendarView : UserControl
         var border = new Border
         {
             Background = new SolidColorBrush(block.BackgroundColor),
-            BorderBrush = new SolidColorBrush(DarkenColor(block.BackgroundColor, 0.72)),
-            BorderThickness = new Thickness(1),
             CornerRadius = new CornerRadius(2),
             Tag = block
         };
+        ApplyChipSelectionVisual(border, block.BackgroundColor, block.IsSelected);
         ChipCursor.Move(border);
 
         ApplyChipHorizontalBounds(border, block);
@@ -582,6 +586,13 @@ public sealed partial class WeekCalendarView : UserControl
         };
 
         ToolTipService.SetToolTip(border, $"{block.Title}\n{block.TimeLabel}");
+
+        var bgColor = block.BackgroundColor;
+        block.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(WeekEventBlock.IsSelected))
+                ApplyChipSelectionVisual(border, bgColor, block.IsSelected);
+        };
 
         border.Tapped += OnEventBlockTapped;
         border.DoubleTapped += OnEventBlockDoubleTapped;
@@ -635,10 +646,28 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void UpdateSelectionState()
     {
-        if (WeekDayColumns is not IEnumerable cols) return;
-        foreach (var day in cols.OfType<WeekDayColumn>())
-            foreach (var b in day.EventBlocks)
+        if (WeekDayColumns is IEnumerable cols)
+            foreach (var day in cols.OfType<WeekDayColumn>())
+                foreach (var b in day.EventBlocks)
+                    b.IsSelected = b.EventId == _selectedEventId;
+
+        if (WeekAllDayEventBlocks is IEnumerable allDay)
+            foreach (var b in allDay.OfType<WeekAllDayEventBlock>())
                 b.IsSelected = b.EventId == _selectedEventId;
+    }
+
+    private static void ApplyChipSelectionVisual(Border border, Color bgColor, bool isSelected)
+    {
+        if (isSelected)
+        {
+            border.BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.White);
+            border.BorderThickness = new Thickness(2);
+        }
+        else
+        {
+            border.BorderBrush = new SolidColorBrush(DarkenColor(bgColor, 0.72));
+            border.BorderThickness = new Thickness(1);
+        }
     }
 
     private void UpdateEventBlockLayoutBounds()
@@ -805,14 +834,15 @@ public sealed partial class WeekCalendarView : UserControl
         e.Handled = true;
         if (sender is not Border b || b.Tag is not WeekEventBlock block) return;
 
+        _selectedEventId = block.EventId;
+        UpdateSelectionState();
+
         var flyout = new MenuFlyout();
 
         // Edit item — same action as double-clicking the block.
         var edit = new MenuFlyoutItem { Text = AppResources.MenuEdit };
         edit.Click += (_, _) =>
         {
-            _selectedEventId = block.EventId;
-            UpdateSelectionState();
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
             {
                 EventId = block.EventId,
@@ -879,7 +909,10 @@ public sealed partial class WeekCalendarView : UserControl
         // Single click selects only; opening the editor requires a double click.
         e.Handled = true;
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block && !block.IsHoliday)
+        {
             _selectedEventId = block.EventId;
+            UpdateSelectionState();
+        }
     }
 
     private void OnAllDayBlockDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
@@ -888,6 +921,7 @@ public sealed partial class WeekCalendarView : UserControl
         if (sender is Border b && b.Tag is WeekAllDayEventBlock block && !block.IsHoliday)
         {
             _selectedEventId = block.EventId;
+            UpdateSelectionState();
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
             {
                 EventId = block.EventId,
@@ -906,12 +940,14 @@ public sealed partial class WeekCalendarView : UserControl
         // Holiday blocks from business calendars are read-only.
         if (block.IsHoliday) return;
 
+        _selectedEventId = block.EventId;
+        UpdateSelectionState();
+
         var flyout = new MenuFlyout();
 
         var edit = new MenuFlyoutItem { Text = AppResources.MenuEdit };
         edit.Click += (_, _) =>
         {
-            _selectedEventId = block.EventId;
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
             {
                 EventId = block.EventId,
