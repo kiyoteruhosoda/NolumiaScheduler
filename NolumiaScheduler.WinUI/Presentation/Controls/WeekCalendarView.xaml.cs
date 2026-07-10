@@ -699,7 +699,7 @@ public sealed partial class WeekCalendarView : UserControl
                 b.IsSelected = b.EventId == _selectedEventId;
     }
 
-    private static void ApplyChipSelectionVisual(Border border, Color bgColor, bool isSelected)
+    private static void ApplyChipSelectionVisual(Border border, Windows.UI.Color bgColor, bool isSelected)
     {
         if (isSelected)
         {
