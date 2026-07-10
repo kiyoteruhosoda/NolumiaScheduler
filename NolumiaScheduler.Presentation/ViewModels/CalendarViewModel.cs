@@ -300,6 +300,110 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     public bool IsEventRecurring(string eventId) =>
         _eventService.FindById(eventId)?.IsRecurring() ?? false;
 
+    public string? GetEventJson(string eventId)
+    {
+        var ev = _eventService.FindById(eventId);
+        if (ev == null) return null;
+
+        object? BuildRecurrenceRule(Domain.ValueObjects.RecurrenceRule rule)
+        {
+            object? monthly = rule.Monthly switch
+            {
+                Domain.ValueObjects.DayOfMonthMonthlyRule m => new { type = "DayOfMonth", day = m.Day },
+                Domain.ValueObjects.LastDayOfMonthMonthlyRule => new { type = "LastDay" },
+                Domain.ValueObjects.NthWeekdayMonthlyRule m => new { type = "NthWeekday", weekIndex = m.WeekIndex, weekday = m.Weekday.ToString() },
+                _ => null
+            };
+            object? yearly = rule.Yearly switch
+            {
+                Domain.ValueObjects.DayOfMonthYearlyRule y => new { type = "DayOfMonth", month = y.Month, day = y.Day },
+                Domain.ValueObjects.NthWeekdayYearlyRule y => new { type = "NthWeekday", month = y.Month, weekIndex = y.WeekIndex, weekday = y.Weekday.ToString() },
+                _ => null
+            };
+            object? adjustment = rule.Adjustment == null ? null : new
+            {
+                condition = rule.Adjustment.Condition.ToString(),
+                shiftUnit = rule.Adjustment.ShiftUnit.ToString(),
+                shiftAmount = rule.Adjustment.ShiftAmount,
+                calendarId = rule.Adjustment.CalendarId?.Value
+            };
+            return new
+            {
+                ruleType = rule.RuleType.ToString(),
+                interval = rule.Interval,
+                endDate = rule.EndDate.ToString(),
+                weekdays = rule.Weekly?.Weekdays.Select(w => w.ToString()).ToList(),
+                monthly,
+                yearly,
+                adjustment
+            };
+        }
+
+        var obj = new
+        {
+            id = ev.Id.Value,
+            kind = ev.Kind.ToString(),
+            title = ev.Title.Value,
+            location = ev.Location?.Value,
+            visibility = ev.Visibility.ToString(),
+            eventType = ev.EventType?.Value,
+            description = ev.Description?.Value,
+            timeZoneId = ev.TimeZoneId.Value,
+            singleSchedule = ev.SingleSchedule == null ? null : (object)new
+            {
+                startUtc = ev.SingleSchedule.StartUtc.ToString("O"),
+                durationMinutes = ev.SingleSchedule.DurationMinutes
+            },
+            recurringSchedule = ev.RecurringSchedule == null ? null : (object)new
+            {
+                anchorUtc = ev.RecurringSchedule.AnchorUtc.ToString("O"),
+                durationMinutes = ev.RecurringSchedule.DurationMinutes,
+                rule = BuildRecurrenceRule(ev.RecurringSchedule.RecurrenceRule)
+            },
+            exceptions = ev.Exceptions.Select(e => new
+            {
+                date = e.OccurrenceKey.Date.ToString(),
+                time = e.OccurrenceKey.Time?.ToString(),
+                type = e.Type.ToString(),
+                @override = e.Override == null ? null : (object)new
+                {
+                    title = e.Override.Title?.Value,
+                    location = e.Override.Location?.Value,
+                    visibility = e.Override.Visibility?.ToString(),
+                    startTime = e.Override.StartTime?.ToString(),
+                    durationMinutes = e.Override.DurationMinutes,
+                    alarmEnabled = e.Override.AlarmEnabled
+                }
+            }).ToList(),
+            moves = ev.Moves.Select(m => new
+            {
+                date = m.OccurrenceKey.Date.ToString(),
+                time = m.OccurrenceKey.Time?.ToString(),
+                newDate = m.NewDate.ToString(),
+                newStartTime = m.NewStartTime?.ToString(),
+                newDurationMinutes = m.NewDurationMinutes,
+                title = m.Title?.Value,
+                location = m.Location?.Value,
+                visibility = m.Visibility?.ToString()
+            }).ToList(),
+            alarm = ev.Alarm == null ? null : (object)new
+            {
+                isEnabled = ev.Alarm.IsEnabled,
+                notify15Min = ev.Alarm.Notify15Min,
+                notify5Min = ev.Alarm.Notify5Min,
+                notify1Min = ev.Alarm.Notify1Min,
+                notifyAtStart = ev.Alarm.NotifyAtStart
+            },
+            color = ev.ColorKey == Domain.ValueObjects.EventColorKey.Default ? null : ev.ColorKey.ToString(),
+            version = ev.Version.Value,
+            createdAt = ev.CreatedAt.ToString("O"),
+            updatedAt = ev.UpdatedAt.ToString("O")
+        };
+
+        return System.Text.Json.JsonSerializer.Serialize(obj,
+            new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+    }
+
     public void DeleteEntireEvent(string eventId)
     {
         _eventService.DeleteEvent(eventId);
