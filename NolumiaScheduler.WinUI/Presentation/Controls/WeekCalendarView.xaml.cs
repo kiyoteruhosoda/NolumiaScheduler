@@ -515,7 +515,7 @@ public sealed partial class WeekCalendarView : UserControl
                 CornerRadius = new CornerRadius(2),
                 Padding = new Thickness(6, 2, 6, 2),
                 Height = 20,
-                Opacity = 0.82,
+                Opacity = block.IsHoliday ? 0.70 : 0.82,
                 Tag = block,
                 Width = chipColWidth - 4
             };
@@ -530,6 +530,8 @@ public sealed partial class WeekCalendarView : UserControl
             chip.Tapped += OnAllDayBlockTapped;
             chip.DoubleTapped += OnAllDayBlockDoubleTapped;
             chip.RightTapped += OnAllDayBlockRightTapped;
+            if (block.IsHoliday)
+                chip.IsHitTestVisible = false;
             Canvas.SetLeft(chip, 0);
             Canvas.SetTop(chip, block.Top + 1);
             canvas.Children.Add(chip);
@@ -876,14 +878,14 @@ public sealed partial class WeekCalendarView : UserControl
         // Handled so the tap does not bubble to the lane and start a new-event create.
         // Single click selects only; opening the editor requires a double click.
         e.Handled = true;
-        if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
+        if (sender is Border b && b.Tag is WeekAllDayEventBlock block && !block.IsHoliday)
             _selectedEventId = block.EventId;
     }
 
     private void OnAllDayBlockDoubleTapped(object sender, DoubleTappedRoutedEventArgs e)
     {
         e.Handled = true;
-        if (sender is Border b && b.Tag is WeekAllDayEventBlock block)
+        if (sender is Border b && b.Tag is WeekAllDayEventBlock block && !block.IsHoliday)
         {
             _selectedEventId = block.EventId;
             EventBlockTapped?.Invoke(this, new WeekEventBlockTappedEventArgs
@@ -900,6 +902,9 @@ public sealed partial class WeekCalendarView : UserControl
     {
         e.Handled = true;
         if (sender is not Border b || b.Tag is not WeekAllDayEventBlock block) return;
+
+        // Holiday blocks from business calendars are read-only.
+        if (block.IsHoliday) return;
 
         var flyout = new MenuFlyout();
 

@@ -225,11 +225,11 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             SelectedDayEvents.Add(new CalendarEventItem(occ));
         SelectedDayHasNoEvents = SelectedDayEvents.Count == 0;
 
-        // Collect holiday info for the selected day across all business calendars
+        // Collect holiday info for the selected day across all enabled business calendars
         if (cell.IsHoliday)
         {
             var parts = new List<string>();
-            foreach (var cal in _calendarService.FindAll())
+            foreach (var cal in _calendarService.FindAll().Where(c => c.IsEnabled))
             {
                 var h = cal.Holidays.FirstOrDefault(h => h.Date.Equals(cell.Date));
                 if (h != null)
@@ -721,11 +721,74 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         foreach (var block in _weekAllDayLayoutStrategy.Layout(allDayInput, _weekStartDate))
             WeekAllDayEventBlocks.Add(block);
 
-        // Collect holiday dates once instead of re-scanning every business calendar per day.
-        var holidayDates = _calendarService.FindAll()
-            .SelectMany(c => c.Holidays)
-            .Select(h => h.Date.ToString())
-            .ToHashSet();
+        // Add holiday blocks from enabled business calendars to the all-day lane.
+        // Holidays occupy row 0; regular all-day event rows are shifted up by one when holidays exist.
+        var enabledCalendars = _calendarService.FindAll().Where(c => c.IsEnabled).ToList();
+        var holidayByDate = new Dictionary<string, string?>();
+        foreach (var cal in enabledCalendars)
+        {
+            foreach (var h in cal.Holidays)
+            {
+                var key = h.Date.ToString();
+                if (!holidayByDate.ContainsKey(key))
+                    holidayByDate[key] = h.Name;
+            }
+        }
+
+        var isDark = Helpers.ThemeHelper.IsDark;
+        var holidayColor = isDark ? WinColors.GCalRedDark : WinColors.GCalRed;
+
+        // Check whether any holiday falls within the displayed week.
+        var hasHolidayThisWeek = Enumerable.Range(0, dayCount)
+            .Select(i => LocalDateValue.FromDateOnly(DateOnly.FromDateTime(_weekStartDate.AddDays(i))).ToString())
+            .Any(k => holidayByDate.ContainsKey(k));
+
+        if (hasHolidayThisWeek)
+        {
+            // Shift existing all-day event blocks down by one row so holiday chips occupy row 0.
+            var shifted = WeekAllDayEventBlocks.Select(b => new WeekAllDayEventBlock
+            {
+                EventId = b.EventId,
+                OccurrenceKey = b.OccurrenceKey,
+                StartDate = b.StartDate,
+                EndDate = b.EndDate,
+                LeftColumn = b.LeftColumn,
+                WidthColumns = b.WidthColumns,
+                Row = b.Row + 1,
+                Title = b.Title,
+                BackgroundColor = b.BackgroundColor,
+                LeftRatio = b.LeftRatio,
+                WidthRatio = b.WidthRatio,
+                IsHoliday = b.IsHoliday,
+            }).ToList();
+            WeekAllDayEventBlocks.Clear();
+            foreach (var b in shifted) WeekAllDayEventBlocks.Add(b);
+        }
+
+        for (var i = 0; i < dayCount; i++)
+        {
+            var date = _weekStartDate.AddDays(i);
+            var dateVal = LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date));
+            if (!holidayByDate.TryGetValue(dateVal.ToString(), out var holidayName)) continue;
+
+            WeekAllDayEventBlocks.Add(new WeekAllDayEventBlock
+            {
+                EventId = $"$holiday:{dateVal}",
+                OccurrenceKey = null,
+                StartDate = date,
+                EndDate = date,
+                LeftColumn = i,
+                WidthColumns = 1,
+                Row = 0,
+                Title = holidayName ?? "",
+                BackgroundColor = holidayColor,
+                LeftRatio = i / (double)dayCount,
+                WidthRatio = 1.0 / dayCount,
+                IsHoliday = true,
+            });
+        }
+
+        var holidayDates = holidayByDate.Keys.ToHashSet();
 
         for (var i = 0; i < dayCount; i++)
         {
@@ -824,9 +887,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             });
         }
 
-        // Collect holidays from all business calendars for display
+        // Collect holidays from enabled business calendars for display
         var holidayByDate = new Dictionary<string, string?>();
-        foreach (var cal in _calendarService.FindAll())
+        foreach (var cal in _calendarService.FindAll().Where(c => c.IsEnabled))
         {
             foreach (var h in cal.Holidays)
             {

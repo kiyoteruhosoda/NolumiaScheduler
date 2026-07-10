@@ -11,7 +11,8 @@ public class BusinessCalendar(
     TimeZoneId timeZoneId,
     IEnumerable<Weekday> workdays,
     IEnumerable<Holiday>? holidays = null,
-    bool shiftOnHolidaysOnly = false)
+    bool shiftOnHolidaysOnly = false,
+    bool isEnabled = true)
 {
     public BusinessCalendarId Id { get; } = id ?? throw new ArgumentNullException(nameof(id));
     public string Name { get; private set; } = name ?? throw new ArgumentNullException(nameof(name));
@@ -29,13 +30,21 @@ public class BusinessCalendar(
     /// </summary>
     public bool ShiftOnHolidaysOnly { get; private set; } = shiftOnHolidaysOnly;
 
-    public void Update(string name, IEnumerable<Weekday> workdays, bool shiftOnHolidaysOnly = false)
+    /// <summary>
+    /// When <see langword="false"/>, this calendar is ignored for holiday highlighting
+    /// and business-day expansion in the calendar view.
+    /// Defaults to <see langword="true"/>.
+    /// </summary>
+    public bool IsEnabled { get; private set; } = isEnabled;
+
+    public void Update(string name, IEnumerable<Weekday> workdays, bool shiftOnHolidaysOnly = false, bool isEnabled = true)
     {
         Name = name ?? throw new ArgumentNullException(nameof(name));
         _workdays.Clear();
         foreach (var w in workdays)
             _workdays.Add(w);
         ShiftOnHolidaysOnly = shiftOnHolidaysOnly;
+        IsEnabled = isEnabled;
     }
 
     public void AddHoliday(Holiday holiday)

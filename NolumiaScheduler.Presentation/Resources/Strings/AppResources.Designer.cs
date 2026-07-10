@@ -120,6 +120,10 @@ public static class AppResources
     public static string AdjustmentBusinessDaysLabel => Get(nameof(AdjustmentBusinessDaysLabel));
     public static string MonthlyLastDay           => Get(nameof(MonthlyLastDay));
     public static string AdjustmentHolidayShiftLabel => Get(nameof(AdjustmentHolidayShiftLabel));
+    public static string CalendarEnabledLabel        => Get(nameof(CalendarEnabledLabel));
+    public static string AdjustmentDateTypeLabel     => Get(nameof(AdjustmentDateTypeLabel));
+    public static string AdjustmentScheduledDate     => Get(nameof(AdjustmentScheduledDate));
+    public static string AdjustmentBaseDate          => Get(nameof(AdjustmentBaseDate));
     public static string UseCustomIntervalLabel   => Get(nameof(UseCustomIntervalLabel));
     public static string BusinessCalendarLabel    => Get(nameof(BusinessCalendarLabel));
     public static string ErrorTitleRequired       => Get(nameof(ErrorTitleRequired));

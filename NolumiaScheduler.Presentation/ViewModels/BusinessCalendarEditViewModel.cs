@@ -19,6 +19,7 @@ public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
     private DateTime _newHolidayDate;
     private string _newHolidayName = "";
     private bool _shiftOnHolidaysOnly;
+    private bool _isEnabled = true;
 
     public string? CalendarId
     {
@@ -52,6 +53,12 @@ public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
     {
         get => _shiftOnHolidaysOnly;
         set { _shiftOnHolidaysOnly = value; OnPropertyChanged(); }
+    }
+
+    public bool IsEnabled
+    {
+        get => _isEnabled;
+        set { _isEnabled = value; OnPropertyChanged(); }
     }
 
     public ObservableCollection<HolidayDisplayItem> Holidays { get; } = [];
@@ -96,6 +103,7 @@ public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
         Name = cal.Name;
         SetWorkdays(cal.Workdays);
         ShiftOnHolidaysOnly = cal.ShiftOnHolidaysOnly;
+        IsEnabled = cal.IsEnabled;
 
         Holidays.Clear();
         foreach (var h in cal.Holidays.OrderBy(h => h.Date.ToString()))
@@ -189,13 +197,13 @@ public partial class BusinessCalendarEditViewModel : INotifyPropertyChanged
 
         if (_calendarId == null)
         {
-            var createdId = _service.Create(new CreateBusinessCalendarCommand(Name.Trim(), timezone, workdays, ShiftOnHolidaysOnly));
+            var createdId = _service.Create(new CreateBusinessCalendarCommand(Name.Trim(), timezone, workdays, ShiftOnHolidaysOnly, IsEnabled));
             foreach (var h in Holidays)
                 _service.AddHoliday(new AddHolidayCommand(createdId, h.Date, h.Name));
         }
         else
         {
-            _service.Update(new UpdateBusinessCalendarCommand(_calendarId, Name.Trim(), workdays, ShiftOnHolidaysOnly));
+            _service.Update(new UpdateBusinessCalendarCommand(_calendarId, Name.Trim(), workdays, ShiftOnHolidaysOnly, IsEnabled));
 
             var existing = _service.FindById(_calendarId)!;
             var datesToRemove = existing.Holidays.Select(h => h.Date).ToList();

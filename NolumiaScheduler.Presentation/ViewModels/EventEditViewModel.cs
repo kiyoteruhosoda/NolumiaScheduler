@@ -20,6 +20,13 @@ public enum MonthlyRuleIndex { DayOfMonth = 0, NthWeekday = 1 }
 /// <summary>Business-day adjustment shift direction: 0=Before(前) 1=After(後)</summary>
 public enum AdjustmentDirectionIndex { Before = 0, After = 1 }
 
+/// <summary>
+/// Business-day adjustment date type.
+/// 0 = Scheduled Date (予定日): shift only when the candidate date is a holiday (Condition.Holiday).
+/// 1 = Base Date (基準日): always shift by the given number of business days (Condition.Always).
+/// </summary>
+public enum AdjustmentDateTypeIndex { ScheduledDate = 0, BaseDate = 1 }
+
 public partial class EventEditViewModel : INotifyPropertyChanged
 {
     private readonly CalendarEventApplicationService _eventService;
@@ -62,9 +69,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private int _yearlyWeekIndexPickerIndex = 1;
     private int _yearlyWeekdayIndex;
 
-    // Adjustment: the business-day offset is primary (0 = no shift); the holiday-only restriction
-    // is a secondary opt-in checkbox.
-    private bool _adjustmentHolidayShift;
+    // Adjustment: date type index selects the mode (0 = Scheduled Date / holiday-only,
+    // 1 = Base Date / always shift N days). The business-day offset is the primary input for
+    // Base Date mode; for Scheduled Date mode it is fixed at 1.
+    private int _adjustmentDateTypeIndex; // 0 = ScheduledDate (Holiday), 1 = BaseDate (Always)
     private int _adjustmentDirectionIndex = (int)ViewModels.AdjustmentDirectionIndex.Before;
     private int _adjustmentBusinessDays;   // 0 = no business-day shift
     private int _selectedCalendarIndex = -1;
@@ -387,8 +395,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             // would overwrite the real value if set afterward).
             UseBusinessDayAdjustment = true;
 
-            // Holiday-only restriction is the opt-in checkbox; the default (unchecked) shifts always.
-            AdjustmentHolidayShift = rule.Adjustment.Condition == AdjustmentCondition.Holiday;
+            // Map condition to date type: Holiday → Scheduled Date (0), Always → Base Date (1).
+            AdjustmentDateTypeIndex = rule.Adjustment.Condition == AdjustmentCondition.Holiday
+                ? (int)ViewModels.AdjustmentDateTypeIndex.ScheduledDate
+                : (int)ViewModels.AdjustmentDateTypeIndex.BaseDate;
 
             AdjustmentDirectionIndex = rule.Adjustment.ShiftAmount < 0
                 ? (int)ViewModels.AdjustmentDirectionIndex.Before
@@ -445,6 +455,13 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     [
         AppResources.AdjustmentBefore,
         AppResources.AdjustmentAfter
+    ];
+
+    // Date type: Scheduled Date (予定日) or Base Date (基準日).
+    public static List<string> AdjustmentDateTypeItems =>
+    [
+        AppResources.AdjustmentScheduledDate,
+        AppResources.AdjustmentBaseDate
     ];
 
     /// <summary>Selectable color keys; index-aligned with <see cref="ColorItems"/>.</summary>
@@ -735,11 +752,28 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     }
 
     // Adjustment
-    public bool AdjustmentHolidayShift
+    /// <summary>
+    /// Date type for business-day adjustment.
+    /// 0 = Scheduled Date (予定日): shift only when date is a holiday (Condition.Holiday).
+    /// 1 = Base Date (基準日): always shift by N business days (Condition.Always).
+    /// </summary>
+    public int AdjustmentDateTypeIndex
     {
-        get => _adjustmentHolidayShift;
-        set { _adjustmentHolidayShift = value; OnPropertyChanged(); }
+        get => _adjustmentDateTypeIndex;
+        set
+        {
+            _adjustmentDateTypeIndex = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(IsScheduledDateMode));
+            OnPropertyChanged(nameof(IsBaseDateMode));
+        }
     }
+
+    /// <summary><see langword="true"/> when the date type is "Scheduled Date" (holiday-only shift).</summary>
+    public bool IsScheduledDateMode => _adjustmentDateTypeIndex == (int)ViewModels.AdjustmentDateTypeIndex.ScheduledDate;
+
+    /// <summary><see langword="true"/> when the date type is "Base Date" (always shift N days).</summary>
+    public bool IsBaseDateMode => _adjustmentDateTypeIndex == (int)ViewModels.AdjustmentDateTypeIndex.BaseDate;
 
     public int AdjustmentDirectionIndex
     {
@@ -1267,15 +1301,18 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     private AdjustmentRule? BuildAdjustmentRule()
     {
-        // No offset means no business-day adjustment at all.
+        if (!_useBusinessDayAdjustment) return null;
+
+        // Zero offset means no business-day adjustment (used by tests and by the
+        // UseBusinessDayAdjustment setter to clear the rule).
         if (_adjustmentBusinessDays <= 0) return null;
 
         BusinessCalendarId? calId = null;
         if (_selectedCalendarIndex >= 0 && _selectedCalendarIndex < _availableCalendarIds.Count)
             calId = new BusinessCalendarId(_availableCalendarIds[_selectedCalendarIndex]);
 
-        // The holiday-shift checkbox restricts shifting to holidays; default is to always shift.
-        var condition = _adjustmentHolidayShift
+        // Scheduled Date mode shifts only on holidays; Base Date mode always shifts.
+        var condition = _adjustmentDateTypeIndex == (int)ViewModels.AdjustmentDateTypeIndex.ScheduledDate
             ? AdjustmentCondition.Holiday
             : AdjustmentCondition.Always;
 

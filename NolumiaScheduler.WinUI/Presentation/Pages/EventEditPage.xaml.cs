@@ -43,7 +43,6 @@ public sealed partial class EventEditPage : Page
     private bool _suppressYearlyWeekdayChanged;
     private bool _suppressAdjustmentDirectionChanged;
     private bool _suppressAdjustmentDaysChanged;
-    private bool _suppressAdjustmentHolidayShiftChanged;
     private bool _suppressMonthlyLastDayChanged;
     private bool _suppressUseCustomIntervalChanged;
     private bool _suppressUseBusinessDayAdjustmentChanged;
@@ -89,7 +88,8 @@ public sealed partial class EventEditPage : Page
         UseBusinessDayAdjustmentLabelText.Text = AppResources.UseBusinessDayAdjustmentLabel;
         AdjustmentLabel.Text    = AppResources.AdjustmentLabel;
         AdjustmentBusinessDaysLabel.Text = AppResources.AdjustmentBusinessDaysLabel;
-        AdjustmentHolidayShiftLabel.Text = AppResources.AdjustmentHolidayShiftLabel;
+        AdjustmentDateTypeLabel.Text = AppResources.AdjustmentDateTypeLabel;
+        AdjustmentScheduledDirectionLabel.Text = AppResources.AdjustmentLabel;
         BusinessCalendarLabel.Text = AppResources.BusinessCalendarLabel;
         ColorLabel.Text         = AppResources.ColorLabel;
         AlarmLabel.Text         = AppResources.AlarmLabel;
@@ -288,6 +288,13 @@ public sealed partial class EventEditPage : Page
         UseBusinessDayAdjustmentSwitch.IsOn = _vm.UseBusinessDayAdjustment;
         _suppressUseBusinessDayAdjustmentChanged = false;
 
+        AdjustmentDateTypePicker.ItemsSource = EventEditViewModel.AdjustmentDateTypeItems;
+        AdjustmentScheduledDirectionPicker.ItemsSource = EventEditViewModel.AdjustmentDirectionItems;
+        AdjustmentDateTypePicker.SelectedIndex = _vm.AdjustmentDateTypeIndex;
+        AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+        AdjustmentDateTypePicker.SelectionChanged += OnAdjustmentDateTypeChanged;
+        AdjustmentScheduledDirectionPicker.SelectionChanged += OnAdjustmentScheduledDirectionChanged;
+
         _suppressAdjustmentDirectionChanged = true;
         AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
         _suppressAdjustmentDirectionChanged = false;
@@ -295,10 +302,6 @@ public sealed partial class EventEditPage : Page
         _suppressAdjustmentDaysChanged = true;
         AdjustmentDaysBox.Text = _vm.AdjustmentBusinessDays.ToString();
         _suppressAdjustmentDaysChanged = false;
-
-        _suppressAdjustmentHolidayShiftChanged = true;
-        AdjustmentHolidayShiftSwitch.IsOn = _vm.AdjustmentHolidayShift;
-        _suppressAdjustmentHolidayShiftChanged = false;
 
         CalendarPicker.ItemsSource = _vm.AvailableCalendarNames;
         _suppressCalendarPickerChanged = true;
@@ -482,7 +485,8 @@ public sealed partial class EventEditPage : Page
             case nameof(EventEditViewModel.IsDayOfMonthInputEnabled):
             case nameof(EventEditViewModel.UseCustomInterval):
             case nameof(EventEditViewModel.UseBusinessDayAdjustment):
-            case nameof(EventEditViewModel.AdjustmentHolidayShift):
+            case nameof(EventEditViewModel.IsScheduledDateMode):
+            case nameof(EventEditViewModel.IsBaseDateMode):
             case nameof(EventEditViewModel.ShowAlarmNotifyOptions):
                 ApplySectionVisibility();
                 break;
@@ -582,7 +586,15 @@ public sealed partial class EventEditPage : Page
         AdjustmentDetailSection.Visibility = _vm.UseBusinessDayAdjustment
             ? Visibility.Visible : Visibility.Collapsed;
 
-        CalendarPickerSection.Visibility = (_vm.HasAdjustment && _vm.HasAvailableCalendars && !_vm.AdjustmentHolidayShift)
+        // In Scheduled Date mode: show the simple direction picker, hide the N-days input.
+        // In Base Date mode: show N-days + direction, hide the scheduled direction picker.
+        AdjustmentDaysSection.Visibility = _vm.IsBaseDateMode
+            ? Visibility.Visible : Visibility.Collapsed;
+        AdjustmentScheduledDirectionSection.Visibility = _vm.IsScheduledDateMode
+            ? Visibility.Visible : Visibility.Collapsed;
+
+        // Show calendar picker whenever adjustment is ON and calendars are available.
+        CalendarPickerSection.Visibility = (_vm.UseBusinessDayAdjustment && _vm.HasAvailableCalendars)
             ? Visibility.Visible : Visibility.Collapsed;
 
         AlarmNotifySection.Visibility  = _vm.ShowAlarmNotifyOptions ? Visibility.Visible : Visibility.Collapsed;
@@ -853,10 +865,25 @@ public sealed partial class EventEditPage : Page
         _suppressEndDateChanged = false;
     }
 
-    private void OnAdjustmentHolidayShiftToggled(object sender, RoutedEventArgs e)
+    private void OnAdjustmentDateTypeChanged(object sender, SelectionChangedEventArgs e)
     {
-        if (_suppressAdjustmentHolidayShiftChanged || _vm == null) return;
-        _vm.AdjustmentHolidayShift = AdjustmentHolidayShiftSwitch.IsOn;
+        if (_vm == null) return;
+        var picker = sender as ComboBox ?? AdjustmentDateTypePicker;
+        _vm.AdjustmentDateTypeIndex = picker.SelectedIndex;
+    }
+
+    private void OnAdjustmentScheduledDirectionChanged(object sender, SelectionChangedEventArgs e)
+    {
+        if (_vm == null) return;
+        var picker = sender as ComboBox ?? AdjustmentScheduledDirectionPicker;
+        _vm.AdjustmentDirectionIndex = picker.SelectedIndex;
+        // Keep the Base Date direction picker in sync.
+        if (!_suppressAdjustmentDirectionChanged)
+        {
+            _suppressAdjustmentDirectionChanged = true;
+            AdjustmentDirectionPicker.SelectedIndex = picker.SelectedIndex;
+            _suppressAdjustmentDirectionChanged = false;
+        }
     }
 
     private void OnMonthlyLastDayChanged(object sender, RoutedEventArgs e)
@@ -890,6 +917,8 @@ public sealed partial class EventEditPage : Page
     {
         if (_suppressAdjustmentDirectionChanged || _vm == null) return;
         _vm.AdjustmentDirectionIndex = AdjustmentDirectionPicker.SelectedIndex;
+        // Keep the Scheduled Date direction picker in sync.
+        AdjustmentScheduledDirectionPicker.SelectedIndex = AdjustmentDirectionPicker.SelectedIndex;
     }
 
     private void OnAdjustmentDaysChanged(object sender, TextChangedEventArgs e)

@@ -19,6 +19,7 @@ public sealed partial class BusinessCalendarEditPage : Page
 
         NameLabel.Text = AppResources.CalendarNamePlaceholder;
         WorkdaysLabel.Text = AppResources.WorkdaysLabel;
+        EnabledLabel.Text = AppResources.CalendarEnabledLabel;
         ChkShiftOnHolidaysOnly.Content = AppResources.AdjustmentHolidayShiftLabel;
         HolidaysLabel.Text = AppResources.HolidaysLabel;
         AddHolidayBtn.Content = AppResources.AddHolidayButton;
@@ -68,6 +69,9 @@ public sealed partial class BusinessCalendarEditPage : Page
         ChkShiftOnHolidaysOnly.IsChecked = _vm.ShiftOnHolidaysOnly;
         ChkShiftOnHolidaysOnly.Checked += (_, _) => _vm.ShiftOnHolidaysOnly = true;
         ChkShiftOnHolidaysOnly.Unchecked += (_, _) => _vm.ShiftOnHolidaysOnly = false;
+
+        EnabledSwitch.IsOn = _vm.IsEnabled;
+        EnabledSwitch.Toggled += (_, _) => _vm.IsEnabled = EnabledSwitch.IsOn;
 
         HolidayList.ItemsSource = _vm.Holidays;
         DeleteBtn.Visibility = _vm.IsEditing ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;

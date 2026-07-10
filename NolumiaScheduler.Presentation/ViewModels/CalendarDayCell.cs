@@ -17,6 +17,9 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
     public bool IsHoliday { get; init; }
     public string? HolidayName { get; init; }
 
+    /// <summary>Chip text for the holiday to show in the month cell. Returns the name if set, otherwise an empty string. Non-null only when <see cref="IsHoliday"/> is true.</summary>
+    public string? HolidayChipText => IsHoliday ? (HolidayName ?? "") : null;
+
     public bool IsSelected
     {
         get => _isSelected;

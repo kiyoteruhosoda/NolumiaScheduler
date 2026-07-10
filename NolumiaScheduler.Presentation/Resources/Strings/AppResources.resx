@@ -300,6 +300,18 @@
   <data name="AdjustmentHolidayShiftLabel" xml:space="preserve">
     <value>Shift only on holidays</value>
   </data>
+  <data name="CalendarEnabledLabel" xml:space="preserve">
+    <value>Enable</value>
+  </data>
+  <data name="AdjustmentDateTypeLabel" xml:space="preserve">
+    <value>Date type</value>
+  </data>
+  <data name="AdjustmentScheduledDate" xml:space="preserve">
+    <value>Scheduled Date</value>
+  </data>
+  <data name="AdjustmentBaseDate" xml:space="preserve">
+    <value>Base Date</value>
+  </data>
   <data name="UseCustomIntervalLabel" xml:space="preserve">
     <value>Custom interval</value>
   </data>

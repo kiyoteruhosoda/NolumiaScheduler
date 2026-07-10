@@ -6,13 +6,15 @@ public sealed record CreateBusinessCalendarCommand(
     string Name,
     string TimeZone,
     IReadOnlyList<Weekday> Workdays,
-    bool ShiftOnHolidaysOnly = false);
+    bool ShiftOnHolidaysOnly = false,
+    bool IsEnabled = true);
 
 public sealed record UpdateBusinessCalendarCommand(
     string CalendarId,
     string Name,
     IReadOnlyList<Weekday> Workdays,
-    bool ShiftOnHolidaysOnly = false);
+    bool ShiftOnHolidaysOnly = false,
+    bool IsEnabled = true);
 
 public sealed record AddHolidayCommand(
     string CalendarId,
