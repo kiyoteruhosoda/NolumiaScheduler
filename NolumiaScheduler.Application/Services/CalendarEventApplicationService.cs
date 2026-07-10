@@ -185,6 +185,19 @@ public class CalendarEventApplicationService(
     }
 
     /// <summary>
+    /// Cancels a drag-created move override for a recurring occurrence, restoring it to its
+    /// canonical series position. Used by Undo when the occurrence had no prior move.
+    /// </summary>
+    public void CancelMoveOccurrence(CancelMoveOccurrenceCommand command)
+    {
+        var ev = GetOrThrow(command.EventId);
+        if (!ev.IsRecurring())
+            throw new DomainException("CancelMoveOccurrence is only valid for recurring events.");
+        ev.RemoveOccurrenceMove(command.OccurrenceKey, _clock.GetUtcNow());
+        _repository.Save(ev);
+    }
+
+    /// <summary>
     /// Splits a single occurrence out of a recurring series: excludes the occurrence from the
     /// series (skip) and creates a new standalone single event with the given details.
     /// This is the only supported way to edit one occurrence of a recurring series.

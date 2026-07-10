@@ -39,6 +39,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     private sealed record DragUndoEntry(
         string EventId,
         OccurrenceLocalKey? MoveKey,
+        // True when the occurrence already had a move override before this drag/resize. When false,
+        // undoing the operation must *remove* the move entry entirely (not just reposition it).
+        bool HadMoveBeforeDrag,
         DateOnly BeforeDate, int BeforeStart, int BeforeEnd,
         DateOnly AfterDate,  int AfterStart,  int AfterEnd);
 
@@ -426,8 +429,9 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         var duration = Math.Clamp(durationMinutes, 15, MinutesPerDay - 15);
         var startMinute = Math.Clamp(newStartMinute, 0, MinutesPerDay - 15);
         var endMinute = Math.Min(startMinute + duration, MinutesPerDay - 1);
+        var hadMove = occurrenceKey != null && HasExistingMove(eventId, occurrenceKey);
         var entry = new DragUndoEntry(
-            eventId, occurrenceKey,
+            eventId, occurrenceKey, hadMove,
             originalDate, originalStartMinute, originalEndMinute,
             newDate, startMinute, endMinute);
         if (ApplyOccurrenceReschedule(eventId, occurrenceKey, newDate, startMinute, endMinute))
@@ -442,18 +446,33 @@ public partial class CalendarViewModel : INotifyPropertyChanged
     {
         var start = Math.Clamp(startMinute, 0, MinutesPerDay - 15);
         var end = Math.Clamp(endMinute, start + 15, MinutesPerDay - 1);
+        var hadMove = occurrenceKey != null && HasExistingMove(eventId, occurrenceKey);
         var entry = new DragUndoEntry(
-            eventId, occurrenceKey,
+            eventId, occurrenceKey, hadMove,
             date, originalStartMinute, originalEndMinute,
             date, start, end);
         if (ApplyOccurrenceReschedule(eventId, occurrenceKey, date, start, end))
             PushUndo(entry);
     }
 
+    // Returns true when the given recurring event already has a move override for the occurrence key.
+    private bool HasExistingMove(string eventId, OccurrenceLocalKey occurrenceKey)
+    {
+        var ev = _eventService.FindById(eventId);
+        return ev != null && ev.Moves.Any(m => m.OccurrenceKey.Equals(occurrenceKey));
+    }
+
     public void Undo()
     {
         if (!_undoStack.TryPop(out var entry)) return;
-        if (ApplyOccurrenceReschedule(entry.EventId, entry.MoveKey, entry.BeforeDate, entry.BeforeStart, entry.BeforeEnd))
+        bool success;
+        // When the occurrence was not previously moved, undo must remove the move entry entirely
+        // to restore it back into the series (not just reposition it at the original date/time).
+        if (!entry.HadMoveBeforeDrag && entry.MoveKey != null)
+            success = CancelOccurrenceMove(entry.EventId, entry.MoveKey);
+        else
+            success = ApplyOccurrenceReschedule(entry.EventId, entry.MoveKey, entry.BeforeDate, entry.BeforeStart, entry.BeforeEnd);
+        if (success)
             _redoStack.Push(entry);
         NotifyUndoRedoChanged();
     }
@@ -524,6 +543,22 @@ public partial class CalendarViewModel : INotifyPropertyChanged
         {
             // Invalid reschedule (e.g. dragging an already-overridden occurrence): leave the
             // event unchanged so the chip snaps back to its original position.
+            return false;
+        }
+    }
+
+    // Removes the move override for an occurrence, restoring it to its canonical series position.
+    // Returns true if the cancellation was applied successfully.
+    private bool CancelOccurrenceMove(string eventId, OccurrenceLocalKey occurrenceKey)
+    {
+        try
+        {
+            _eventService.CancelMoveOccurrence(new CancelMoveOccurrenceCommand(eventId, occurrenceKey));
+            RefreshAfterChange();
+            return true;
+        }
+        catch (Exception)
+        {
             return false;
         }
     }

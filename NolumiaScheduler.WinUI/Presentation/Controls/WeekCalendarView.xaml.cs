@@ -542,6 +542,13 @@ public sealed partial class WeekCalendarView : UserControl
                 });
                 chip.Child = grid;
             }
+            else if (block.IsRecurring && block.IsModifiedOccurrence)
+            {
+                var grid = new Grid();
+                grid.Children.Add(label);
+                grid.Children.Add(BuildModifiedRecurrenceIcon());
+                chip.Child = grid;
+            }
             else
             {
                 chip.Child = label;
@@ -576,6 +583,38 @@ public sealed partial class WeekCalendarView : UserControl
 
     private static Windows.UI.Color DarkenColor(Windows.UI.Color color, double factor)
         => Windows.UI.Color.FromArgb(color.A, (byte)(color.R * factor), (byte)(color.G * factor), (byte)(color.B * factor));
+
+    // Builds a small icon badge for occurrences that have been dragged out of their recurring
+    // series (IsMoved). Shows the recurrence symbol overlaid with a small cancel/X mark, similar
+    // to Outlook's "exception" occurrence indicator.
+    private static Grid BuildModifiedRecurrenceIcon()
+    {
+        var panel = new Grid
+        {
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Bottom,
+            IsHitTestVisible = false,
+        };
+        panel.Children.Add(new TextBlock
+        {
+            Text = "\uE8EE",
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+            FontSize = 8,
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+            IsHitTestVisible = false,
+        });
+        panel.Children.Add(new TextBlock
+        {
+            Text = "\uE711",
+            FontFamily = new Microsoft.UI.Xaml.Media.FontFamily("Segoe MDL2 Assets"),
+            FontSize = 6,
+            Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+            HorizontalAlignment = HorizontalAlignment.Right,
+            VerticalAlignment = VerticalAlignment.Top,
+            IsHitTestVisible = false,
+        });
+        return panel;
+    }
 
     private Border CreateEventBlockChip(WeekEventBlock block)
     {
@@ -622,6 +661,13 @@ public sealed partial class WeekCalendarView : UserControl
                 VerticalAlignment = VerticalAlignment.Bottom,
                 IsHitTestVisible = false,
             });
+            border.Child = grid;
+        }
+        else if (block.IsRecurring && block.IsModifiedOccurrence)
+        {
+            var grid = new Grid();
+            grid.Children.Add(titleLabel);
+            grid.Children.Add(BuildModifiedRecurrenceIcon());
             border.Child = grid;
         }
         else
