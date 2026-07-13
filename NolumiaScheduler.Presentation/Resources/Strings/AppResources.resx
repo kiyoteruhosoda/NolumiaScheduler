@@ -258,6 +258,21 @@
   <data name="WeekIndexLabel" xml:space="preserve">
     <value>Week No.</value>
   </data>
+  <data name="NthWeekFirst" xml:space="preserve">
+    <value>1st</value>
+  </data>
+  <data name="NthWeekSecond" xml:space="preserve">
+    <value>2nd</value>
+  </data>
+  <data name="NthWeekThird" xml:space="preserve">
+    <value>3rd</value>
+  </data>
+  <data name="NthWeekFourth" xml:space="preserve">
+    <value>4th</value>
+  </data>
+  <data name="NthWeekFifth" xml:space="preserve">
+    <value>5th</value>
+  </data>
   <data name="NthWeekLast" xml:space="preserve">
     <value>Last</value>
   </data>

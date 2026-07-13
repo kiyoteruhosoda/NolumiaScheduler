@@ -106,6 +106,11 @@ public static class AppResources
     public static string DayLabel                 => Get(nameof(DayLabel));
     public static string MonthLabel               => Get(nameof(MonthLabel));
     public static string WeekIndexLabel           => Get(nameof(WeekIndexLabel));
+    public static string NthWeekFirst             => Get(nameof(NthWeekFirst));
+    public static string NthWeekSecond            => Get(nameof(NthWeekSecond));
+    public static string NthWeekThird             => Get(nameof(NthWeekThird));
+    public static string NthWeekFourth            => Get(nameof(NthWeekFourth));
+    public static string NthWeekFifth             => Get(nameof(NthWeekFifth));
     public static string NthWeekLast              => Get(nameof(NthWeekLast));
     public static string IntervalLabel            => Get(nameof(IntervalLabel));
     public static string EndDateLabel             => Get(nameof(EndDateLabel));
