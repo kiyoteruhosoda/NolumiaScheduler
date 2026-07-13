@@ -225,7 +225,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
 
         SelectedDayEvents.Clear();
         foreach (var occ in cell.Events)
-            SelectedDayEvents.Add(new CalendarEventItem(occ));
+            SelectedDayEvents.Add(new CalendarEventItem(occ, IsEventRecurring(occ.EventId.Value)));
         SelectedDayHasNoEvents = SelectedDayEvents.Count == 0;
 
         // Collect holiday info for the selected day across all enabled business calendars
@@ -715,7 +715,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                 // in viewer-local coordinates.
                 var occ = ProjectForDisplay(ev, canonical);
                 var dayIdx = (int)(occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue).Date - _weekStartDate.Date).TotalDays;
-                var item = new CalendarEventItem(occ);
+                var isRecurringEvent = ev.IsRecurring();
+                var item = new CalendarEventItem(occ, isRecurringEvent);
                 if (!item.IsAllDay && item.CrossesMidnight)
                 {
                     // Split at the local 24:00 boundary: the first day runs start → 24:00, the
@@ -731,7 +732,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                             occ.EventId, occ.Date, occ.StartTime, firstDuration,
                             occ.Title, occ.Location, occ.Visibility,
                             occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled);
-                        weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence));
+                        weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence, isRecurringEvent));
                     }
 
                     if (dayIdx + 1 >= 0 && dayIdx + 1 < dayCount)
@@ -742,7 +743,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                             new LocalTimeValue(0, 0, 0), secondDuration,
                             occ.Title, occ.Location, occ.Visibility,
                             occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled);
-                        weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence));
+                        weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence, isRecurringEvent));
                     }
                 }
                 else if (dayIdx >= 0 && dayIdx < dayCount)

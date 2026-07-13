@@ -9,10 +9,11 @@ public sealed class CalendarEventItem
 {
     private const int MinutesPerDay = 24 * 60;
 
-    public CalendarEventItem(EventOccurrence occ)
+    public CalendarEventItem(EventOccurrence occ, bool? isRecurring = null)
     {
         Date = occ.Date.ToDateOnly().ToDateTime(TimeOnly.MinValue);
         EventId = occ.EventId.Value;
+        IsRecurring = isRecurring ?? occ.SeriesKey != null;
         // All-day is no longer a stored concept: it is derived as a midnight start spanning a full
         // day (docs/time-model.md). The end-of-day is start + duration; 24:00 is shown rather than
         // 00:00 when a block ends exactly at the day boundary.
@@ -77,7 +78,7 @@ public sealed class CalendarEventItem
     public bool IsAllDay { get; }
     public bool IsMoved { get; }
     public bool IsOverridden { get; }
-    public bool IsRecurring => SeriesKey != null;
+    public bool IsRecurring { get; }
     public int StartMinuteOfDay { get; }
     public int EndMinuteOfDay { get; }
     public bool CrossesMidnight { get; }
