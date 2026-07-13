@@ -441,7 +441,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     public static List<string> WeekIndexItems =>
     [
-        "1st", "2nd", "3rd", "4th", "5th", AppResources.NthWeekLast
+        AppResources.NthWeekFirst,
+        AppResources.NthWeekSecond,
+        AppResources.NthWeekThird,
+        AppResources.NthWeekFourth,
+        AppResources.NthWeekFifth,
+        AppResources.NthWeekLast
     ];
 
     public static List<string> WeekdayItems =>

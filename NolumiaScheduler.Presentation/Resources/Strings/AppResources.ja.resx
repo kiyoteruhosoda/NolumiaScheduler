@@ -258,6 +258,21 @@
   <data name="WeekIndexLabel" xml:space="preserve">
     <value>第○週</value>
   </data>
+  <data name="NthWeekFirst" xml:space="preserve">
+    <value>第1</value>
+  </data>
+  <data name="NthWeekSecond" xml:space="preserve">
+    <value>第2</value>
+  </data>
+  <data name="NthWeekThird" xml:space="preserve">
+    <value>第3</value>
+  </data>
+  <data name="NthWeekFourth" xml:space="preserve">
+    <value>第4</value>
+  </data>
+  <data name="NthWeekFifth" xml:space="preserve">
+    <value>第5</value>
+  </data>
   <data name="NthWeekLast" xml:space="preserve">
     <value>最終</value>
   </data>
