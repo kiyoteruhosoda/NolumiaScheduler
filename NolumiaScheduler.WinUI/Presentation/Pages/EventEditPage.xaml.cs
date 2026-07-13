@@ -905,12 +905,23 @@ public sealed partial class EventEditPage : Page
     }
 
     // Floating Save button: visible when not scrolled to the bottom (where the in-content
-    // Save button is accessible). Hides once the bottom is within reach.
+    // Save button is accessible). Shows immediately as the user scrolls away from the bottom;
+    // hides only once the scroll has fully settled at the bottom.
     private void OnMainScrollViewerViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
-        if (e.IsIntermediate) return;
         var atBottom = MainScrollViewer.ScrollableHeight - MainScrollViewer.VerticalOffset < 1;
-        FloatingSaveBorder.Visibility = atBottom ? Visibility.Collapsed : Visibility.Visible;
+        if (!atBottom)
+        {
+            // Show the floating button as soon as the user starts scrolling up, even during
+            // intermediate (animated) scroll frames, so it never lags behind.
+            FloatingSaveBorder.Visibility = Visibility.Visible;
+        }
+        else if (!e.IsIntermediate)
+        {
+            // Hide only when the scroll has fully settled at the bottom (not during animation),
+            // to avoid flickering while momentum is carrying the scroll to the bottom.
+            FloatingSaveBorder.Visibility = Visibility.Collapsed;
+        }
     }
 
     private void OnAdjustmentDirectionChanged(object sender, SelectionChangedEventArgs e)

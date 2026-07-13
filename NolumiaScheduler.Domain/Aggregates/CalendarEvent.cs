@@ -306,6 +306,20 @@ public class CalendarEvent
         Touch(updatedAt);
     }
 
+    /// <summary>
+    /// Removes a drag-created move override for <paramref name="occurrenceKey"/>, restoring
+    /// the occurrence to its canonical position in the series schedule.
+    /// </summary>
+    public void RemoveOccurrenceMove(OccurrenceLocalKey occurrenceKey, DateTimeOffset updatedAt)
+    {
+        EnsureRecurringEvent();
+        var index = _moves.FindIndex(m => m.OccurrenceKey.Equals(occurrenceKey));
+        if (index < 0)
+            throw new DomainException("Occurrence move not found.");
+        _moves.RemoveAt(index);
+        Touch(updatedAt);
+    }
+
     public bool IsSingle() => Kind == EventKind.Single;
     public bool IsRecurring() => Kind == EventKind.Recurring;
 

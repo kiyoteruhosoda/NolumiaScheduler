@@ -102,6 +102,14 @@ public sealed record DeleteFollowingOccurrencesCommand(
     OccurrenceLocalKey FromOccurrenceKey);
 
 /// <summary>
+/// Cancels a drag-created move override for a single occurrence of a recurring series,
+/// restoring the occurrence to its canonical position in the series schedule (used by Undo).
+/// </summary>
+public sealed record CancelMoveOccurrenceCommand(
+    string EventId,
+    OccurrenceLocalKey OccurrenceKey);
+
+/// <summary>
 /// Moves a single occurrence of a recurring series to a new date/time (e.g. drag-and-drop).
 /// Title, Location and Visibility override the series defaults when non-null; null keeps
 /// the series value.
