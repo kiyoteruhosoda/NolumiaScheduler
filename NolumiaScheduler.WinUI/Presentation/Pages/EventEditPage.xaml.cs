@@ -504,6 +504,16 @@ public sealed partial class EventEditPage : Page
                 }
                 break;
 
+            case nameof(EventEditViewModel.AdjustmentDirectionIndex):
+                if (!_suppressAdjustmentDirectionChanged)
+                {
+                    _suppressAdjustmentDirectionChanged = true;
+                    AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+                    AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+                    _suppressAdjustmentDirectionChanged = false;
+                }
+                break;
+
             case nameof(EventEditViewModel.AdjustmentBusinessDays):
                 // Toggling UseBusinessDayAdjustment restores the saved value; sync the textbox.
                 if (!_suppressAdjustmentDaysChanged)
@@ -1042,6 +1052,7 @@ public sealed partial class EventEditPage : Page
         panel.Children.Add(thisOccurrenceRadio);
         panel.Children.Add(thisAndFollowingRadio);
         panel.Children.Add(entireSeriesRadio);
+        panel.Children.Add(recreateAsNewRadio);
 
         var dialog = new ContentDialog
         {
@@ -1066,11 +1077,13 @@ public sealed partial class EventEditPage : Page
         var thisOccurrenceRadio   = new RadioButton { Content = AppResources.EditThisOccurrence,   GroupName = "EditScope", IsChecked = true };
         var thisAndFollowingRadio = new RadioButton { Content = AppResources.EditThisAndFollowing,  GroupName = "EditScope" };
         var entireSeriesRadio     = new RadioButton { Content = AppResources.EditEntireSeries,       GroupName = "EditScope" };
+        var recreateAsNewRadio    = new RadioButton { Content = AppResources.EditRecreateAsNew,      GroupName = "EditScope" };
 
         var panel = new StackPanel { Spacing = 8 };
         panel.Children.Add(thisOccurrenceRadio);
         panel.Children.Add(thisAndFollowingRadio);
         panel.Children.Add(entireSeriesRadio);
+        panel.Children.Add(recreateAsNewRadio);
 
         var dialog = new ContentDialog
         {
@@ -1085,7 +1098,8 @@ public sealed partial class EventEditPage : Page
         if (result != ContentDialogResult.Primary)
             return null;
 
-        if (entireSeriesRadio.IsChecked == true)   return RecurringEditScope.EntireSeries;
+        if (recreateAsNewRadio.IsChecked == true)  return RecurringEditScope.RecreateAsNew;
+        if (entireSeriesRadio.IsChecked == true)    return RecurringEditScope.EntireSeries;
         if (thisAndFollowingRadio.IsChecked == true) return RecurringEditScope.ThisAndFollowing;
         return RecurringEditScope.ThisOccurrence;
     }

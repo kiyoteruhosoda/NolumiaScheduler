@@ -310,19 +310,22 @@ internal class AdjustmentDto
     public string ShiftUnit { get; set; } = "BusinessDay";
     public int ShiftAmount { get; set; }
     public string? CalendarId { get; set; }
+    public string Action { get; set; } = "Shift";
 
     public AdjustmentRule ToDomain() => new(
         Enum.Parse<AdjustmentCondition>(Condition),
         Enum.Parse<AdjustmentShiftUnit>(ShiftUnit),
         ShiftAmount,
-        CalendarId != null ? new BusinessCalendarId(CalendarId) : null);
+        CalendarId != null ? new BusinessCalendarId(CalendarId) : null,
+        Enum.Parse<AdjustmentAction>(Action));
 
     public static AdjustmentDto FromDomain(AdjustmentRule a) => new()
     {
         Condition = a.Condition.ToString(),
         ShiftUnit = a.ShiftUnit.ToString(),
         ShiftAmount = a.ShiftAmount,
-        CalendarId = a.CalendarId?.Value
+        CalendarId = a.CalendarId?.Value,
+        Action = a.Action.ToString()
     };
 }
 

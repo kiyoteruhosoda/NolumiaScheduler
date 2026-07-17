@@ -4,5 +4,6 @@ public enum RecurringEditScope
 {
     ThisOccurrence,
     ThisAndFollowing,
-    EntireSeries
+    EntireSeries,
+    RecreateAsNew
 }
