@@ -289,7 +289,7 @@ public sealed partial class EventEditPage : Page
         _suppressUseBusinessDayAdjustmentChanged = false;
 
         AdjustmentDateTypePicker.ItemsSource = EventEditViewModel.AdjustmentDateTypeItems;
-        AdjustmentScheduledDirectionPicker.ItemsSource = EventEditViewModel.AdjustmentDirectionItems;
+        AdjustmentScheduledDirectionPicker.ItemsSource = EventEditViewModel.ScheduledAdjustmentActionItems;
         AdjustmentDateTypePicker.SelectedIndex = _vm.AdjustmentDateTypeIndex;
         AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
         AdjustmentDateTypePicker.SelectionChanged += OnAdjustmentDateTypeChanged;
@@ -508,7 +508,9 @@ public sealed partial class EventEditPage : Page
                 if (!_suppressAdjustmentDirectionChanged)
                 {
                     _suppressAdjustmentDirectionChanged = true;
-                    AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+                    AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex == (int)AdjustmentDirectionIndex.Cancel
+                        ? (int)AdjustmentDirectionIndex.Before
+                        : _vm.AdjustmentDirectionIndex;
                     AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
                     _suppressAdjustmentDirectionChanged = false;
                 }
@@ -891,7 +893,9 @@ public sealed partial class EventEditPage : Page
         if (!_suppressAdjustmentDirectionChanged)
         {
             _suppressAdjustmentDirectionChanged = true;
-            AdjustmentDirectionPicker.SelectedIndex = picker.SelectedIndex;
+            AdjustmentDirectionPicker.SelectedIndex = picker.SelectedIndex == (int)AdjustmentDirectionIndex.Cancel
+                ? (int)AdjustmentDirectionIndex.Before
+                : picker.SelectedIndex;
             _suppressAdjustmentDirectionChanged = false;
         }
     }
@@ -1052,7 +1056,6 @@ public sealed partial class EventEditPage : Page
         panel.Children.Add(thisOccurrenceRadio);
         panel.Children.Add(thisAndFollowingRadio);
         panel.Children.Add(entireSeriesRadio);
-        panel.Children.Add(recreateAsNewRadio);
 
         var dialog = new ContentDialog
         {

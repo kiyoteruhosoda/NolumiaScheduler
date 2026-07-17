@@ -457,8 +457,15 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         AppResources.DayWed, AppResources.DayThu, AppResources.DayFri, AppResources.DaySat
     ];
 
-    // Adjustment action: before / after shift, or holiday cancellation.
+    // Base Date mode supports only shift direction. Holiday cancellation is intentionally
+    // offered only by Scheduled Date mode, where the candidate can be tested against holidays.
     public static List<string> AdjustmentDirectionItems =>
+    [
+        AppResources.AdjustmentBefore,
+        AppResources.AdjustmentAfter
+    ];
+
+    public static List<string> ScheduledAdjustmentActionItems =>
     [
         AppResources.AdjustmentBefore,
         AppResources.AdjustmentAfter,
