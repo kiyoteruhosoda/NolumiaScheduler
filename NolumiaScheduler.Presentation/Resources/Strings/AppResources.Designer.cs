@@ -122,6 +122,7 @@ public static class AppResources
     public static string AdjustmentAlways         => Get(nameof(AdjustmentAlways));
     public static string AdjustmentBefore         => Get(nameof(AdjustmentBefore));
     public static string AdjustmentAfter          => Get(nameof(AdjustmentAfter));
+    public static string AdjustmentCancel         => Get(nameof(AdjustmentCancel));
     public static string AdjustmentBusinessDaysLabel => Get(nameof(AdjustmentBusinessDaysLabel));
     public static string MonthlyLastDay           => Get(nameof(MonthlyLastDay));
     public static string AdjustmentHolidayShiftLabel => Get(nameof(AdjustmentHolidayShiftLabel));
@@ -152,6 +153,7 @@ public static class AppResources
     public static string EditThisOccurrence               => Get(nameof(EditThisOccurrence));
     public static string EditThisAndFollowing             => Get(nameof(EditThisAndFollowing));
     public static string EditEntireSeries                 => Get(nameof(EditEntireSeries));
+    public static string EditRecreateAsNew                => Get(nameof(EditRecreateAsNew));
     public static string EditRecurringScopeRequired       => Get(nameof(EditRecurringScopeRequired));
     public static string EditThisOccurrenceNotImplemented => Get(nameof(EditThisOccurrenceNotImplemented));
     public static string EditThisAndFollowingNotImplemented => Get(nameof(EditThisAndFollowingNotImplemented));

@@ -289,7 +289,7 @@ public sealed partial class EventEditPage : Page
         _suppressUseBusinessDayAdjustmentChanged = false;
 
         AdjustmentDateTypePicker.ItemsSource = EventEditViewModel.AdjustmentDateTypeItems;
-        AdjustmentScheduledDirectionPicker.ItemsSource = EventEditViewModel.AdjustmentDirectionItems;
+        AdjustmentScheduledDirectionPicker.ItemsSource = EventEditViewModel.ScheduledAdjustmentActionItems;
         AdjustmentDateTypePicker.SelectedIndex = _vm.AdjustmentDateTypeIndex;
         AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
         AdjustmentDateTypePicker.SelectionChanged += OnAdjustmentDateTypeChanged;
@@ -501,6 +501,18 @@ public sealed partial class EventEditPage : Page
                     _suppressIntervalChanged = true;
                     IntervalBox.Text = _vm.Interval.ToString();
                     _suppressIntervalChanged = false;
+                }
+                break;
+
+            case nameof(EventEditViewModel.AdjustmentDirectionIndex):
+                if (!_suppressAdjustmentDirectionChanged)
+                {
+                    _suppressAdjustmentDirectionChanged = true;
+                    AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex == (int)AdjustmentDirectionIndex.Cancel
+                        ? (int)AdjustmentDirectionIndex.Before
+                        : _vm.AdjustmentDirectionIndex;
+                    AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+                    _suppressAdjustmentDirectionChanged = false;
                 }
                 break;
 
@@ -881,7 +893,9 @@ public sealed partial class EventEditPage : Page
         if (!_suppressAdjustmentDirectionChanged)
         {
             _suppressAdjustmentDirectionChanged = true;
-            AdjustmentDirectionPicker.SelectedIndex = picker.SelectedIndex;
+            AdjustmentDirectionPicker.SelectedIndex = picker.SelectedIndex == (int)AdjustmentDirectionIndex.Cancel
+                ? (int)AdjustmentDirectionIndex.Before
+                : picker.SelectedIndex;
             _suppressAdjustmentDirectionChanged = false;
         }
     }
@@ -1066,11 +1080,13 @@ public sealed partial class EventEditPage : Page
         var thisOccurrenceRadio   = new RadioButton { Content = AppResources.EditThisOccurrence,   GroupName = "EditScope", IsChecked = true };
         var thisAndFollowingRadio = new RadioButton { Content = AppResources.EditThisAndFollowing,  GroupName = "EditScope" };
         var entireSeriesRadio     = new RadioButton { Content = AppResources.EditEntireSeries,       GroupName = "EditScope" };
+        var recreateAsNewRadio    = new RadioButton { Content = AppResources.EditRecreateAsNew,      GroupName = "EditScope" };
 
         var panel = new StackPanel { Spacing = 8 };
         panel.Children.Add(thisOccurrenceRadio);
         panel.Children.Add(thisAndFollowingRadio);
         panel.Children.Add(entireSeriesRadio);
+        panel.Children.Add(recreateAsNewRadio);
 
         var dialog = new ContentDialog
         {
@@ -1085,7 +1101,8 @@ public sealed partial class EventEditPage : Page
         if (result != ContentDialogResult.Primary)
             return null;
 
-        if (entireSeriesRadio.IsChecked == true)   return RecurringEditScope.EntireSeries;
+        if (recreateAsNewRadio.IsChecked == true)  return RecurringEditScope.RecreateAsNew;
+        if (entireSeriesRadio.IsChecked == true)    return RecurringEditScope.EntireSeries;
         if (thisAndFollowingRadio.IsChecked == true) return RecurringEditScope.ThisAndFollowing;
         return RecurringEditScope.ThisOccurrence;
     }

@@ -229,6 +229,42 @@ public class OccurrenceExpanderTests
         Assert.AreEqual(new LocalDateValue(2026, 5, 1), results[0].Date);
     }
 
+
+    [TestMethod]
+    public void Expand_休日キャンセル調整は祝日の発生だけ除外する()
+    {
+        var rule = new RecurrenceRule(
+            RecurrenceType.Weekly, 1,
+            new LocalDateValue(2026, 5, 31),
+            weekly: new WeeklyRule([Weekday.Monday]),
+            adjustment: new AdjustmentRule(
+                AdjustmentCondition.Holiday,
+                AdjustmentShiftUnit.BusinessDay,
+                0,
+                new BusinessCalendarId("jp"),
+                AdjustmentAction.Cancel));
+
+        var ev = CalendarEvent.CreateRecurring(
+            new EventId("evt_cancel_holiday"),
+            new EventTitle("祝日はキャンセル"),
+            null, Visibility.Public, null, null, Tokyo,
+            new RecurringEventSchedule(Utc(2026, 5, 1, 10, 0), 60, rule), Now);
+
+        var results = _expander.Expand(ev,
+            new LocalDateValue(2026, 5, 1),
+            new LocalDateValue(2026, 5, 31),
+            WeekdayCalendar(new LocalDateValue(2026, 5, 4)));
+
+        CollectionAssert.AreEqual(
+            new[]
+            {
+                new LocalDateValue(2026, 5, 11),
+                new LocalDateValue(2026, 5, 18),
+                new LocalDateValue(2026, 5, 25),
+            },
+            results.Select(r => r.Date).ToArray());
+    }
+
     // ── "N business days before a monthly anchor" (毎月15日/月末の3営業日前) ────────────
 
     // Mon–Fri workday calendar with the given holidays.

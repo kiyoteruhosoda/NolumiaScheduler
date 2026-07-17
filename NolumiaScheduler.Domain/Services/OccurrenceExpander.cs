@@ -113,6 +113,9 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
 
             if (rule.Adjustment != null && businessCalendar != null)
             {
+                if (rule.Adjustment.Cancels(candidateDate, businessCalendar))
+                    continue;
+
                 adjustedDate = _shiftService.Shift(candidateDate, rule.Adjustment, businessCalendar);
             }
 

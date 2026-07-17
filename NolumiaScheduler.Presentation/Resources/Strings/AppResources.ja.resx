@@ -306,6 +306,9 @@
   <data name="AdjustmentAfter" xml:space="preserve">
     <value>後</value>
   </data>
+  <data name="AdjustmentCancel" xml:space="preserve">
+    <value>キャンセル</value>
+  </data>
   <data name="AdjustmentBusinessDaysLabel" xml:space="preserve">
     <value>営業日数</value>
   </data>
@@ -432,6 +435,9 @@
   </data>
   <data name="EditEntireSeries" xml:space="preserve">
     <value>すべての予定</value>
+  </data>
+  <data name="EditRecreateAsNew" xml:space="preserve">
+    <value>新規として作り直す</value>
   </data>
   <data name="EditRecurringScopeRequired" xml:space="preserve">
     <value>編集範囲を選択してください。</value>

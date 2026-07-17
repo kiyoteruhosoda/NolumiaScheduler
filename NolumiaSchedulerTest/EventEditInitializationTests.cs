@@ -192,6 +192,52 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
+    public void 系列全体は開始日と例外状態を保持して更新する()
+    {
+        var vm = CreateViewModel(out var repo);
+        var ev = CreateRecurringEvent("rec-entire-keep");
+        var skipKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 13), new LocalTimeValue(9, 30, 0));
+        ev.SkipOccurrence(skipKey, DateTimeOffset.UtcNow);
+        repo.Save(ev);
+
+        var openedKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-entire-keep", openedKey);
+        vm.Title = "updated";
+
+        vm.Save(RecurringEditScope.EntireSeries);
+
+        Assert.IsFalse(vm.HasValidationError);
+        var saved = repo.FindById(new EventId("rec-entire-keep"))!;
+        Assert.AreEqual(new LocalDateValue(2026, 5, 1),
+            LocalSchedulePoint.LocalDateOf(saved.RecurringSchedule!.AnchorUtc, saved.TimeZoneId.ToTimeZoneInfo()));
+        Assert.HasCount(1, saved.Exceptions);
+        Assert.AreEqual(skipKey, saved.Exceptions[0].OccurrenceKey);
+    }
+
+    [TestMethod]
+    public void 新規として作り直すと旧系列を削除して入力開始日の新系列を作成する()
+    {
+        var vm = CreateViewModel(out var repo);
+        var ev = CreateRecurringEvent("rec-recreate");
+        ev.SkipOccurrence(new OccurrenceLocalKey(new LocalDateValue(2026, 5, 13), new LocalTimeValue(9, 30, 0)), DateTimeOffset.UtcNow);
+        repo.Save(ev);
+
+        var openedKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
+        vm.LoadEvent("rec-recreate", openedKey);
+        vm.StartDate = new DateTime(2026, 6, 1);
+
+        vm.Save(RecurringEditScope.RecreateAsNew);
+
+        Assert.IsFalse(vm.HasValidationError);
+        Assert.IsNull(repo.FindById(new EventId("rec-recreate")));
+        var recreated = repo.FindAll().Single();
+        Assert.AreNotEqual("rec-recreate", recreated.Id.Value);
+        Assert.AreEqual(new LocalDateValue(2026, 6, 1),
+            LocalSchedulePoint.LocalDateOf(recreated.RecurringSchedule!.AnchorUtc, recreated.TimeZoneId.ToTimeZoneInfo()));
+        Assert.IsEmpty(recreated.Exceptions);
+    }
+
+    [TestMethod]
     public void 複数曜日の週次予定を読み込むと該当曜日がすべて選択される()
     {
         var vm = CreateViewModel(out var repo);

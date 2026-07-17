@@ -306,6 +306,9 @@
   <data name="AdjustmentAfter" xml:space="preserve">
     <value>After</value>
   </data>
+  <data name="AdjustmentCancel" xml:space="preserve">
+    <value>Cancel</value>
+  </data>
   <data name="AdjustmentBusinessDaysLabel" xml:space="preserve">
     <value>Business days</value>
   </data>
@@ -431,6 +434,9 @@
   </data>
   <data name="EditEntireSeries" xml:space="preserve">
     <value>Entire series</value>
+  </data>
+  <data name="EditRecreateAsNew" xml:space="preserve">
+    <value>Recreate as new</value>
   </data>
   <data name="EditRecurringScopeRequired" xml:space="preserve">
     <value>Please select the edit scope.</value>

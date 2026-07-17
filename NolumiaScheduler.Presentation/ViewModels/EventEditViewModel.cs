@@ -17,8 +17,8 @@ public enum RepeatTypeIndex { None = 0, Weekly = 1, Monthly = 2, Yearly = 3 }
 /// <summary>Monthly rule index: 0=DayOfMonth 1=NthWeekday. Month-end is a separate checkbox.</summary>
 public enum MonthlyRuleIndex { DayOfMonth = 0, NthWeekday = 1 }
 
-/// <summary>Business-day adjustment shift direction: 0=Before(前) 1=After(後)</summary>
-public enum AdjustmentDirectionIndex { Before = 0, After = 1 }
+/// <summary>Business-day adjustment action: 0=Before(前) 1=After(後) 2=Cancel(キャンセル)</summary>
+public enum AdjustmentDirectionIndex { Before = 0, After = 1, Cancel = 2 }
 
 /// <summary>
 /// Business-day adjustment date type.
@@ -400,9 +400,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                 ? (int)ViewModels.AdjustmentDateTypeIndex.ScheduledDate
                 : (int)ViewModels.AdjustmentDateTypeIndex.BaseDate;
 
-            AdjustmentDirectionIndex = rule.Adjustment.ShiftAmount < 0
-                ? (int)ViewModels.AdjustmentDirectionIndex.Before
-                : (int)ViewModels.AdjustmentDirectionIndex.After;
+            AdjustmentDirectionIndex = rule.Adjustment.Action == AdjustmentAction.Cancel
+                ? (int)ViewModels.AdjustmentDirectionIndex.Cancel
+                : rule.Adjustment.ShiftAmount < 0
+                    ? (int)ViewModels.AdjustmentDirectionIndex.Before
+                    : (int)ViewModels.AdjustmentDirectionIndex.After;
 
             // Set the real days AFTER UseBusinessDayAdjustment so it is not clobbered by the
             // restore logic inside that setter.
@@ -455,11 +457,19 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         AppResources.DayWed, AppResources.DayThu, AppResources.DayFri, AppResources.DaySat
     ];
 
-    // Shift direction: N business days before / after the candidate date.
+    // Base Date mode supports only shift direction. Holiday cancellation is intentionally
+    // offered only by Scheduled Date mode, where the candidate can be tested against holidays.
     public static List<string> AdjustmentDirectionItems =>
     [
         AppResources.AdjustmentBefore,
         AppResources.AdjustmentAfter
+    ];
+
+    public static List<string> ScheduledAdjustmentActionItems =>
+    [
+        AppResources.AdjustmentBefore,
+        AppResources.AdjustmentAfter,
+        AppResources.AdjustmentCancel
     ];
 
     // Date type: Scheduled Date (予定日) or Base Date (基準日).
@@ -768,6 +778,11 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         set
         {
             _adjustmentDateTypeIndex = value;
+            if (_adjustmentDateTypeIndex == (int)ViewModels.AdjustmentDateTypeIndex.BaseDate
+                && _adjustmentDirectionIndex == (int)ViewModels.AdjustmentDirectionIndex.Cancel)
+            {
+                AdjustmentDirectionIndex = (int)ViewModels.AdjustmentDirectionIndex.Before;
+            }
             OnPropertyChanged();
             OnPropertyChanged(nameof(IsScheduledDateMode));
             OnPropertyChanged(nameof(IsBaseDateMode));
@@ -993,6 +1008,14 @@ public partial class EventEditViewModel : INotifyPropertyChanged
                         return;
                     }
 
+                    if (scope == RecurringEditScope.RecreateAsNew)
+                    {
+                        RecreateRecurringAsNew(_editingEventId);
+                        if (!string.IsNullOrEmpty(ValidationError)) return;
+                        CompleteSaveIfValid();
+                        return;
+                    }
+
                     // RecurringEditScope.EntireSeries falls through to the series update below.
                 }
 
@@ -1099,10 +1122,8 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         var rule = BuildRecurrenceRule();
         LocalTimeValue? startTime = AllDay ? null : new LocalTimeValue(StartTime.Hours, StartTime.Minutes, 0);
         LocalTimeValue? endTime   = AllDay ? null : new LocalTimeValue(EndTime.Hours,   EndTime.Minutes,   0);
-        // When opened from a specific occurrence the form's StartDate reflects that occurrence's
-        // date, which becomes the new series anchor (earlier occurrences are dropped).
-        var newStartDate = new LocalDateValue(StartDate.Year, StartDate.Month, StartDate.Day);
-
+        // Entire-series edits keep the original anchor date so existing occurrence customizations
+        // (skip/override/move keys) remain attached to the same candidate dates.
         _eventService.UpdateRecurringSeries(new UpdateRecurringSeriesCommand(
             eventId,
             Title.Trim(),
@@ -1114,8 +1135,29 @@ public partial class EventEditViewModel : INotifyPropertyChanged
             rule,
             Alarm: _alarmEnabled ? new EventAlarm(true, _alarmNotify15Min, _alarmNotify5Min, _alarmNotify1Min, _alarmNotifyAtStart) : null,
             ColorKey: SelectedColorKey,
-            NewStartDate: newStartDate,
             Description: string.IsNullOrWhiteSpace(Memo) ? null : Memo.Trim()));
+    }
+
+    private void RecreateRecurringAsNew(string eventId)
+    {
+        if (IsWeekly)
+        {
+            var selectedDays = CollectWeekdays();
+            if (selectedDays.Count == 0)
+            {
+                ValidationError = AppResources.ErrorWeekdayRequired;
+                return;
+            }
+        }
+
+        if (!EndDateIsValid(StartDate))
+        {
+            ValidationError = AppResources.ErrorEndDateBeforeStart;
+            return;
+        }
+
+        _eventService.DeleteEvent(eventId);
+        SaveRecurring();
     }
 
     private void SaveThisOccurrence(string eventId)
@@ -1308,10 +1350,6 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         if (!_useBusinessDayAdjustment) return null;
 
-        // Zero offset means no business-day adjustment (used by tests and by the
-        // UseBusinessDayAdjustment setter to clear the rule).
-        if (_adjustmentBusinessDays <= 0) return null;
-
         BusinessCalendarId? calId = null;
         if (_selectedCalendarIndex >= 0 && _selectedCalendarIndex < _availableCalendarIds.Count)
             calId = new BusinessCalendarId(_availableCalendarIds[_selectedCalendarIndex]);
@@ -1320,6 +1358,20 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         var condition = _adjustmentDateTypeIndex == (int)ViewModels.AdjustmentDateTypeIndex.ScheduledDate
             ? AdjustmentCondition.Holiday
             : AdjustmentCondition.Always;
+
+        if (condition == AdjustmentCondition.Holiday
+            && _adjustmentDirectionIndex == (int)ViewModels.AdjustmentDirectionIndex.Cancel)
+        {
+            return new AdjustmentRule(
+                condition,
+                AdjustmentShiftUnit.BusinessDay,
+                0,
+                calId,
+                AdjustmentAction.Cancel);
+        }
+
+        // Zero offset means no business-day shift at all.
+        if (_adjustmentBusinessDays <= 0) return null;
 
         var signedDays = _adjustmentDirectionIndex == (int)ViewModels.AdjustmentDirectionIndex.Before
             ? -_adjustmentBusinessDays
