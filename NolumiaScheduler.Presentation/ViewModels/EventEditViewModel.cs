@@ -798,8 +798,22 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     public int AdjustmentDirectionIndex
     {
         get => _adjustmentDirectionIndex;
-        set { _adjustmentDirectionIndex = value; OnPropertyChanged(); }
+        set
+        {
+            _adjustmentDirectionIndex = value;
+            OnPropertyChanged();
+            OnPropertyChanged(nameof(BaseDateAdjustmentDirectionIndex));
+        }
     }
+
+    /// <summary>
+    /// Direction index for the Base Date picker, which offers only <see cref="AdjustmentDirectionItems"/>
+    /// (Before/After — no Cancel). Cancel maps to Before so the index is always in range.
+    /// </summary>
+    public int BaseDateAdjustmentDirectionIndex =>
+        _adjustmentDirectionIndex == (int)ViewModels.AdjustmentDirectionIndex.Cancel
+            ? (int)ViewModels.AdjustmentDirectionIndex.Before
+            : _adjustmentDirectionIndex;
 
     public int AdjustmentBusinessDays
     {
