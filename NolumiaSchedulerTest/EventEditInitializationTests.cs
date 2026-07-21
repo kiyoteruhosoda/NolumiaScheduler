@@ -609,6 +609,21 @@ public class EventEditInitializationTests
         Assert.AreEqual(2, saved.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);
     }
 
+    [TestMethod]
+    public void 休日中止イベントを読み込むと基準日方向ピッカー用インデックスが範囲内に収まる()
+    {
+        // The Base Date direction picker offers only Before/After (2 items); assigning the raw
+        // Cancel index (2) as its SelectedIndex crashed EventEditPage with ArgumentException.
+        var vm = CreateViewModel(out var repo);
+        repo.Save(CreateRecurringEventWithCancel("rec-cancel-load"));
+
+        vm.LoadEvent("rec-cancel-load", new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0)));
+
+        Assert.AreEqual((int)AdjustmentDirectionIndex.Cancel, vm.AdjustmentDirectionIndex);
+        Assert.AreEqual((int)AdjustmentDirectionIndex.Before, vm.BaseDateAdjustmentDirectionIndex);
+        Assert.IsTrue(vm.BaseDateAdjustmentDirectionIndex < EventEditViewModel.AdjustmentDirectionItems.Count);
+    }
+
     private static EventEditViewModel CreateViewModel()
     {
         var eventRepo = new InMemoryEventRepo();
@@ -676,6 +691,27 @@ public class EventEditInitializationTests
             shiftDays);
         return CalendarEvent.CreateRecurring(
             new EventId(id), new EventTitle("rec-shift"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz,
+            new RecurringEventSchedule(
+                LocalSchedulePoint.StartInstant(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), tz.ToTimeZoneInfo()).ToUniversalTime(),
+                60,
+                new RecurrenceRule(RecurrenceType.Weekly, 1, new LocalDateValue(2026, 12, 31),
+                    weekly: new WeeklyRule([Weekday.Wednesday]),
+                    adjustment: adjustment)),
+            now);
+    }
+
+    /// <summary>Weekly Wednesday recurring event whose adjustment cancels holiday occurrences.</summary>
+    private static CalendarEvent CreateRecurringEventWithCancel(string id)
+    {
+        var tz = new TimeZoneId("Asia/Tokyo");
+        var now = DateTimeOffset.UtcNow;
+        var adjustment = new AdjustmentRule(
+            AdjustmentCondition.Holiday,
+            AdjustmentShiftUnit.BusinessDay,
+            0,
+            action: AdjustmentAction.Cancel);
+        return CalendarEvent.CreateRecurring(
+            new EventId(id), new EventTitle("rec-cancel"), null, NolumiaScheduler.Domain.ValueObjects.Visibility.Public, null, null, tz,
             new RecurringEventSchedule(
                 LocalSchedulePoint.StartInstant(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0), tz.ToTimeZoneInfo()).ToUniversalTime(),
                 60,

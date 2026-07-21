@@ -296,7 +296,7 @@ public sealed partial class EventEditPage : Page
         AdjustmentScheduledDirectionPicker.SelectionChanged += OnAdjustmentScheduledDirectionChanged;
 
         _suppressAdjustmentDirectionChanged = true;
-        AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
+        AdjustmentDirectionPicker.SelectedIndex = _vm.BaseDateAdjustmentDirectionIndex;
         _suppressAdjustmentDirectionChanged = false;
 
         _suppressAdjustmentDaysChanged = true;
@@ -508,9 +508,7 @@ public sealed partial class EventEditPage : Page
                 if (!_suppressAdjustmentDirectionChanged)
                 {
                     _suppressAdjustmentDirectionChanged = true;
-                    AdjustmentDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex == (int)AdjustmentDirectionIndex.Cancel
-                        ? (int)AdjustmentDirectionIndex.Before
-                        : _vm.AdjustmentDirectionIndex;
+                    AdjustmentDirectionPicker.SelectedIndex = _vm.BaseDateAdjustmentDirectionIndex;
                     AdjustmentScheduledDirectionPicker.SelectedIndex = _vm.AdjustmentDirectionIndex;
                     _suppressAdjustmentDirectionChanged = false;
                 }
@@ -893,9 +891,7 @@ public sealed partial class EventEditPage : Page
         if (!_suppressAdjustmentDirectionChanged)
         {
             _suppressAdjustmentDirectionChanged = true;
-            AdjustmentDirectionPicker.SelectedIndex = picker.SelectedIndex == (int)AdjustmentDirectionIndex.Cancel
-                ? (int)AdjustmentDirectionIndex.Before
-                : picker.SelectedIndex;
+            AdjustmentDirectionPicker.SelectedIndex = _vm.BaseDateAdjustmentDirectionIndex;
             _suppressAdjustmentDirectionChanged = false;
         }
     }
