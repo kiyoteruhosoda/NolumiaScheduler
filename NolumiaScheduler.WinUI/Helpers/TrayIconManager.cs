@@ -8,6 +8,9 @@ namespace NolumiaScheduler.WinUI.Helpers;
 
 /// <summary>
 /// Manages a system tray (notification area) icon using Shell_NotifyIcon Win32 API.
+/// The icon is resident: it is added once at launch and stays in the notification area for the
+/// whole life of the process, whether or not the main window is visible. Nothing removes it
+/// except <see cref="Dispose"/> on exit.
 /// </summary>
 internal partial class TrayIconManager : IDisposable
 {
@@ -31,12 +34,6 @@ internal partial class TrayIconManager : IDisposable
     private nint _hWnd;
     private NOTIFYICONDATA _nid;
     private bool _added;
-    /// <summary>
-    /// Whether the icon is *meant* to be on screen, as opposed to <see cref="_added"/> which
-    /// tracks whether it currently is. The two diverge when Explorer drops the notification
-    /// area, which is what makes restoring it possible.
-    /// </summary>
-    private bool _shouldBeVisible;
     private uint _taskbarCreatedMessage;
     private nint _hIcon;
     private readonly Window _window;
@@ -59,21 +56,15 @@ internal partial class TrayIconManager : IDisposable
         LoadIcon();
     }
 
+    /// <summary>
+    /// Ensures the icon is in the notification area. Idempotent, so it doubles as a retry for a
+    /// previously failed add — callers may invoke it on any event that should guarantee the app
+    /// stays reachable from the tray.
+    /// </summary>
     public void Show()
     {
-        _shouldBeVisible = true;
         if (!_added)
             AddTrayIcon(_tooltip);
-    }
-
-    public void Hide()
-    {
-        _shouldBeVisible = false;
-        if (_added)
-        {
-            Shell_NotifyIcon(NIM_DELETE, ref _nid);
-            _added = false;
-        }
     }
 
     private void CreateMessageWindow()
@@ -142,13 +133,12 @@ internal partial class TrayIconManager : IDisposable
         {
             AppLog.Current.Warning(
                 AppLogCategories.Tray,
-                $"The notification area was recreated (Explorer restart). Restoring the tray icon: shouldBeVisible={_shouldBeVisible}.");
+                "The notification area was recreated (Explorer restart). Restoring the tray icon.");
 
             // The old registration died with the previous notification area, so re-add from
             // scratch rather than updating.
             _added = false;
-            if (_shouldBeVisible)
-                AddTrayIcon(_tooltip);
+            AddTrayIcon(_tooltip);
 
             return DefWindowProc(hWnd, msg, wParam, lParam);
         }

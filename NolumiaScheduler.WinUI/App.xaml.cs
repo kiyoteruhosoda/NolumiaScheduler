@@ -95,8 +95,15 @@ public partial class App : Microsoft.UI.Xaml.Application
             _trayIcon.ShowRequested += OnTrayShowRequested;
             _trayIcon.ExitRequested += OnTrayExitRequested;
 
+            // The app is resident in the notification area from launch, not only while minimized:
+            // the alarm service keeps running with the window open, so the icon is what tells the
+            // user it is alive and gives them a way to quit it.
+            _trayIcon.Show();
+
             if (MainWindow is MainWindow mw)
             {
+                // Show() is idempotent; this is a retry for the case where the add at launch
+                // failed, so hiding the window can never leave the app unreachable.
                 mw.MinimizedToTray += (_, _) => _trayIcon.Show();
             }
 
@@ -224,7 +231,9 @@ public partial class App : Microsoft.UI.Xaml.Application
 
     private void OnTrayShowRequested()
     {
-        _trayIcon?.Hide();
+        // Deliberately does not hide the tray icon: the icon is resident, so restoring the window
+        // must leave it in place. Removing it here meant the app stopped being reachable from the
+        // notification area as soon as it was shown once.
         if (MainWindow is not null)
         {
             MainWindow.AppWindow.Show();
@@ -242,8 +251,7 @@ public partial class App : Microsoft.UI.Xaml.Application
     private void OnAppNotificationInvoked(AppNotificationManager sender, AppNotificationActivatedEventArgs args)
     {
         // NotificationInvoked arrives on a background thread; hop to the UI thread and
-        // restore the window the same way the tray "Show" action does (incl. hiding the
-        // tray icon, otherwise it would linger after the window is back).
+        // restore the window the same way the tray "Show" action does.
         MainWindow?.DispatcherQueue.TryEnqueue(OnTrayShowRequested);
     }
 
