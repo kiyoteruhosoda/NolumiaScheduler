@@ -200,6 +200,12 @@ public static class AppResources
     public static string SettingsVersionLabel => Get(nameof(SettingsVersionLabel));
     public static string SettingsStorageLabel => Get(nameof(SettingsStorageLabel));
     public static string SettingsOpenDataFolderLink => Get(nameof(SettingsOpenDataFolderLink));
+    public static string SettingsDiagnosticsLabel => Get(nameof(SettingsDiagnosticsLabel));
+    public static string SettingsDiagnosticsDescription => Get(nameof(SettingsDiagnosticsDescription));
+    public static string SettingsOpenLogFolderLink => Get(nameof(SettingsOpenLogFolderLink));
+    public static string SettingsLastSessionClean => Get(nameof(SettingsLastSessionClean));
+    public static string SettingsLastSessionCrashed => Get(nameof(SettingsLastSessionCrashed));
+    public static string SettingsLastSessionUnknown => Get(nameof(SettingsLastSessionUnknown));
     public static string MenuLocationAlert => Get(nameof(MenuLocationAlert));
     public static string MenuOpenLocation => Get(nameof(MenuOpenLocation));
     public static string MenuEdit => Get(nameof(MenuEdit));
