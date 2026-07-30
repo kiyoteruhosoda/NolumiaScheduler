@@ -2,10 +2,10 @@ using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.ValueObjects;
+using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.WinUI.Presentation.Pages;
-using System.Diagnostics;
 
 namespace NolumiaScheduler.WinUI.Presentation.Services;
 
@@ -40,16 +40,38 @@ public class AlarmService(
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _timer = _dispatcherQueue.CreateTimer();
         _timer.Interval = TimeSpan.FromSeconds(1);
-        _timer.Tick += (_, _) => _ = CheckAlarmsAsync();
+        _timer.Tick += (_, _) => RunCheck();
         _timer.Start();
 
         _eventService.Changed += OnRepositoryChanged;
+
+        AppLog.Current.Info(AppLogCategories.Alarm, "Alarm polling started.");
     }
 
     public void Stop()
     {
         _timer?.Stop();
         _eventService.Changed -= OnRepositoryChanged;
+
+        AppLog.Current.Info(AppLogCategories.Alarm, "Alarm polling stopped.");
+    }
+
+    /// <summary>
+    /// Starts an alarm check without awaiting it, logging any fault.
+    /// <para>
+    /// The bare fire-and-forget this replaces sent every failure into an unobserved task, so a
+    /// throwing check silently killed alarms for the rest of the run while the app looked
+    /// perfectly healthy.
+    /// </para>
+    /// </summary>
+    private void RunCheck()
+    {
+        _ = CheckAlarmsAsync().ContinueWith(
+            task => AppLog.Current.Error(
+                AppLogCategories.Alarm, "Alarm check failed; polling continues.", task.Exception),
+            CancellationToken.None,
+            TaskContinuationOptions.OnlyOnFaulted | TaskContinuationOptions.ExecuteSynchronously,
+            TaskScheduler.Default);
     }
 
     private void OnRepositoryChanged()
@@ -58,7 +80,7 @@ public class AlarmService(
         dq.TryEnqueue(() =>
         {
             ScheduleChanged?.Invoke();
-            _ = CheckAlarmsAsync();
+            RunCheck();
         });
     }
 
@@ -98,7 +120,7 @@ public class AlarmService(
         _lastPurgeDate = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
         var purged = _purgeService.PurgeExpiredEvents();
         if (purged > 0)
-            Debug.WriteLine($"[AlarmService] Purged {purged} expired event(s)");
+            AppLog.Current.Info(AppLogCategories.Alarm, $"Purged {purged} expired event(s).");
     }
 
     private static void ShowAppNotification(DueAlarm due, string message)
@@ -121,7 +143,7 @@ public class AlarmService(
         }
         catch (Exception ex)
         {
-            Debug.WriteLine($"[AlarmService] App notification failed: {ex.Message}");
+            AppLog.Current.Warning(AppLogCategories.Alarm, "Toast notification could not be shown.", ex);
         }
     }
 
@@ -178,8 +200,14 @@ public class AlarmService(
                     var result = await alarmWindow.WaitForResultAsync();
                     tcs.TrySetResult(result);
                 }
-                catch
+                catch (Exception ex)
                 {
+                    // Treating the alarm as dismissed keeps the service alive, but silently
+                    // swallowing this made a broken alarm window indistinguishable from a user
+                    // clicking "dismiss" — the alarm just never appeared.
+                    AppLog.Current.Error(
+                        AppLogCategories.Alarm,
+                        $"Alarm window failed for event {due.EventId}; treating it as dismissed.", ex);
                     tcs.TrySetResult(AlarmNotificationResult.Dismissed);
                 }
             });

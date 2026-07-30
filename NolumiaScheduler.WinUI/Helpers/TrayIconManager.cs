@@ -1,6 +1,7 @@
 using System.Drawing;
 using System.Runtime.InteropServices;
 using Microsoft.UI.Xaml;
+using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Presentation.Resources.Strings;
 
 namespace NolumiaScheduler.WinUI.Helpers;
@@ -30,6 +31,13 @@ internal partial class TrayIconManager : IDisposable
     private nint _hWnd;
     private NOTIFYICONDATA _nid;
     private bool _added;
+    /// <summary>
+    /// Whether the icon is *meant* to be on screen, as opposed to <see cref="_added"/> which
+    /// tracks whether it currently is. The two diverge when Explorer drops the notification
+    /// area, which is what makes restoring it possible.
+    /// </summary>
+    private bool _shouldBeVisible;
+    private uint _taskbarCreatedMessage;
     private nint _hIcon;
     private readonly Window _window;
     private WNDPROC? _wndProc;
@@ -53,12 +61,14 @@ internal partial class TrayIconManager : IDisposable
 
     public void Show()
     {
+        _shouldBeVisible = true;
         if (!_added)
             AddTrayIcon(_tooltip);
     }
 
     public void Hide()
     {
+        _shouldBeVisible = false;
         if (_added)
         {
             Shell_NotifyIcon(NIM_DELETE, ref _nid);
@@ -79,6 +89,12 @@ internal partial class TrayIconManager : IDisposable
         RegisterClassEx(ref wc);
         _messageWindow = CreateWindowEx(0, wc.lpszClassName, "", 0, 0, 0, 0, 0, nint.Zero, nint.Zero, wc.hInstance, nint.Zero);
         _hWnd = _messageWindow;
+
+        // Explorer broadcasts "TaskbarCreated" when the notification area is (re)built — after an
+        // Explorer restart, and on some machines after a resume. Every icon in it is discarded at
+        // that point, so without re-adding ours the app keeps running with no way to reach it:
+        // indistinguishable from a crash, and a likely explanation for "it disappeared on its own".
+        _taskbarCreatedMessage = RegisterWindowMessage("TaskbarCreated");
     }
 
     private void LoadIcon()
@@ -106,12 +122,37 @@ internal partial class TrayIconManager : IDisposable
             hIcon = _hIcon,
             szTip = tooltip.Length > 127 ? tooltip[..127] : tooltip
         };
-        Shell_NotifyIcon(NIM_ADD, ref _nid);
-        _added = true;
+        if (Shell_NotifyIcon(NIM_ADD, ref _nid))
+        {
+            _added = true;
+        }
+        else
+        {
+            // Leaving _added false lets a later Show() or TaskbarCreated retry. Worth logging:
+            // a failure here hides the app's only entry point once its window is gone.
+            AppLog.Current.Error(
+                AppLogCategories.Tray,
+                $"Shell_NotifyIcon(NIM_ADD) failed (error {Marshal.GetLastPInvokeError()}); the tray icon is not visible.");
+        }
     }
 
     private nint WndProc(nint hWnd, uint msg, nint wParam, nint lParam)
     {
+        if (_taskbarCreatedMessage != 0 && msg == _taskbarCreatedMessage)
+        {
+            AppLog.Current.Warning(
+                AppLogCategories.Tray,
+                $"The notification area was recreated (Explorer restart). Restoring the tray icon: shouldBeVisible={_shouldBeVisible}.");
+
+            // The old registration died with the previous notification area, so re-add from
+            // scratch rather than updating.
+            _added = false;
+            if (_shouldBeVisible)
+                AddTrayIcon(_tooltip);
+
+            return DefWindowProc(hWnd, msg, wParam, lParam);
+        }
+
         if (msg == WM_TRAYICON)
         {
             var mouseMsg = (int)(lParam & 0xFFFF);
@@ -196,8 +237,11 @@ internal partial class TrayIconManager : IDisposable
         public int Y;
     }
 
-    [DllImport("shell32.dll", CharSet = CharSet.Unicode)]
+    [DllImport("shell32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     private static extern bool Shell_NotifyIcon(int dwMessage, ref NOTIFYICONDATA lpData);
+
+    [DllImport("user32.dll", CharSet = CharSet.Unicode)]
+    private static extern uint RegisterWindowMessage(string lpString);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern ushort RegisterClassEx(ref WNDCLASSEX lpwcx);

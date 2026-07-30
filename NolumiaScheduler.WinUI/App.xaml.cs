@@ -1,15 +1,18 @@
 using System.Runtime.InteropServices;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure;
+using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Infrastructure.Seeding;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
+using NolumiaScheduler.WinUI.Diagnostics;
 using NolumiaScheduler.WinUI.Helpers;
 using NolumiaScheduler.WinUI.Presentation.Pages;
 using NolumiaScheduler.WinUI.Presentation.Services;
@@ -25,6 +28,8 @@ public partial class App : Microsoft.UI.Xaml.Application
     public static Window? MainWindow { get; private set; }
     private TrayIconManager? _trayIcon;
     private AppNotificationManager? _notificationManager;
+    private SystemStateWatcher? _systemStateWatcher;
+    private AppHealthMonitor? _healthMonitor;
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode)]
     private static extern int MessageBox(IntPtr hWnd, string text, string caption, uint type);
@@ -42,10 +47,11 @@ public partial class App : Microsoft.UI.Xaml.Application
         try
         {
             _services = BuildServices();
+            AppLog.Current.Info(AppLogCategories.Lifecycle, "Service container built.");
         }
         catch (Exception ex)
         {
-            ShowFatalError(ex);
+            ShowFatalError("BuildServices", ex);
             Exit();
         }
     }
@@ -68,7 +74,9 @@ public partial class App : Microsoft.UI.Xaml.Application
             }
             catch (Exception ex)
             {
-                System.Diagnostics.Debug.WriteLine($"[App] AppNotificationManager.Register failed: {ex.Message}");
+                AppLog.Current.Warning(
+                    AppLogCategories.Lifecycle,
+                    "AppNotificationManager.Register failed; toast notifications are unavailable.", ex);
             }
 
             // Apply persisted language before the window is created so all localized
@@ -91,31 +99,84 @@ public partial class App : Microsoft.UI.Xaml.Application
             {
                 mw.MinimizedToTray += (_, _) => _trayIcon.Show();
             }
+
+            StartDiagnosticsWatchers();
+
+            AppLog.Current.Info(AppLogCategories.Lifecycle, "Launch completed; main window is active.");
         }
         catch (Exception ex)
         {
-            ShowFatalError(ex);
+            ShowFatalError("OnLaunched", ex);
             Exit();
         }
+    }
+
+    /// <summary>
+    /// Starts the watchers that make a silent death diagnosable: machine power/session
+    /// transitions and periodic process-health sampling. Both are best effort — the app must
+    /// still run if diagnostics cannot start.
+    /// </summary>
+    private void StartDiagnosticsWatchers()
+    {
+        var session = AppDiagnostics.Session;
+        if (session is null)
+            return;
+
+        try
+        {
+            _systemStateWatcher = new SystemStateWatcher(AppLog.Current, TimeProvider.System);
+            _systemStateWatcher.StateChanged += OnSystemStateChanged;
+
+            // The dispatcher queue is captured here, on the UI thread, so the monitor can ping
+            // it from its background timer to tell a hung UI apart from a dead process.
+            _healthMonitor = new AppHealthMonitor(AppLog.Current, session, DispatcherQueue.GetForCurrentThread());
+        }
+        catch (Exception ex)
+        {
+            AppLog.Current.Error(AppLogCategories.Lifecycle, "Could not start the diagnostics watchers.", ex);
+        }
+    }
+
+    private void OnSystemStateChanged(string eventName)
+    {
+        // Windows is shutting down or logging off, so the process is about to be terminated
+        // without ever reaching the tray-exit path. Record that as intentional: reporting every
+        // PC shutdown as a crash would drown the real ones.
+        if (eventName == "endsession")
+        {
+            AppDiagnostics.MarkCleanExit("windows session ending");
+            return;
+        }
+
+        // Stamp the transition into the session marker: if the process dies next, the next start
+        // reports which machine state it died in — the link between "it crashed" and "we had just
+        // resumed" that is otherwise pure guesswork.
+        AppDiagnostics.Session?.RecordEvent(eventName);
+
+        // Take a resource sample on both sides of a sleep, since resume is when the graphics
+        // stack is re-created and where leaked or lost resources surface.
+        if (eventName is "suspend" or "resume" or "resume-automatic" or "resume-critical")
+            _healthMonitor?.SampleNow(eventName);
     }
 
     private void OnAppUnhandledException(object sender, Microsoft.UI.Xaml.UnhandledExceptionEventArgs e)
     {
         e.Handled = true;
-        ShowFatalError(e.Exception);
+        ShowFatalError("Application.UnhandledException", e.Exception);
         Exit();
     }
 
-    private static void ShowFatalError(Exception ex)
+    private static void ShowFatalError(string origin, Exception ex)
     {
-        var logDir = Path.Combine(
-            Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
-            "NolumiaScheduler");
-        Directory.CreateDirectory(logDir);
-        var logPath = Path.Combine(logDir, "crash.log");
+        // Route through the log sinks first: this is the only path that also reaches the Windows
+        // Application event log, and marking the session as crashed means the cause survives even
+        // if writing the crash file below fails.
+        CrashReporter.ReportFatal(origin, ex);
+
+        var logPath = Path.Combine(StorageContext.DefaultDataDirectory, "crash.log");
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"[{DateTime.Now:O}]");
+        sb.AppendLine($"[{DateTime.Now:O}] {origin}");
         sb.AppendLine(ex.ToString());
 
         // Walk the inner exception chain logging type + HResult for each level, since
@@ -138,7 +199,19 @@ public partial class App : Microsoft.UI.Xaml.Application
             sb.AppendLine($"[Hint] resources.pri present: {File.Exists(priPath)} ({priPath})");
         }
 
-        File.WriteAllText(logPath, sb.ToString());
+        try
+        {
+            Directory.CreateDirectory(StorageContext.DefaultDataDirectory);
+            // Append rather than overwrite: a repeating crash used to erase the evidence of the
+            // first (and usually most informative) occurrence on every restart.
+            File.AppendAllText(logPath, sb.ToString());
+        }
+        catch (Exception writeFailure)
+        {
+            // The rolling log already has the exception, so failing to write this file is worth
+            // recording but must not stop the message below from reaching the user.
+            AppLog.Current.Error(AppLogCategories.Crash, $"Could not write {logPath}.", writeFailure);
+        }
 
         const uint MB_ICONERROR = 0x10;
         MessageBox(
@@ -180,7 +253,22 @@ public partial class App : Microsoft.UI.Xaml.Application
         // COM activator + registry registration and can block the UI thread for several
         // seconds, which is what made app exit feel slow. Registration is meant to persist
         // across runs (only unregister on uninstall/cleanup), so leave it in place.
+
+        // Mark the exit as intentional before tearing anything down, so a failure during
+        // shutdown is not reported as a crash on the next start.
+        AppDiagnostics.MarkCleanExit("tray exit");
+
         Services.GetRequiredService<IAlarmService>().Stop();
+
+        _healthMonitor?.Dispose();
+        _healthMonitor = null;
+        if (_systemStateWatcher is not null)
+        {
+            _systemStateWatcher.StateChanged -= OnSystemStateChanged;
+            _systemStateWatcher.Dispose();
+            _systemStateWatcher = null;
+        }
+
         _trayIcon?.Dispose();
         _trayIcon = null;
         if (MainWindow is MainWindow mw)
