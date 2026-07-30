@@ -8,6 +8,7 @@ using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Infrastructure;
 using NolumiaScheduler.Presentation.Resources.Strings;
+using NolumiaScheduler.WinUI.Diagnostics;
 using NolumiaScheduler.WinUI.Presentation.Services;
 
 namespace NolumiaScheduler.WinUI.Presentation.Pages;
@@ -54,6 +55,8 @@ public sealed partial class SettingsPage : Page
         StorageLabelText.Text = AppResources.SettingsStorageLabel;
         StorageValueText.Text = StorageBackendDisplayName(App.Services.GetRequiredService<ActiveStorageBackend>().Backend);
         OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
+
+        ApplyDiagnosticsTexts();
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -133,6 +136,7 @@ public sealed partial class SettingsPage : Page
         VersionLabelText.Text  = AppResources.SettingsVersionLabel;
         StorageLabelText.Text  = AppResources.SettingsStorageLabel;
         OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
+        ApplyDiagnosticsTexts();
 
         ThemePicker.Items[0] = AppResources.ThemeSystem;
         ThemePicker.Items[1] = AppResources.ThemeLight;
@@ -153,5 +157,35 @@ public sealed partial class SettingsPage : Page
         Directory.CreateDirectory(dir);
         // Unpackaged WinUI app: shell-execute the folder path to open it in Explorer.
         Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+    }
+
+    private void OnOpenLogFolderClick(object sender, RoutedEventArgs e)
+    {
+        var dir = AppDiagnostics.LogDirectory;
+        Directory.CreateDirectory(dir);
+        Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+    }
+
+    /// <summary>
+    /// Fills in the diagnostics section, including how the previous run ended. Surfacing that in
+    /// the UI is the point: an unexpected termination is otherwise invisible to the user, who
+    /// only notices that the app "was gone" some time later.
+    /// </summary>
+    private void ApplyDiagnosticsTexts()
+    {
+        DiagnosticsLabelText.Text = AppResources.SettingsDiagnosticsLabel;
+        DiagnosticsDescriptionText.Text = AppResources.SettingsDiagnosticsDescription;
+        OpenLogFolderButton.Content = AppResources.SettingsOpenLogFolderLink;
+
+        LastSessionText.Text = AppDiagnostics.Session?.PreviousSession switch
+        {
+            null => AppResources.SettingsLastSessionUnknown,
+            { CleanExit: true } => AppResources.SettingsLastSessionClean,
+            { } previous => string.Format(
+                AppResources.FormatCulture,
+                AppResources.SettingsLastSessionCrashed,
+                previous.LastHeartbeat.LocalDateTime,
+                previous.LastEvent),
+        };
     }
 }

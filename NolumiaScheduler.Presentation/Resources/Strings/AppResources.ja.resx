@@ -565,6 +565,24 @@
   <data name="SettingsOpenDataFolderLink" xml:space="preserve">
     <value>データフォルダを開く</value>
   </data>
+  <data name="SettingsDiagnosticsLabel" xml:space="preserve">
+    <value>診断</value>
+  </data>
+  <data name="SettingsDiagnosticsDescription" xml:space="preserve">
+    <value>起動・終了・スリープ／復帰・エラーの記録がここに保存されます。不具合を報告するときはこのファイルを添付してください。</value>
+  </data>
+  <data name="SettingsOpenLogFolderLink" xml:space="preserve">
+    <value>ログフォルダを開く</value>
+  </data>
+  <data name="SettingsLastSessionClean" xml:space="preserve">
+    <value>前回は正常に終了しました。</value>
+  </data>
+  <data name="SettingsLastSessionCrashed" xml:space="preserve">
+    <value>前回は正常に終了していません（最終動作: {0}、直前のイベント: {1}）。</value>
+  </data>
+  <data name="SettingsLastSessionUnknown" xml:space="preserve">
+    <value>前回の記録はありません。</value>
+  </data>
   <data name="MenuLocationAlert" xml:space="preserve">
     <value>ロケーションが設定されていません。</value>
   </data>

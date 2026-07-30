@@ -564,6 +564,24 @@
   <data name="SettingsOpenDataFolderLink" xml:space="preserve">
     <value>Open data folder</value>
   </data>
+  <data name="SettingsDiagnosticsLabel" xml:space="preserve">
+    <value>Diagnostics</value>
+  </data>
+  <data name="SettingsDiagnosticsDescription" xml:space="preserve">
+    <value>Startup, shutdown, sleep/resume and error records are kept here. Attach these files when reporting a problem.</value>
+  </data>
+  <data name="SettingsOpenLogFolderLink" xml:space="preserve">
+    <value>Open log folder</value>
+  </data>
+  <data name="SettingsLastSessionClean" xml:space="preserve">
+    <value>The previous session shut down normally.</value>
+  </data>
+  <data name="SettingsLastSessionCrashed" xml:space="preserve">
+    <value>The previous session did not shut down normally (last activity: {0}, last event: {1}).</value>
+  </data>
+  <data name="SettingsLastSessionUnknown" xml:space="preserve">
+    <value>No record of a previous session.</value>
+  </data>
   <data name="MenuLocationAlert" xml:space="preserve">
     <value>Location is not set.</value>
   </data>

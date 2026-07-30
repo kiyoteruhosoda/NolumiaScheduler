@@ -60,6 +60,23 @@
                                  Click="OnOpenDataFolderClick"/>
             </StackPanel>
 
+            <!-- Diagnostics: log folder and how the previous run ended -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="DiagnosticsLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <TextBlock x:Name="DiagnosticsDescriptionText"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <TextBlock x:Name="LastSessionText"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <HyperlinkButton x:Name="OpenLogFolderButton"
+                                 MinHeight="48"
+                                 Padding="0"
+                                 Click="OnOpenLogFolderClick"/>
+            </StackPanel>
+
         </StackPanel>
     </ScrollViewer>
 </Page>

@@ -1,5 +1,7 @@
 using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
+using NolumiaScheduler.Infrastructure.Diagnostics;
+using NolumiaScheduler.WinUI.Diagnostics;
 
 namespace NolumiaScheduler.WinUI;
 
@@ -16,21 +18,47 @@ public static class Program
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
+        // Logging comes up before anything else so a failure in the steps below is still
+        // recorded. Only the sinks are started here: the session marker is deliberately left
+        // alone until we know this process is the one that will run, otherwise a redirected
+        // second instance would overwrite the live instance's marker on its way out and make
+        // the running app look like it had just started.
+        AppDiagnostics.InitializeLogging();
+
         var mainInstance = AppInstance.FindOrRegisterForKey(InstanceKey);
         if (!mainInstance.IsCurrent)
         {
             // Another instance is already running: hand it our activation so it can
             // bring its window to the front, then exit quietly (no error by design).
+            AppLog.Current.Info(
+                AppLogCategories.Lifecycle,
+                "Another instance is already running; redirecting activation and exiting.");
             RedirectActivationTo(mainInstance);
             return;
         }
 
-        Microsoft.UI.Xaml.Application.Start(static p =>
+        AppDiagnostics.StartSession();
+
+        try
         {
-            var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
-            SynchronizationContext.SetSynchronizationContext(context);
-            _ = new App();
-        });
+            Microsoft.UI.Xaml.Application.Start(static p =>
+            {
+                var context = new DispatcherQueueSynchronizationContext(DispatcherQueue.GetForCurrentThread());
+                SynchronizationContext.SetSynchronizationContext(context);
+                _ = new App();
+            });
+        }
+        catch (Exception ex)
+        {
+            // Application.Start owns the message loop, so an exception escaping it means the
+            // loop itself died. Without this the process would vanish with nothing written.
+            CrashReporter.ReportFatal("Application.Start", ex);
+            throw;
+        }
+
+        // Reached when the message loop ends normally. A run that never gets here left the
+        // marker in its "not a clean exit" state, which is what the next start reports.
+        AppDiagnostics.MarkCleanExit("message loop ended");
     }
 
     private static void RedirectActivationTo(AppInstance mainInstance)
@@ -58,9 +86,12 @@ public static class Program
             });
             redirected.Wait(TimeSpan.FromSeconds(5));
         }
-        catch
+        catch (Exception ex)
         {
-            // Best effort: if the redirect fails the second instance still exits silently.
+            // Best effort: if the redirect fails the second instance still exits silently, but
+            // the reason is recorded — a failed redirect looks to the user like a launch that
+            // did nothing at all.
+            AppLog.Current.Warning(AppLogCategories.Lifecycle, "Activation redirect failed.", ex);
         }
     }
 }
