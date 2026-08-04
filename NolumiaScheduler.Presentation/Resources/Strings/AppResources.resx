@@ -468,6 +468,9 @@
   <data name="AlarmDismiss" xml:space="preserve">
     <value>Dismiss</value>
   </data>
+  <data name="AlarmStay" xml:space="preserve">
+    <value>Stay open</value>
+  </data>
   <data name="AlarmSnooze5Min" xml:space="preserve">
     <value>Snooze 5 min</value>
   </data>

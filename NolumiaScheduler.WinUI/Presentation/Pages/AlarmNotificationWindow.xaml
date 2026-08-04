@@ -5,7 +5,7 @@
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     Title="Alarm">
 
-    <Grid Background="{StaticResource GCalAlarmScrim}">
+    <Grid x:Name="AlarmRoot" Background="{StaticResource GCalAlarmScrim}">
 
         <!-- Centered card -->
         <Border Background="{ThemeResource GCalSurface}"
@@ -133,9 +133,17 @@
                             Click="OnSetBeforeStartClicked"/>
                 </Grid>
 
+                <!-- Keep the alarm open as a movable countdown without blocking the calendar. -->
+                <Button x:Name="StayBtn" FontSize="14" FontWeight="SemiBold"
+                        Margin="0,28,0,0" Height="48" CornerRadius="24"
+                        HorizontalAlignment="Stretch"
+                        Background="{ThemeResource GCalSurfaceVariant}"
+                        BorderBrush="{ThemeResource GCalBorder}"
+                        Click="OnStayClicked"/>
+
                 <!-- Primary action -->
                 <Button x:Name="DismissBtn" FontSize="16" FontWeight="SemiBold"
-                        Margin="0,28,0,0" Height="52" CornerRadius="26"
+                        Margin="0,12,0,0" Height="52" CornerRadius="26"
                         HorizontalAlignment="Stretch"
                         Click="OnDismissClicked"
                         Style="{ThemeResource AccentButtonStyle}"/>
