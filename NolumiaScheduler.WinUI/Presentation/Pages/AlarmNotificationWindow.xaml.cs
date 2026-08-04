@@ -25,6 +25,7 @@ public sealed partial class AlarmNotificationWindow : Window
     private readonly TimeProvider _clock;
     private DispatcherTimer? _countdownTimer;
     private bool _foregroundForced;
+    private IAlarmWindowMode _windowMode = AttentionAlarmWindowMode.Instance;
 
     public AlarmNotificationWindow(
         string title,
@@ -50,6 +51,7 @@ public sealed partial class AlarmNotificationWindow : Window
         MessageLabel.Text = message;
         TimeLabel.Text = now.ToString("yyyy/MM/dd HH:mm");
         DismissBtn.Content = AppResources.AlarmDismiss;
+        StayBtn.Content = AppResources.AlarmStay;
         OpenLocationBtn.Content = AppResources.AlarmOpenLocation;
         CancelAllBtn.Content = AppResources.AlarmCancelAll;
 
@@ -112,13 +114,9 @@ public sealed partial class AlarmNotificationWindow : Window
 
         AppWindow?.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
 
-        // Disable other app windows to simulate system-modal
-        DisableOtherWindows(true);
-
-        // Configure the overlay while the window is still hidden, so the very first frame
-        // the user sees is already the full-screen translucent overlay — configuring on
-        // first activation shows the bare window being moved/restyled.
-        ConfigureOverlayWindow();
+        // Every alarm starts in the attention mode. Choosing "Stay" changes only the window
+        // presentation; the alarm remains active and its countdown continues.
+        _windowMode.Enter(this);
 
         // Start the live countdown/elapsed timer when the event start time is known.
         if (eventStartTime.HasValue)
@@ -142,7 +140,7 @@ public sealed partial class AlarmNotificationWindow : Window
         Closed += (_, _) =>
         {
             _countdownTimer?.Stop();
-            DisableOtherWindows(false);
+            _windowMode.Exit(this);
             // Closing without an explicit button (e.g. the title-bar X) still persists toggle changes.
             _tcs.TrySetResult(BuildResult(AlarmNotificationAction.Dismiss));
         };
@@ -422,6 +420,15 @@ public sealed partial class AlarmNotificationWindow : Window
     }
 
     private void OnDismissClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.Dismiss);
+    private void OnStayClicked(object sender, RoutedEventArgs e)
+    {
+        if (_windowMode is StayingAlarmWindowMode)
+            return;
+
+        _windowMode.Exit(this);
+        _windowMode = StayingAlarmWindowMode.Instance;
+        _windowMode.Enter(this);
+    }
     private void OnCancelAllClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.CancelAll);
     private void OnSetFromNowClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmFromNow, ReadMinutes(FromNowInput));
     private void OnSetBeforeStartClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmBeforeStart, ReadMinutes(BeforeStartInput));
@@ -499,6 +506,82 @@ public sealed partial class AlarmNotificationWindow : Window
             var hwnd = WindowNative.GetWindowHandle(mainWindow);
             NativeMethods.EnableWindow(hwnd, !disable);
         }
+    }
+
+    /// <summary>
+    /// Changes the full-screen alarm into a normal, movable window. The application is enabled
+    /// again while this window stays top-most and continues counting down. A subsequent alarm
+    /// creates a fresh window in <see cref="AttentionAlarmWindowMode"/>, restoring the original
+    /// attention presentation automatically.
+    /// </summary>
+    private void ConfigureStayingWindow()
+    {
+        var hwnd = WindowNative.GetWindowHandle(this);
+
+        if (AppWindow?.Presenter is OverlappedPresenter presenter)
+        {
+            presenter.SetBorderAndTitleBar(true, true);
+            presenter.IsResizable = true;
+            presenter.IsMaximizable = false;
+            presenter.IsMinimizable = true;
+        }
+
+        var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
+        style |= NativeMethods.WS_CAPTION | NativeMethods.WS_THICKFRAME;
+        NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_STYLE, style);
+
+        AlarmRoot.Background = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["GCalSurface"];
+
+        const int width = 520;
+        const int height = 760;
+        var monitor = GetActiveMonitorBounds(hwnd);
+        AppWindow?.MoveAndResize(new RectInt32(
+            monitor.X + Math.Max(0, (monitor.Width - width) / 2),
+            monitor.Y + Math.Max(0, (monitor.Height - height) / 2),
+            Math.Min(width, monitor.Width),
+            Math.Min(height, monitor.Height)));
+        NativeMethods.SetWindowPos(
+            hwnd,
+            NativeMethods.HWND_TOPMOST,
+            0,
+            0,
+            0,
+            0,
+            NativeMethods.SWP_NOMOVE | NativeMethods.SWP_NOSIZE |
+            NativeMethods.SWP_SHOWWINDOW | NativeMethods.SWP_FRAMECHANGED);
+    }
+
+    private interface IAlarmWindowMode
+    {
+        void Enter(AlarmNotificationWindow window);
+        void Exit(AlarmNotificationWindow window);
+    }
+
+    private sealed class AttentionAlarmWindowMode : IAlarmWindowMode
+    {
+        public static AttentionAlarmWindowMode Instance { get; } = new();
+
+        public void Enter(AlarmNotificationWindow window)
+        {
+            DisableOtherWindows(true);
+            window.ConfigureOverlayWindow();
+        }
+
+        public void Exit(AlarmNotificationWindow window) => DisableOtherWindows(false);
+    }
+
+    private sealed class StayingAlarmWindowMode : IAlarmWindowMode
+    {
+        public static StayingAlarmWindowMode Instance { get; } = new();
+
+        public void Enter(AlarmNotificationWindow window)
+        {
+            DisableOtherWindows(false);
+            window.ConfigureStayingWindow();
+            window.StayBtn.Visibility = Visibility.Collapsed;
+        }
+
+        public void Exit(AlarmNotificationWindow window) => DisableOtherWindows(false);
     }
 
     private static partial class NativeMethods
