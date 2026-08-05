@@ -45,6 +45,13 @@ public sealed record UpdateEventCommand(
     EventColorKey? ColorKey = null,
     string? Description = null);
 
+public sealed record RescheduleSingleEventCommand(
+    string EventId,
+    bool AllDay,
+    DateOnly NewDate,
+    TimeSpan? NewStartTime,
+    TimeSpan? NewEndTime);
+
 public sealed record SkipOccurrenceCommand(
     string EventId,
     OccurrenceLocalKey OccurrenceKey);
