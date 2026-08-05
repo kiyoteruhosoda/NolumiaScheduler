@@ -108,7 +108,8 @@ public class CalendarEventApplicationService(
         }
 
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
-        ev.SetColor(command.ColorKey, _clock.GetUtcNow());
+        if (command.ColorKey is { } colorKey)
+            ev.SetColor(colorKey, _clock.GetUtcNow());
         _repository.Save(ev);
     }
 

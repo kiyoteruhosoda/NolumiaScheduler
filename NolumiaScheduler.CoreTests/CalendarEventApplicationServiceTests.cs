@@ -192,6 +192,27 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
+    public void UpdateEvent_色未指定の部分更新では既存色を保持する()
+    {
+        CreateAndSaveSingleEvent("color-drag", EventColorKey.Basil);
+
+        _svc.UpdateEvent(new UpdateEventCommand(
+            EventId: "color-drag",
+            Title: "sample",
+            Location: null,
+            Visibility: Visibility.Public,
+            AllDay: false,
+            NewDate: new DateOnly(2026, 5, 21),
+            NewStartTime: new TimeSpan(10, 0, 0),
+            NewEndTime: new TimeSpan(11, 0, 0),
+            Alarm: null));
+
+        var saved = _repo.FindById(new EventId("color-drag"))!;
+        Assert.AreEqual(EventColorKey.Basil, saved.ColorKey);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 21), LocalSchedulePoint.LocalDateOf(saved.SingleSchedule!.StartUtc, Tokyo));
+    }
+
+    [TestMethod]
     public void UpdateEvent_終日単発予定は時間なしで日付変更できる()
     {
         _svc.CreateSingleEvent(new CreateSingleEventCommand(
@@ -593,14 +614,15 @@ public class CalendarEventApplicationServiceTests
 
     // ── helpers ───────────────────────────────────────────────────────────
 
-    private CalendarEvent CreateAndSaveSingleEvent(string id)
+    private CalendarEvent CreateAndSaveSingleEvent(string id, EventColorKey colorKey = EventColorKey.Default)
     {
         var tz = new TimeZoneId("Asia/Tokyo");
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle("sample"), null,
             Visibility.Public, null, null, tz,
             new SingleEventSchedule(Utc(2026, 5, 20, 9, 0, Tokyo), 60),
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            colorKey: colorKey);
         _repo.Save(ev);
         return ev;
     }

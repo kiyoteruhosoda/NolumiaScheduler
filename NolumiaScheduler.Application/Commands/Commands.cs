@@ -42,7 +42,7 @@ public sealed record UpdateEventCommand(
     TimeSpan? NewStartTime,
     TimeSpan? NewEndTime,
     EventAlarm? Alarm,
-    EventColorKey ColorKey = EventColorKey.Default,
+    EventColorKey? ColorKey = null,
     string? Description = null);
 
 public sealed record SkipOccurrenceCommand(
