@@ -108,7 +108,27 @@ public class CalendarEventApplicationService(
         }
 
         ev.SetAlarm(command.Alarm, _clock.GetUtcNow());
-        ev.SetColor(command.ColorKey, _clock.GetUtcNow());
+        if (command.ColorKey is { } colorKey)
+            ev.SetColor(colorKey, _clock.GetUtcNow());
+        _repository.Save(ev);
+    }
+
+    /// <summary>
+    /// Reschedules a standalone single event without changing its details, alarm, color or memo.
+    /// Used by drag/resize interactions where the user intent is only to move the occurrence.
+    /// </summary>
+    public void RescheduleSingleEvent(RescheduleSingleEventCommand command)
+    {
+        var ev = GetOrThrow(command.EventId);
+        if (!ev.IsSingle())
+            throw new DomainException("RescheduleSingleEvent is only valid for single events.");
+
+        var (startTime, duration) = ResolveTimes(
+            command.NewStartTime ?? TimeSpan.Zero,
+            command.NewEndTime ?? TimeSpan.Zero,
+            command.AllDay);
+        var startUtc = ToUtc(LocalDateValue.FromDateOnly(command.NewDate), startTime, ev.TimeZoneId.Value);
+        ev.RescheduleSingle(new SingleEventSchedule(startUtc, duration), _clock.GetUtcNow());
         _repository.Save(ev);
     }
 

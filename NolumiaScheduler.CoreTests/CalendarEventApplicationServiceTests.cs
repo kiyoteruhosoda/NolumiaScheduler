@@ -192,6 +192,27 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
+    public void UpdateEvent_色未指定の部分更新では既存色を保持する()
+    {
+        CreateAndSaveSingleEvent("color-drag", EventColorKey.Basil);
+
+        _svc.UpdateEvent(new UpdateEventCommand(
+            EventId: "color-drag",
+            Title: "sample",
+            Location: null,
+            Visibility: Visibility.Public,
+            AllDay: false,
+            NewDate: new DateOnly(2026, 5, 21),
+            NewStartTime: new TimeSpan(10, 0, 0),
+            NewEndTime: new TimeSpan(11, 0, 0),
+            Alarm: null));
+
+        var saved = _repo.FindById(new EventId("color-drag"))!;
+        Assert.AreEqual(EventColorKey.Basil, saved.ColorKey);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 21), LocalSchedulePoint.LocalDateOf(saved.SingleSchedule!.StartUtc, Tokyo));
+    }
+
+    [TestMethod]
     public void UpdateEvent_終日単発予定は時間なしで日付変更できる()
     {
         _svc.CreateSingleEvent(new CreateSingleEventCommand(
@@ -219,6 +240,33 @@ public class CalendarEventApplicationServiceTests
         // Remains a full-day occurrence: start 00:00 + 1440 minutes.
         Assert.AreEqual(new LocalTimeValue(0, 0, 0), LocalSchedulePoint.LocalTimeOf(saved.SingleSchedule.StartUtc, Tokyo));
         Assert.AreEqual(24 * 60, saved.SingleSchedule.DurationMinutes);
+    }
+
+    [TestMethod]
+    public void RescheduleSingleEvent_日時だけを変更し他属性は保持する()
+    {
+        var alarm = new EventAlarm(true, false, true, false, true);
+        CreateAndSaveSingleEvent(
+            "reschedule-only",
+            EventColorKey.Basil,
+            description: "drag memo",
+            alarm: alarm);
+
+        _svc.RescheduleSingleEvent(new RescheduleSingleEventCommand(
+            EventId: "reschedule-only",
+            AllDay: false,
+            NewDate: new DateOnly(2026, 5, 22),
+            NewStartTime: new TimeSpan(13, 0, 0),
+            NewEndTime: new TimeSpan(14, 30, 0)));
+
+        var saved = _repo.FindById(new EventId("reschedule-only"))!;
+        Assert.AreEqual("sample", saved.Title.Value);
+        Assert.AreEqual("drag memo", saved.Description!.Value);
+        Assert.AreEqual(alarm, saved.Alarm);
+        Assert.AreEqual(EventColorKey.Basil, saved.ColorKey);
+        Assert.AreEqual(new LocalDateValue(2026, 5, 22), LocalSchedulePoint.LocalDateOf(saved.SingleSchedule!.StartUtc, Tokyo));
+        Assert.AreEqual(new LocalTimeValue(13, 0, 0), LocalSchedulePoint.LocalTimeOf(saved.SingleSchedule.StartUtc, Tokyo));
+        Assert.AreEqual(90, saved.SingleSchedule.DurationMinutes);
     }
 
     // ── SkipOccurrence / DeleteOccurrence ──────────────────────────────────
@@ -593,14 +641,20 @@ public class CalendarEventApplicationServiceTests
 
     // ── helpers ───────────────────────────────────────────────────────────
 
-    private CalendarEvent CreateAndSaveSingleEvent(string id)
+    private CalendarEvent CreateAndSaveSingleEvent(
+        string id,
+        EventColorKey colorKey = EventColorKey.Default,
+        string? description = null,
+        EventAlarm? alarm = null)
     {
         var tz = new TimeZoneId("Asia/Tokyo");
         var ev = CalendarEvent.CreateSingle(
             new EventId(id), new EventTitle("sample"), null,
-            Visibility.Public, null, null, tz,
+            Visibility.Public, null, description != null ? new Description(description) : null, tz,
             new SingleEventSchedule(Utc(2026, 5, 20, 9, 0, Tokyo), 60),
-            DateTimeOffset.UtcNow);
+            DateTimeOffset.UtcNow,
+            alarm: alarm,
+            colorKey: colorKey);
         _repo.Save(ev);
         return ev;
     }

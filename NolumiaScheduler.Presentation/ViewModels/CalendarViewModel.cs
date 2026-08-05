@@ -525,16 +525,12 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             }
             else
             {
-                _eventService.UpdateEvent(new UpdateEventCommand(
+                _eventService.RescheduleSingleEvent(new RescheduleSingleEventCommand(
                     eventId,
-                    ev.Title.Value,
-                    ev.Location?.Value,
-                    ev.Visibility,
                     false,
                     date,
                     TimeSpan.FromMinutes(startMinute),
-                    TimeSpan.FromMinutes(endMinute),
-                    ev.Alarm));
+                    TimeSpan.FromMinutes(endMinute)));
             }
             RefreshAfterChange();
             return true;
