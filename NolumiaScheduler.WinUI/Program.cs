@@ -18,6 +18,10 @@ public static class Program
     {
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
+        // Task Scheduler starts processes with a non-app current directory by default.
+        // Pin it to the executable folder so any relative file access remains stable.
+        Environment.CurrentDirectory = AppContext.BaseDirectory;
+
         // Logging comes up before anything else so a failure in the steps below is still
         // recorded. Only the sinks are started here: the session marker is deliberately left
         // alone until we know this process is the one that will run, otherwise a redirected

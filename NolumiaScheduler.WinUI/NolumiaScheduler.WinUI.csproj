@@ -22,6 +22,10 @@
          supplies a RID via the publish profile or -r argument. -->
     <WindowsAppSDKSelfContained Condition="'$(RuntimeIdentifier)' != ''">true</WindowsAppSDKSelfContained>
     <SelfContained Condition="'$(RuntimeIdentifier)' != ''">true</SelfContained>
+    <!-- Unpackaged + self-contained app should not bootstrap the framework package.
+         Framework-dependent builds need the bootstrap initializer so Windows App SDK
+         WinRT types such as AppInstance are registered before Program.Main uses them. -->
+    <WindowsAppSdkBootstrapInitialize Condition="'$(WindowsAppSDKSelfContained)' == 'true'">false</WindowsAppSdkBootstrapInitialize>
     <WinUISDKReferences>false</WinUISDKReferences>
     <!-- This project ships as an unpackaged (WindowsPackageType=None) app, so
          MSIX tooling is disabled. Leaving it on makes Visual Studio treat the
@@ -76,7 +80,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.Windows.SDK.BuildTools" Version="10.0.28000.2270" />
-    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.2.0" />
+    <PackageReference Include="Microsoft.WindowsAppSDK" Version="2.3.1" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.9" />
     <PackageReference Include="Microsoft.Extensions.Logging.Debug" Version="10.0.9" />
     <PackageReference Include="SQLitePCLRaw.lib.e_sqlite3" Version="3.53.3" />

@@ -236,6 +236,15 @@ public partial class App : Microsoft.UI.Xaml.Application
         // notification area as soon as it was shown once.
         if (MainWindow is not null)
         {
+            // If the window is minimized/hidden, force it back to a normal presenter state before
+            // activation. Some launch paths (including scheduled startup + redirected activation)
+            // can otherwise keep the app running but leave no visible window.
+            if (MainWindow.AppWindow.Presenter is Microsoft.UI.Windowing.OverlappedPresenter presenter
+                && presenter.State == Microsoft.UI.Windowing.OverlappedPresenterState.Minimized)
+            {
+                presenter.Restore();
+            }
+
             MainWindow.AppWindow.Show();
             MainWindow.Activate();
         }
