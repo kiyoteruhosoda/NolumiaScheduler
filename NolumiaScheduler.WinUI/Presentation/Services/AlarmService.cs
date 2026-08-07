@@ -219,6 +219,13 @@ public class AlarmService(
     {
         _isShowingNotification = true;
         _currentDueEventId = due.EventId;
+
+        // Declared outside the try so the finally can see it: the cleanup only releases state this
+        // alarm still owns, because once the user parks this window in stay mode a later alarm
+        // takes over _currentWindow, and clearing it unconditionally would drop that newer alarm's
+        // bookkeeping.
+        AlarmNotificationWindow? shownWindow = null;
+
         try
         {
             var now = _clock.GetLocalNow().DateTime;
@@ -236,10 +243,6 @@ public class AlarmService(
             var hasRemainingAlarms = nextAlarmAt.HasValue;
 
             var tcs = new TaskCompletionSource<AlarmNotificationResult>();
-            // Tracked so the cleanup below only releases state this alarm still owns: once the user
-            // parks this window in stay mode a later alarm takes over _currentWindow, and clearing
-            // it unconditionally would drop that newer alarm's bookkeeping.
-            AlarmNotificationWindow? shownWindow = null;
 
             var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
             dq.TryEnqueue(async () =>
