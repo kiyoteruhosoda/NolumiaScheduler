@@ -31,6 +31,7 @@ public class AlarmService(
     private AlarmNotificationWindow? _currentWindow;
     private string? _currentDueEventId;
     private readonly List<(string EventId, AlarmNotificationWindow Window)> _stayWindows = [];
+    private readonly Queue<DueAlarm> _pendingAlarms = new();
 
     public event Action? ScheduleChanged;
 
@@ -108,17 +109,26 @@ public class AlarmService(
             return;
         }
 
+        // Collecting consumes the alarms — snoozes are dropped and fired keys recorded — so a
+        // whole batch has to be queued, not shown from inside a loop that awaits each window.
+        // Awaiting in the loop stranded the rest of the batch behind the first window, and "stay"
+        // keeps that window open indefinitely while no longer holding the slot, so those alarms
+        // would never be shown by any later poll either. One alarm leaves the queue per poll.
         foreach (var due in _alarms.CollectDueAlarms())
-        {
-            // A window left open in "stay" mode for this event is the previous alarm of the same
-            // reservation. The new alarm replaces it — in the full-screen attention presentation —
-            // instead of leaving two countdowns for one event on screen.
-            CloseStayWindows(due.EventId);
+            _pendingAlarms.Enqueue(due);
 
-            var message = GetMessage(due);
-            ShowAppNotification(due, message);
-            await ShowAlarmAsync(due, message);
-        }
+        if (_pendingAlarms.Count == 0) return;
+
+        var next = _pendingAlarms.Dequeue();
+
+        // A window left open in "stay" mode for this event is the previous alarm of the same
+        // reservation. The new alarm replaces it — in the full-screen attention presentation —
+        // instead of leaving two countdowns for one event on screen.
+        CloseStayWindows(next.EventId);
+
+        var message = GetMessage(next);
+        ShowAppNotification(next, message);
+        await ShowAlarmAsync(next, message);
     }
 
     /// <summary>
@@ -135,6 +145,16 @@ public class AlarmService(
         _currentWindow = null;
         _currentDueEventId = null;
         _isShowingNotification = false;
+    }
+
+    private void DropPendingAlarms(string eventId)
+    {
+        if (_pendingAlarms.Count == 0) return;
+
+        var kept = _pendingAlarms.Where(pending => pending.EventId != eventId).ToList();
+        _pendingAlarms.Clear();
+        foreach (var pending in kept)
+            _pendingAlarms.Enqueue(pending);
     }
 
     private void CloseStayWindows(string eventId)
@@ -279,6 +299,9 @@ public class AlarmService(
                     break;
                 case AlarmNotificationAction.CancelAll:
                     _alarms.CancelRemainingAlarms(due.EventId);
+                    // Alarms already taken out of the scheduler and waiting in the queue are
+                    // beyond the reach of CancelRemainingAlarms, and would still pop up.
+                    DropPendingAlarms(due.EventId);
                     break;
             }
         }
