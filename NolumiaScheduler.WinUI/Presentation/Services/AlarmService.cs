@@ -30,6 +30,7 @@ public class AlarmService(
     private DateOnly _lastPurgeDate;
     private AlarmNotificationWindow? _currentWindow;
     private string? _currentDueEventId;
+    private readonly List<(string EventId, AlarmNotificationWindow Window)> _stayWindows = [];
 
     public event Action? ScheduleChanged;
 
@@ -109,9 +110,42 @@ public class AlarmService(
 
         foreach (var due in _alarms.CollectDueAlarms())
         {
+            // A window left open in "stay" mode for this event is the previous alarm of the same
+            // reservation. The new alarm replaces it — in the full-screen attention presentation —
+            // instead of leaving two countdowns for one event on screen.
+            CloseStayWindows(due.EventId);
+
             var message = GetMessage(due);
             ShowAppNotification(due, message);
             await ShowAlarmAsync(due, message);
+        }
+    }
+
+    /// <summary>
+    /// Releases the "an alarm is on screen" slot when the user parks a window in stay mode. That
+    /// window is a movable countdown the user keeps around while working, so holding the slot for
+    /// it would swallow every later alarm — of any event — until it is finally closed.
+    /// </summary>
+    private void OnAlarmStayed(string eventId, AlarmNotificationWindow window)
+    {
+        _stayWindows.Add((eventId, window));
+
+        if (!ReferenceEquals(_currentWindow, window)) return;
+
+        _currentWindow = null;
+        _currentDueEventId = null;
+        _isShowingNotification = false;
+    }
+
+    private void CloseStayWindows(string eventId)
+    {
+        for (var i = _stayWindows.Count - 1; i >= 0; i--)
+        {
+            var (stayedEventId, window) = _stayWindows[i];
+            if (stayedEventId != eventId) continue;
+
+            _stayWindows.RemoveAt(i);
+            window.RequestClose();
         }
     }
 
@@ -182,6 +216,10 @@ public class AlarmService(
             var hasRemainingAlarms = nextAlarmAt.HasValue;
 
             var tcs = new TaskCompletionSource<AlarmNotificationResult>();
+            // Tracked so the cleanup below only releases state this alarm still owns: once the user
+            // parks this window in stay mode a later alarm takes over _currentWindow, and clearing
+            // it unconditionally would drop that newer alarm's bookkeeping.
+            AlarmNotificationWindow? shownWindow = null;
 
             var dq = _dispatcherQueue ?? DispatcherQueue.GetForCurrentThread();
             dq.TryEnqueue(async () =>
@@ -191,6 +229,8 @@ public class AlarmService(
                     var alarmWindow = new AlarmNotificationWindow(
                         due.Title, message, due.Location, due.OccurrenceStart,
                         nextAlarmAt, alarm.Notify5Min, alarm.Notify1Min, hasRemainingAlarms, _clock);
+                    alarmWindow.Stayed += (_, _) => OnAlarmStayed(due.EventId, alarmWindow);
+                    shownWindow = alarmWindow;
                     _currentWindow = alarmWindow;
                     alarmWindow.Activate();
                     // Push to the foreground after Activate(); the window's own Activated handler
@@ -244,9 +284,16 @@ public class AlarmService(
         }
         finally
         {
-            _currentWindow = null;
-            _currentDueEventId = null;
-            _isShowingNotification = false;
+            if (shownWindow is not null)
+                _stayWindows.RemoveAll(entry => ReferenceEquals(entry.Window, shownWindow));
+
+            // A window that failed to open never became _currentWindow, but it did take the slot.
+            if (shownWindow is null || ReferenceEquals(_currentWindow, shownWindow))
+            {
+                _currentWindow = null;
+                _currentDueEventId = null;
+                _isShowingNotification = false;
+            }
         }
     }
 

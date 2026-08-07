@@ -25,7 +25,14 @@ public sealed partial class AlarmNotificationWindow : Window
     private readonly TimeProvider _clock;
     private DispatcherTimer? _countdownTimer;
     private bool _foregroundForced;
+    private bool _isClosing;
     private IAlarmWindowMode _windowMode = AttentionAlarmWindowMode.Instance;
+
+    /// <summary>
+    /// Raised once the user switches this window to the movable "stay" presentation. The host uses
+    /// it to stop treating this window as the alarm currently on screen, so later alarms still fire.
+    /// </summary>
+    public event EventHandler? Stayed;
 
     public AlarmNotificationWindow(
         string title,
@@ -137,8 +144,15 @@ public sealed partial class AlarmNotificationWindow : Window
         // (mirrors WPF's maintained Topmost).
         Activated += OnActivated;
 
+        // An alarm must never end up minimized: the window carries no taskbar button while it is
+        // in overlay mode, so a minimize (title-bar button, Win+D, "show desktop", …) made it
+        // unreachable and left the alarm hanging. Undo any minimize that still slips through.
+        VisibilityChanged += OnVisibilityChanged;
+
         Closed += (_, _) =>
         {
+            _isClosing = true;
+            VisibilityChanged -= OnVisibilityChanged;
             _countdownTimer?.Stop();
             _windowMode.Exit(this);
             // Closing without an explicit button (e.g. the title-bar X) still persists toggle changes.
@@ -203,6 +217,13 @@ public sealed partial class AlarmNotificationWindow : Window
     {
         if (args.WindowActivationState == WindowActivationState.Deactivated)
         {
+            // A staying window is already top-most and keeps that flag on its own. Re-raising it
+            // within the top-most band on every deactivation would let it jump over the
+            // full-screen window of an alarm that just fired, so only the attention presentation
+            // re-asserts here.
+            if (_windowMode is StayingAlarmWindowMode)
+                return;
+
             // Keep the alarm visually above other windows when it loses focus, without
             // aggressively stealing focus back on every deactivation.
             ReassertTopmost();
@@ -211,6 +232,22 @@ public sealed partial class AlarmNotificationWindow : Window
         {
             ForceToForeground();
         }
+    }
+
+    /// <summary>
+    /// Minimizing is disabled for both presentations (see <see cref="ConfigureOverlayWindow"/> and
+    /// <see cref="ConfigureStayingWindow"/>), but the shell can still minimize a window without
+    /// going through its minimize box — "show desktop" and Win+M do. Restore immediately so the
+    /// alarm cannot disappear.
+    /// </summary>
+    private void OnVisibilityChanged(object sender, WindowVisibilityChangedEventArgs args)
+    {
+        if (args.Visible || _isClosing) return;
+        if (AppWindow?.Presenter is not OverlappedPresenter presenter) return;
+        if (presenter.State != OverlappedPresenterState.Minimized) return;
+
+        presenter.Restore();
+        ReassertTopmost();
     }
 
     /// <summary>
@@ -428,6 +465,7 @@ public sealed partial class AlarmNotificationWindow : Window
         _windowMode.Exit(this);
         _windowMode = StayingAlarmWindowMode.Instance;
         _windowMode.Enter(this);
+        Stayed?.Invoke(this, EventArgs.Empty);
     }
     private void OnCancelAllClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.CancelAll);
     private void OnSetFromNowClicked(object sender, RoutedEventArgs e) => Complete(AlarmNotificationAction.SetNextAlarmFromNow, ReadMinutes(FromNowInput));
@@ -474,7 +512,8 @@ public sealed partial class AlarmNotificationWindow : Window
 
     private void Complete(AlarmNotificationAction action, int minutes = 0)
     {
-        DisableOtherWindows(false);
+        _isClosing = true;
+        _windowMode.Exit(this);
         _tcs.TrySetResult(BuildResult(action, minutes));
         Close();
     }
@@ -513,6 +552,10 @@ public sealed partial class AlarmNotificationWindow : Window
     /// again while this window stays top-most and continues counting down. A subsequent alarm
     /// creates a fresh window in <see cref="AttentionAlarmWindowMode"/>, restoring the original
     /// attention presentation automatically.
+    /// <para>
+    /// The window is deliberately not minimizable: a minimized alarm has no visible trace, and
+    /// while it is out of sight it still holds the alarm slot, so no further alarm can appear.
+    /// </para>
     /// </summary>
     private void ConfigureStayingWindow()
     {
@@ -523,12 +566,27 @@ public sealed partial class AlarmNotificationWindow : Window
             presenter.SetBorderAndTitleBar(true, true);
             presenter.IsResizable = true;
             presenter.IsMaximizable = false;
-            presenter.IsMinimizable = true;
+            presenter.IsMinimizable = false;
         }
 
         var style = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_STYLE);
         style |= NativeMethods.WS_CAPTION | NativeMethods.WS_THICKFRAME;
+        // Drop the minimize box the restored caption brings back, so the title bar cannot offer
+        // an action the presenter refuses anyway.
+        style &= ~NativeMethods.WS_MINIMIZEBOX;
         NativeMethods.SetWindowLong(hwnd, NativeMethods.GWL_STYLE, style);
+
+        // The overlay marked the window as a tool window, which keeps it off the taskbar and out
+        // of Alt+Tab. A window the user is meant to live with has to be findable, so drop the flag
+        // — the shell only re-evaluates it while the window is hidden, hence the hide/show.
+        var exStyle = NativeMethods.GetWindowLong(hwnd, NativeMethods.GWL_EXSTYLE);
+        if ((exStyle & NativeMethods.WS_EX_TOOLWINDOW) != 0)
+        {
+            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_HIDE);
+            NativeMethods.SetWindowLong(
+                hwnd, NativeMethods.GWL_EXSTYLE, exStyle & ~NativeMethods.WS_EX_TOOLWINDOW);
+            NativeMethods.ShowWindow(hwnd, NativeMethods.SW_SHOW);
+        }
 
         AlarmRoot.Background = (Microsoft.UI.Xaml.Media.Brush)Microsoft.UI.Xaml.Application.Current.Resources["GCalSurface"];
 
@@ -581,7 +639,10 @@ public sealed partial class AlarmNotificationWindow : Window
             window.StayBtn.Visibility = Visibility.Collapsed;
         }
 
-        public void Exit(AlarmNotificationWindow window) => DisableOtherWindows(false);
+        // A staying window already released the application on entry and never disables it again,
+        // so it must not re-enable anything on the way out: by then a freshly fired alarm may hold
+        // the block, and lifting it would leave the calendar clickable behind that alarm.
+        public void Exit(AlarmNotificationWindow window) { }
     }
 
     private static partial class NativeMethods
@@ -589,8 +650,9 @@ public sealed partial class AlarmNotificationWindow : Window
         public const int GWL_STYLE   = -16;
         public const int GWL_EXSTYLE = -20;
 
-        public const int WS_CAPTION    = 0x00C00000;
-        public const int WS_THICKFRAME = 0x00040000;
+        public const int WS_CAPTION     = 0x00C00000;
+        public const int WS_THICKFRAME  = 0x00040000;
+        public const int WS_MINIMIZEBOX = 0x00020000;
 
         public const int WS_EX_LAYERED    = 0x00080000;
         public const int WS_EX_TOOLWINDOW = 0x00000080;
@@ -603,6 +665,7 @@ public sealed partial class AlarmNotificationWindow : Window
         public const uint SWP_NOACTIVATE   = 0x0010;
         public const uint SWP_FRAMECHANGED = 0x0020;
         public const uint SWP_SHOWWINDOW   = 0x0040;
+        public const int  SW_HIDE         = 0;
         public const int  SW_SHOW         = 5;
         public const int  SW_RESTORE      = 9;
         public const uint FLASHW_ALL       = 0x00000003;
