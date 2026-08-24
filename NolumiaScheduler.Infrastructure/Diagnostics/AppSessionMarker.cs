@@ -39,6 +39,7 @@ public sealed class AppSessionMarker
 
     private DateTimeOffset _lastHeartbeat;
     private string _lastEvent = StartupEvent;
+    private bool _suspended;
     private bool _cleanExit;
     private bool _crashRecorded;
     private string _exitReason = string.Empty;
@@ -76,7 +77,8 @@ public sealed class AppSessionMarker
 
     /// <summary>
     /// True when the previous run never reached an orderly shutdown — i.e. it was killed, or it
-    /// died in a way that left no exception behind.
+    /// died in a way that left no exception behind. Includes the runs that went down with a
+    /// suspended machine; consult <see cref="AppSessionSnapshot.Suspended"/> to tell those apart.
     /// </summary>
     public bool PreviousSessionCrashed => PreviousSession is { CleanExit: false };
 
@@ -86,6 +88,33 @@ public sealed class AppSessionMarker
         lock (_gate)
         {
             _lastHeartbeat = _clock.GetLocalNow();
+            Persist();
+        }
+    }
+
+    /// <summary>
+    /// Records whether the machine is currently suspended.
+    /// <para>
+    /// This is what separates "the app crashed" from "the machine died underneath it". A PC that
+    /// loses power, hibernates out or is restarted by an update while asleep gives the process
+    /// no chance to write anything, so it leaves exactly the same footprint as a silent crash —
+    /// <c>cleanExit=false</c> and nothing else. Knowing the machine was asleep at the time is the
+    /// only way the next start can tell the two apart, and reporting every one of these as a
+    /// crash is how the real crashes get buried.
+    /// </para>
+    /// <para>
+    /// The caller owns the mapping from OS events to this flag, so no Win32 event names leak in
+    /// here.
+    /// </para>
+    /// </summary>
+    public void SetSuspended(bool suspended)
+    {
+        lock (_gate)
+        {
+            if (_suspended == suspended)
+                return;
+
+            _suspended = suspended;
             Persist();
         }
     }
@@ -153,6 +182,7 @@ public sealed class AppSessionMarker
             Append(builder, "startedAt", _startedAt.ToString(TimestampFormat, CultureInfo.InvariantCulture));
             Append(builder, "lastHeartbeat", _lastHeartbeat.ToString(TimestampFormat, CultureInfo.InvariantCulture));
             Append(builder, "lastEvent", _lastEvent);
+            Append(builder, "suspended", _suspended ? "true" : "false");
             Append(builder, "cleanExit", _cleanExit ? "true" : "false");
             Append(builder, "exitReason", _exitReason);
 
@@ -209,7 +239,10 @@ public sealed class AppSessionMarker
                 lastHeartbeat,
                 values.GetValueOrDefault("lastEvent", "unknown"),
                 string.Equals(values.GetValueOrDefault("cleanExit"), "true", StringComparison.Ordinal),
-                values.GetValueOrDefault("exitReason", string.Empty));
+                values.GetValueOrDefault("exitReason", string.Empty),
+                // Absent in markers written by older builds, which read back as "was awake" —
+                // the same conclusion those builds already reported.
+                string.Equals(values.GetValueOrDefault("suspended"), "true", StringComparison.Ordinal));
         }
         catch
         {

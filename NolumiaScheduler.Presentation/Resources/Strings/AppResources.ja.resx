@@ -583,6 +583,9 @@
   <data name="SettingsLastSessionCrashed" xml:space="preserve">
     <value>前回は正常に終了していません（最終動作: {0}、直前のイベント: {1}）。</value>
   </data>
+  <data name="SettingsLastSessionSuspended" xml:space="preserve">
+    <value>前回は PC のスリープ中に終了しています（最終動作: {0}）。スリープ中に電源が落ちたか、再起動された可能性が高いです。</value>
+  </data>
   <data name="SettingsLastSessionUnknown" xml:space="preserve">
     <value>前回の記録はありません。</value>
   </data>

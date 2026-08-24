@@ -38,11 +38,9 @@ internal sealed class AppHealthMonitor : IDisposable
 
     private readonly IAppLog _log;
     private readonly AppSessionMarker _session;
-    private readonly DispatcherQueue _dispatcherQueue;
+    private readonly UiResponsivenessProbe _uiProbe;
     private readonly Timer _timer;
 
-    private long _lastUiPongTicks = Environment.TickCount64;
-    private int _uiPingPending;
     private int _sampleCount;
     private bool _uiStallReported;
 
@@ -51,7 +49,7 @@ internal sealed class AppHealthMonitor : IDisposable
     {
         _log = log;
         _session = session;
-        _dispatcherQueue = dispatcherQueue;
+        _uiProbe = new UiResponsivenessProbe(reply => dispatcherQueue.TryEnqueue(() => reply()));
         _timer = new Timer(_ => Sample(reason: null), null, SampleInterval, SampleInterval);
     }
 
@@ -67,7 +65,7 @@ internal sealed class AppHealthMonitor : IDisposable
         {
             _session.Heartbeat();
 
-            var uiLag = PingUiThread();
+            var uiLag = _uiProbe.Sample();
             var (gdiObjects, userObjects) = ReadGuiResources();
 
             using var process = Process.GetCurrentProcess();
@@ -122,32 +120,6 @@ internal sealed class AppHealthMonitor : IDisposable
             // class exists to diagnose.
             _log.Error(AppLogCategories.Health, "Health sampling failed.", ex);
         }
-    }
-
-    /// <summary>
-    /// Returns how long the UI thread has been unresponsive. A ping is only enqueued when the
-    /// previous one has come back, so while the UI is wedged the measured lag keeps growing
-    /// instead of resetting.
-    /// </summary>
-    private TimeSpan PingUiThread()
-    {
-        // Environment.TickCount64 does not advance while the machine sleeps, so a suspend does
-        // not masquerade as a UI stall.
-        var lag = TimeSpan.FromMilliseconds(Environment.TickCount64 - Volatile.Read(ref _lastUiPongTicks));
-
-        if (Interlocked.CompareExchange(ref _uiPingPending, 1, 0) == 0)
-        {
-            var enqueued = _dispatcherQueue.TryEnqueue(() =>
-            {
-                Volatile.Write(ref _lastUiPongTicks, Environment.TickCount64);
-                Volatile.Write(ref _uiPingPending, 0);
-            });
-
-            if (!enqueued)
-                Volatile.Write(ref _uiPingPending, 0);
-        }
-
-        return lag;
     }
 
     private static (uint Gdi, uint User) ReadGuiResources()

@@ -155,6 +155,15 @@ public partial class App : Microsoft.UI.Xaml.Application
             return;
         }
 
+        // Track whether the machine is asleep, which is what lets the next start tell a crash
+        // apart from the machine dying underneath a sleeping process. Only suspend and resume
+        // move this: the lid, the display and the AC/battery status all change without the
+        // machine going anywhere.
+        if (eventName == "suspend")
+            AppDiagnostics.Session?.SetSuspended(true);
+        else if (eventName is "resume" or "resume-automatic" or "resume-critical")
+            AppDiagnostics.Session?.SetSuspended(false);
+
         // Stamp the transition into the session marker: if the process dies next, the next start
         // reports which machine state it died in — the link between "it crashed" and "we had just
         // resumed" that is otherwise pure guesswork.

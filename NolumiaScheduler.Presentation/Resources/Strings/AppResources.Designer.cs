@@ -206,6 +206,7 @@ public static class AppResources
     public static string SettingsOpenLogFolderLink => Get(nameof(SettingsOpenLogFolderLink));
     public static string SettingsLastSessionClean => Get(nameof(SettingsLastSessionClean));
     public static string SettingsLastSessionCrashed => Get(nameof(SettingsLastSessionCrashed));
+    public static string SettingsLastSessionSuspended => Get(nameof(SettingsLastSessionSuspended));
     public static string SettingsLastSessionUnknown => Get(nameof(SettingsLastSessionUnknown));
     public static string MenuLocationAlert => Get(nameof(MenuLocationAlert));
     public static string MenuOpenLocation => Get(nameof(MenuOpenLocation));

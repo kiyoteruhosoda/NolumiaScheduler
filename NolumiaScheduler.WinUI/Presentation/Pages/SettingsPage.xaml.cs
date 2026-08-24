@@ -181,6 +181,12 @@ public sealed partial class SettingsPage : Page
         {
             null => AppResources.SettingsLastSessionUnknown,
             { CleanExit: true } => AppResources.SettingsLastSessionClean,
+            // The machine went down with the app asleep — say so, rather than accusing the app
+            // of a crash the user would then go looking for.
+            { Suspended: true } previous => string.Format(
+                AppResources.FormatCulture,
+                AppResources.SettingsLastSessionSuspended,
+                previous.LastHeartbeat.LocalDateTime),
             { } previous => string.Format(
                 AppResources.FormatCulture,
                 AppResources.SettingsLastSessionCrashed,
