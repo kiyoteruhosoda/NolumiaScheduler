@@ -53,6 +53,11 @@ public static class WinColors
     public static Color GCalSundayBgDark  => FromHex("#2d1a1a");
     public static Color GCalSaturdayBg    => FromHex("#f0f4ff");
     public static Color GCalSaturdayBgDark => FromHex("#1a1a2d");
+    // Shade laid over a whole month cell whose date has already passed. A translucent
+    // black rather than an opaque colour so it composites over the weekend/holiday tints
+    // underneath instead of replacing them, and dims the event chips with the cell.
+    public static Color GCalPastDayShade     => FromHex("#1F000000");  // alpha 31
+    public static Color GCalPastDayShadeDark => FromHex("#33000000");  // alpha 51
     // Built from the struct directly: Microsoft.UI.Colors statics require WinRT activation,
     // which is unavailable in unit test processes.
     public static Color White              => Color.FromArgb(255, 255, 255, 255);
@@ -127,6 +132,8 @@ public static class WinColors
         "GCalSundayBgDark"       => GCalSundayBgDark,
         "GCalSaturdayBg"         => GCalSaturdayBg,
         "GCalSaturdayBgDark"     => GCalSaturdayBgDark,
+        "GCalPastDayShade"       => GCalPastDayShade,
+        "GCalPastDayShadeDark"   => GCalPastDayShadeDark,
         "GCalGridLine"           => GCalGridLine,
         "GCalGridLineDark"       => GCalGridLineDark,
         "GCalGridHalfLine"       => GCalGridHalfLine,

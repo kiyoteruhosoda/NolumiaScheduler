@@ -950,6 +950,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
             {
                 Date = dateVal,
                 IsToday = dateVal.Equals(today),
+                IsPast = dateVal < today,
                 IsCurrentMonth = date.Month == _month.Month,
                 Events = (IReadOnlyList<EventOccurrence>?)evts ?? [],
                 IsHoliday = isHoliday,

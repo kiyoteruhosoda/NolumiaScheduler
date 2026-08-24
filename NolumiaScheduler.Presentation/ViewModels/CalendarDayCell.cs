@@ -13,6 +13,11 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
     public required LocalDateValue Date { get; init; }
     public bool IsToday { get; init; }
     public bool IsCurrentMonth { get; init; }
+
+    /// <summary>True when this cell's date is strictly before today, in either the shown month
+    /// or the leading/trailing days of the adjacent ones.</summary>
+    public bool IsPast { get; init; }
+
     public IReadOnlyList<EventOccurrence> Events { get; init; } = [];
     public bool IsHoliday { get; init; }
     public string? HolidayName { get; init; }
@@ -52,6 +57,20 @@ public sealed partial class CalendarDayCell : INotifyPropertyChanged
             if (IsCurrentMonth)
                 return isDark ? WinColors.White : WinColors.GCalTextPrimary;
             return isDark ? WinColors.GCalOutOfMonthTextDark : WinColors.GCalOutOfMonthText;
+        }
+    }
+
+    /// <summary>
+    /// Shade drawn over the whole cell once its date has passed, so a glance at the month
+    /// separates what is still ahead from what is already done. Translucent, so the weekday /
+    /// weekend / holiday background underneath stays readable through it.
+    /// </summary>
+    public Color PastShadeColor
+    {
+        get
+        {
+            if (!IsPast) return WinColors.Transparent;
+            return ThemeHelper.IsDark ? WinColors.GCalPastDayShadeDark : WinColors.GCalPastDayShade;
         }
     }
 
