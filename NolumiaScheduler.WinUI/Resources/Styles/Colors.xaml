@@ -14,7 +14,7 @@
             <SolidColorBrush x:Key="GCalHolidayBg"       Color="#fff0f0"/>
             <SolidColorBrush x:Key="GCalSundayBg"        Color="#fff8f8"/>
             <SolidColorBrush x:Key="GCalSaturdayBg"      Color="#f0f4ff"/>
-            <SolidColorBrush x:Key="GCalPastDayShade"    Color="#1F000000"/>
+            <SolidColorBrush x:Key="GCalPastDayShade"    Color="#3D000000"/>
             <SolidColorBrush x:Key="GCalEventMovedTheme" Color="#9c27b0"/>
             <!-- Week grid canvas colors -->
             <SolidColorBrush x:Key="GCalGridLine"        Color="#D0D7DE"/>
@@ -34,7 +34,7 @@
             <SolidColorBrush x:Key="GCalHolidayBg"       Color="#3a1a1a"/>
             <SolidColorBrush x:Key="GCalSundayBg"        Color="#2d1a1a"/>
             <SolidColorBrush x:Key="GCalSaturdayBg"      Color="#1a1a2d"/>
-            <SolidColorBrush x:Key="GCalPastDayShade"    Color="#33000000"/>
+            <SolidColorBrush x:Key="GCalPastDayShade"    Color="#54000000"/>
             <SolidColorBrush x:Key="GCalEventMovedTheme" Color="#ce93d8"/>
             <!-- Week grid canvas colors -->
             <SolidColorBrush x:Key="GCalGridLine"        Color="#454545"/>

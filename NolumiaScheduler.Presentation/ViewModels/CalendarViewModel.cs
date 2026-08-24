@@ -833,7 +833,8 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                 LocalDateValue.FromDateOnly(DateOnly.FromDateTime(date)).ToString());
 
             var isToday = date.Date == _today;
-            var col = new WeekDayColumn(header, date, isHoliday, isToday);
+            var col = new WeekDayColumn(
+                header, date, isHoliday, isToday, isPast: date.Date < _today);
             for (var h = 0; h < 24; h++)
             {
                 col.GuideLines.Add(new HourGuideLine(h));
