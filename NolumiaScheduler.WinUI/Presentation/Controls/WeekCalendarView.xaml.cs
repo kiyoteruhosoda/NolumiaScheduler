@@ -4,6 +4,7 @@ using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
 using Microsoft.UI.Xaml.Media;
+using Microsoft.UI.Xaml.Shapes;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Presentation.Controls;
 using NolumiaScheduler.Presentation.Helpers;
@@ -226,6 +227,17 @@ public sealed partial class WeekCalendarView : UserControl
         _ = ApplyScrollAsync(ComputeDefaultAnchor());
     }
 
+    /// <summary>
+    /// Tags the rectangle that shades the elapsed part of a day column, so it can be found again
+    /// to be resized as the clock moves without relying on it being the lane's only shape. A
+    /// private sentinel compared by reference, so nothing else can be mistaken for it —
+    /// <see cref="Rectangle"/> is a WinRT type and cannot be subclassed to mark it by type.
+    /// </summary>
+    private static readonly object PastTimeShadeMarker = new();
+
+    private static IEnumerable<Rectangle> PastTimeShadesIn(Canvas lane) =>
+        lane.Children.OfType<Rectangle>().Where(r => ReferenceEquals(r.Tag, PastTimeShadeMarker));
+
     private void UpdateBackgroundViews()
     {
         foreach (var canvas in WeekBodyGrid.Children.OfType<Canvas>())
@@ -240,6 +252,11 @@ public sealed partial class WeekCalendarView : UserControl
                 bg.CurrentTimeLineTop = CurrentTimeLineTop;
                 bg.HasAllDayEvents = hasAllDay;
             }
+
+            // Today's shade has to follow the current-time line, so it is resized on the same
+            // clock tick that moves the line rather than only when the week is rebuilt.
+            foreach (var shade in PastTimeShadesIn(canvas))
+                shade.Height = day.PastShadeHeight(CurrentTimeLineTop, WeekCanvasHeight);
         }
     }
 
@@ -374,7 +391,7 @@ public sealed partial class WeekCalendarView : UserControl
             WeekHeaderGrid.Children.Add(headerBorder);
 
             // All-day lane
-            var allDayCanvas = BuildAllDayLane(day.Date, day.IsToday);
+            var allDayCanvas = BuildAllDayLane(day);
             Grid.SetColumn(allDayCanvas, i);
             WeekAllDayGrid.Children.Add(allDayCanvas);
 
@@ -437,6 +454,22 @@ public sealed partial class WeekCalendarView : UserControl
             // ratio-based geometry resolves to the chip's actual pixel size.
             lane.SizeChanged += (_, e) => overlay.Width = e.NewSize.Width;
 
+            // Past-time shade. Above the event chips (ZIndex 0) so they recede along with the
+            // grid, but below the interaction overlay (50) so a drag ghost stays crisp over it.
+            var pastShade = new Rectangle
+            {
+                Tag = PastTimeShadeMarker,
+                Width = _weekDayColumnWidth,
+                Height = day.PastShadeHeight(CurrentTimeLineTop, WeekCanvasHeight),
+                Fill = new SolidColorBrush(WeekDayColumn.PastShadeColor),
+                IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(pastShade, 0);
+            Canvas.SetTop(pastShade, 0);
+            Canvas.SetZIndex(pastShade, 40);
+            lane.Children.Add(pastShade);
+            lane.SizeChanged += (_, e) => pastShade.Width = e.NewSize.Width;
+
             // Tap on empty slot
             lane.Tapped += OnLaneTapped;
             lane.PointerPressed += OnLanePointerPressed;
@@ -479,7 +512,7 @@ public sealed partial class WeekCalendarView : UserControl
         WeekAllDayGrid.Children.Clear();
         for (var i = 0; i < days.Count; i++)
         {
-            var lane = BuildAllDayLane(days[i].Date, days[i].IsToday);
+            var lane = BuildAllDayLane(days[i]);
             Grid.SetColumn(lane, i);
             WeekAllDayGrid.Children.Add(lane);
         }
@@ -490,8 +523,10 @@ public sealed partial class WeekCalendarView : UserControl
     private static SolidColorBrush DayDividerBrush()
         => new(ThemeHelper.IsDark ? WinColors.GCalGridLineDark : WinColors.GCalGridLine);
 
-    private Border BuildAllDayLane(DateTime day, bool isToday)
+    private Border BuildAllDayLane(WeekDayColumn column)
     {
+        var day = column.Date;
+        var isToday = column.IsToday;
         var blocks = (WeekAllDayEventBlocks as IEnumerable)?
             .OfType<WeekAllDayEventBlock>()
             .Where(b => b.StartDate.Date <= day.Date && b.EndDate.Date >= day.Date)
@@ -571,13 +606,30 @@ public sealed partial class WeekCalendarView : UserControl
             canvas.Children.Add(chip);
         }
 
+        // A day that is wholly behind us is shaded here too, so the all-day lane does not stay
+        // bright above a dimmed grid. Held in a Grid rather than the Canvas because the lane's
+        // height grows with the number of all-day rows and a Grid child stretches to match,
+        // where a Canvas child would need its size maintained by hand.
+        UIElement laneContent = canvas;
+        if (column.IsPast)
+        {
+            var host = new Grid();
+            host.Children.Add(canvas);
+            host.Children.Add(new Border
+            {
+                Background = new SolidColorBrush(WeekDayColumn.PastShadeColor),
+                IsHitTestVisible = false,
+            });
+            laneContent = host;
+        }
+
         // Wrap in a bordered host so the day divider continues through the all-day lane. For today
         // this becomes the middle of the column frame (left + right blue sides, open top/bottom).
         return new Border
         {
             BorderBrush = isToday ? new SolidColorBrush(WinColors.GCalBlue) : DayDividerBrush(),
             BorderThickness = isToday ? new Thickness(2, 0, 2, 0) : new Thickness(1.3, 0, 0, 0),
-            Child = canvas
+            Child = laneContent
         };
     }
 
