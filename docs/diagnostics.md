@@ -63,7 +63,8 @@ New-EventLog -LogName Application -Source "Nolumia Scheduler"
 1. 起動時に `logs\session.txt` を作成し、pid・バージョン・開始時刻を書き込む
 2. 1 分ごとに `lastHeartbeat` を更新する（生存記録）
 3. サスペンド／復帰／画面オフなどの節目で `lastEvent` を更新する
-4. 正常終了時に `cleanExit=true` を書く。
+4. サスペンドに入ったら `suspended=true`、復帰したら `suspended=false` を書く
+5. 正常終了時に `cleanExit=true` を書く。
    Windows のシャットダウン／ログオフ（`WM_ENDSESSION`）も正常終了として扱います。
    OS 都合の終了まで異常終了として数えると、本当の突然死が埋もれるためです
 
@@ -84,6 +85,32 @@ New-EventLog -LogName Application -Source "Nolumia Scheduler"
 
 同じ内容は**設定画面の「診断」**にも「前回は正常に終了していません（最終動作: …、直前のイベント: …）」
 として表示されます。
+
+### スリープ中に落ちた場合は「クラッシュ」と呼ばない
+
+`suspended=true` のまま `cleanExit=false` で終わっている場合、**アプリの障害ではなく
+マシン側の電源断**である可能性のほうが高くなります。スリープ中にバッテリーが尽きた、
+Windows Update で再起動された——いずれもプロセスは何も書けずに消えるため、
+サイレントクラッシュとまったく同じ痕跡しか残りません。
+
+この場合は `Fatal [Crash]` ではなく `Warning [Crash]` として、電源断の可能性を明示した
+文面で記録します。すべてを `Fatal` に落とすと、**本物のクラッシュがノイズに埋もれる**ためです。
+
+```
+2026-08-24 10:38:47.932 +09:00 WARNING pid=13168 tid=2 [Crash] Previous session ended while the
+    machine was suspended — most likely the machine lost power or was restarted during sleep
+    rather than the app failing. Check the Windows System log around this time (Kernel-Power 41
+    for a hard power loss, User32 1074 for a requested restart). pid=10564 ... suspended=True
+    cleanExit=False
+```
+
+裏取りは Windows の **System** ログで行います。
+
+| イベント | 意味 |
+|---|---|
+| `Kernel-Power` 41 | クリーンなシャットダウンを経ずに再起動した（＝電源断・バッテリー切れ） |
+| `Kernel-Power` 42 | スリープに入った |
+| `User32` 1074 | 意図的な再起動・シャットダウン（Windows Update などの要求元も出ます） |
 
 ---
 
@@ -113,6 +140,10 @@ New-EventLog -LogName Application -Source "Nolumia Scheduler"
 - `uiLag` — UI スレッドの無応答時間。バックグラウンドスレッドから ping して測るため、
   **UI が固まっているだけの状態とプロセスが死んだ状態を区別**できます。
   ユーザーからはどちらも「落ちた」に見えます。
+  計測の基準は**返ってきていない ping を投げた時刻**です。未応答の ping が無ければ 0 で、
+  固まっている間だけ標本ごとに伸びます。「最後に返ってきた時刻」を基準にすると、
+  応答は標本の直後に返るため**健全な UI でも毎回ちょうど 1 標本間隔（60 秒）が出てしまい**、
+  常時スタール扱いになります。
 
 ---
 
@@ -140,6 +171,7 @@ New-EventLog -LogName Application -Source "Nolumia Scheduler"
 | グローバル例外ハンドラ | `WinUI/Diagnostics/CrashReporter.cs` |
 | 電源・セッション監視 | `WinUI/Diagnostics/SystemStateWatcher.cs` |
 | リソース・UI 応答監視 | `WinUI/Diagnostics/AppHealthMonitor.cs` |
+| UI 応答ラグの計測 | `Infrastructure/Diagnostics/UiResponsivenessProbe.cs` |
 | Windows イベントログ出力 | `WinUI/Diagnostics/WindowsEventLogAppLog.cs` |
 | 起動時の組み立て | `WinUI/Diagnostics/AppDiagnostics.cs`、`WinUI/Program.cs` |
 

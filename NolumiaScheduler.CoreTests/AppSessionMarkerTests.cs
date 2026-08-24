@@ -74,6 +74,64 @@ public class AppSessionMarkerTests
     }
 
     [TestMethod]
+    public void SessionThatDiesWhileSuspended_IsFlaggedAsSuspendedOnTheNextRun()
+    {
+        // The machine was asleep when the process went away, so this is a machine-level death
+        // (power loss, a restart during sleep) and must not read as an app crash.
+        var marker = new AppSessionMarker(_dir, ClockAt(9), "v1");
+        marker.SetSuspended(true);
+        marker.RecordEvent("suspend");
+
+        var next = new AppSessionMarker(_dir, ClockAt(10), "v1");
+
+        Assert.IsTrue(next.PreviousSession!.Suspended);
+        Assert.IsTrue(next.PreviousSessionCrashed);
+    }
+
+    [TestMethod]
+    public void Resume_ClearsTheSuspendedFlag()
+    {
+        var marker = new AppSessionMarker(_dir, ClockAt(9), "v1");
+        marker.SetSuspended(true);
+        marker.SetSuspended(false);
+        marker.RecordEvent("resume");
+
+        var next = new AppSessionMarker(_dir, ClockAt(10), "v1");
+
+        // Died after waking up: that one really is the app's own failure.
+        Assert.IsFalse(next.PreviousSession!.Suspended);
+        Assert.IsTrue(next.PreviousSessionCrashed);
+    }
+
+    [TestMethod]
+    public void SessionThatNeverSuspends_IsNotFlaggedAsSuspended()
+    {
+        new AppSessionMarker(_dir, ClockAt(9), "v1").RecordEvent("display-off");
+
+        var next = new AppSessionMarker(_dir, ClockAt(10), "v1");
+
+        // The display and the lid change without the machine going anywhere.
+        Assert.IsFalse(next.PreviousSession!.Suspended);
+    }
+
+    [TestMethod]
+    public void MarkerWithoutTheSuspendedKey_ReadsAsAwake()
+    {
+        // Markers written by builds from before the flag existed must still be readable, and
+        // "awake" is the conclusion those builds already reported.
+        Directory.CreateDirectory(_dir);
+        File.WriteAllText(
+            Path.Combine(_dir, "session.txt"),
+            "pid=1234\napp=v0\nstartedAt=2026-07-30T09:00:00.000+00:00\n"
+            + "lastHeartbeat=2026-07-30T09:30:00.000+00:00\nlastEvent=suspend\ncleanExit=false\n");
+
+        var marker = new AppSessionMarker(_dir, ClockAt(10), "v1");
+
+        Assert.IsFalse(marker.PreviousSession!.Suspended);
+        Assert.AreEqual("suspend", marker.PreviousSession.LastEvent);
+    }
+
+    [TestMethod]
     public void Heartbeat_DoesNotOverwriteTheLastRecordedEvent()
     {
         var clock = ClockAt(9);

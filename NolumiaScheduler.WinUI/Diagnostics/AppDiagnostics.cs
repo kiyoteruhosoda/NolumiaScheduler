@@ -85,6 +85,22 @@ internal static class AppDiagnostics
             return;
         }
 
+        // A run that ended with the machine asleep is a different story from a crash, and must
+        // not be filed as one: a PC that loses power, hibernates out, or is restarted by an
+        // update during sleep takes the process with it and leaves an identical footprint.
+        // Still logged at Warning so it reaches the Windows Application log, where it sits next
+        // to the Kernel-Power entry that names the real cause.
+        if (previous.Suspended)
+        {
+            AppLog.Current.Warning(
+                AppLogCategories.Crash,
+                "Previous session ended while the machine was suspended — most likely the machine " +
+                "lost power or was restarted during sleep rather than the app failing. Check the " +
+                "Windows System log around this time (Kernel-Power 41 for a hard power loss, " +
+                $"User32 1074 for a requested restart). {previous.Describe()}");
+            return;
+        }
+
         // The headline record for the whole feature: the previous run went away without ever
         // saying goodbye. lastEvent names what the machine was doing at the time — if that reads
         // "suspend" or "resume", the suspicion is confirmed with a timestamp behind it.

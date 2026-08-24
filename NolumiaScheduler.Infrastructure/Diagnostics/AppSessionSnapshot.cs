@@ -13,6 +13,11 @@ namespace NolumiaScheduler.Infrastructure.Diagnostics;
 /// <param name="LastEvent">Last lifecycle event the run recorded (e.g. <c>resume</c>).</param>
 /// <param name="CleanExit">Whether the run reached an orderly shutdown.</param>
 /// <param name="ExitReason">Why the run ended, when known.</param>
+/// <param name="Suspended">
+/// Whether the machine was suspended when the run ended. A run that ends here was most likely
+/// taken down with the machine (power loss, a restart during sleep) rather than by a fault of
+/// its own.
+/// </param>
 public sealed record AppSessionSnapshot(
     int ProcessId,
     string AppVersion,
@@ -20,7 +25,8 @@ public sealed record AppSessionSnapshot(
     DateTimeOffset LastHeartbeat,
     string LastEvent,
     bool CleanExit,
-    string ExitReason)
+    string ExitReason,
+    bool Suspended = false)
 {
     /// <summary>
     /// How long the run had been unaccounted for when it ended — the window the fault happened
@@ -32,7 +38,7 @@ public sealed record AppSessionSnapshot(
     public string Describe() => string.Format(
         CultureInfo.InvariantCulture,
         "pid={0} version={1} startedAt={2:yyyy-MM-dd HH:mm:ss zzz} lastHeartbeat={3:yyyy-MM-dd HH:mm:ss zzz} " +
-        "uptime={4:g} lastEvent={5} cleanExit={6} exitReason={7}",
-        ProcessId, AppVersion, StartedAt, LastHeartbeat, Uptime, LastEvent, CleanExit,
+        "uptime={4:g} lastEvent={5} suspended={6} cleanExit={7} exitReason={8}",
+        ProcessId, AppVersion, StartedAt, LastHeartbeat, Uptime, LastEvent, Suspended, CleanExit,
         ExitReason.Length == 0 ? "(none)" : ExitReason);
 }
