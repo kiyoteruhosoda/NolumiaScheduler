@@ -211,7 +211,9 @@ public partial class App : Microsoft.UI.Xaml.Application
         var logPath = Path.Combine(StorageContext.DefaultDataDirectory, "crash.log");
 
         var sb = new System.Text.StringBuilder();
-        sb.AppendLine($"[{DateTime.Now:O}] {origin}");
+        // UTC で刻む。crash.log は他端末やサーバのログと突き合わせて読むもので、
+        // 書いた端末のローカル時刻だと基準が端末ごとに変わる。
+        sb.AppendLine($"[{DateTime.UtcNow:O}] {origin}");
         sb.AppendLine(ex.ToString());
 
         // Walk the inner exception chain logging type + HResult for each level, since
