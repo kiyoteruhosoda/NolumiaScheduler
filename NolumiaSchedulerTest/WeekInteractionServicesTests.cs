@@ -1,4 +1,4 @@
-using NolumiaScheduler.Presentation.Services;
+﻿using NolumiaScheduler.Presentation.Services;
 using Windows.Foundation;
 
 namespace NolumiaSchedulerTest;
@@ -30,11 +30,11 @@ public class WeekInteractionServicesTests
     {
         var sut = new WeekInteractionMapper();
 
-        // 9:10 -> 9:00, 9:20 -> 9:30, 9:40 -> 9:30, 9:50 -> 10:00
+        // Snaps to the start of the tapped half-hour slot (3c362fa): 9:10/9:20 -> 9:00, 9:40/9:50 -> 9:30
         Assert.AreEqual(9 * 60, sut.MapToHalfHourMinute(9 * 60 + 10));
-        Assert.AreEqual(9 * 60 + 30, sut.MapToHalfHourMinute(9 * 60 + 20));
+        Assert.AreEqual(9 * 60, sut.MapToHalfHourMinute(9 * 60 + 20));
         Assert.AreEqual(9 * 60 + 30, sut.MapToHalfHourMinute(9 * 60 + 40));
-        Assert.AreEqual(10 * 60, sut.MapToHalfHourMinute(9 * 60 + 50));
+        Assert.AreEqual(9 * 60 + 30, sut.MapToHalfHourMinute(9 * 60 + 50));
     }
 
     [TestMethod]

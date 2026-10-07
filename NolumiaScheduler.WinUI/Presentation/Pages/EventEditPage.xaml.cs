@@ -156,10 +156,18 @@ public sealed partial class EventEditPage : Page
         _vm.PropertyChanged += OnVmPropertyChanged;
 
         // Show delete button only when editing an existing event
-        if (_vm.IsEditing)
+        if (_vm.IsEditing && _vm.CanModify)
         {
             DeleteBtn.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
             DeleteBtn.Content = AppResources.DeleteButton;
+        }
+
+        if (_vm.IsExternal)
+        {
+            ExternalBadge.Visibility = Microsoft.UI.Xaml.Visibility.Visible;
+            ExternalBadgeText.Text = _vm.ExternalSourceLabel;
+            SaveBtn.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
+            FloatingSaveBorder.Visibility = Microsoft.UI.Xaml.Visibility.Collapsed;
         }
 
         BindViewModel();
@@ -919,6 +927,7 @@ public sealed partial class EventEditPage : Page
     // hides only once the scroll has fully settled at the bottom.
     private void OnMainScrollViewerViewChanged(object sender, ScrollViewerViewChangedEventArgs e)
     {
+        if (_vm?.IsExternal == true) return;
         var atBottom = MainScrollViewer.ScrollableHeight - MainScrollViewer.VerticalOffset < 1;
         if (!atBottom)
         {

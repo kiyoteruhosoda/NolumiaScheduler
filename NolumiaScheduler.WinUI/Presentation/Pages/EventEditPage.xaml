@@ -19,6 +19,14 @@
                            Foreground="{StaticResource GCalRed}"/>
             </Border>
 
+            <!-- Imported (Outlook) event badge: such events are read-only -->
+            <Border x:Name="ExternalBadge" Visibility="Collapsed" CornerRadius="8"
+                    Padding="12,10" Margin="0,0,0,12"
+                    Background="{ThemeResource SystemFillColorAttentionBackgroundBrush}">
+                <TextBlock x:Name="ExternalBadgeText" FontSize="13" TextWrapping="Wrap"
+                           Foreground="{ThemeResource GCalTextPrimary}"/>
+            </Border>
+
             <!-- Title -->
             <Border Background="{ThemeResource GCalSurface}" CornerRadius="8" Padding="12,0" Margin="0,0,0,2" MinHeight="52">
                 <TextBox x:Name="TitleBox" BorderThickness="0" FontSize="16" FontWeight="SemiBold"

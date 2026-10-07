@@ -1,4 +1,4 @@
-using NolumiaScheduler.Application.Services;
+﻿using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Domain.Aggregates;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
@@ -602,8 +602,10 @@ public class EventEditInitializationTests
         vm.Save(RecurringEditScope.ThisOccurrence);
         Assert.IsFalse(vm.HasValidationError);
 
-        // Series remains a single event; adjustment rule on the series is unchanged.
-        Assert.HasCount(1, repo.FindAll());
+        // The occurrence is split off as a standalone single event (SplitThisOccurrence);
+        // the series keeps its adjustment rule unchanged.
+        Assert.HasCount(2, repo.FindAll());
+        Assert.IsTrue(repo.FindAll().Any(e => e.IsSingle() && e.Title.Value == "overridden-occurrence"));
         var saved = repo.FindById(new EventId("rec-shift-single-occ"))!;
         Assert.IsNotNull(saved.RecurringSchedule!.RecurrenceRule.Adjustment);
         Assert.AreEqual(2, saved.RecurringSchedule.RecurrenceRule.Adjustment!.ShiftAmount);

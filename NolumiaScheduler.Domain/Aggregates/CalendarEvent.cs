@@ -32,6 +32,10 @@ public class CalendarEvent
 
     public EventColorKey ColorKey { get; private set; }
 
+    /// <summary>Set when the event was imported from an external calendar; such events are read-only.</summary>
+    public ExternalOrigin? ExternalOrigin { get; private set; }
+    public bool IsReadOnly => ExternalOrigin != null;
+
     public VersionNo Version { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }
@@ -149,16 +153,59 @@ public class CalendarEvent
         List<EventMove> moves,
         VersionNo version,
         EventAlarm? alarm = null,
-        EventColorKey colorKey = EventColorKey.Default)
+        EventColorKey colorKey = EventColorKey.Default,
+        ExternalOrigin? externalOrigin = null)
     {
         var ev = new CalendarEvent(
             id, kind, title, location, visibility, eventType, description,
             timeZoneId, singleSchedule, recurringSchedule,
             createdAt, exceptions, moves, version, alarm, colorKey)
         {
-            UpdatedAt = updatedAt
+            UpdatedAt = updatedAt,
+            ExternalOrigin = externalOrigin
         };
         return ev;
+    }
+
+    public static CalendarEvent CreateExternalSingle(
+        EventId id,
+        ExternalOrigin origin,
+        EventTitle title,
+        Location? location,
+        Visibility visibility,
+        TimeZoneId timeZoneId,
+        SingleEventSchedule schedule,
+        EventAlarm? alarm,
+        DateTimeOffset createdAt)
+    {
+        var ev = CreateSingle(id, title, location, visibility, null, null, timeZoneId, schedule, createdAt, alarm);
+        ev.ExternalOrigin = origin ?? throw new ArgumentNullException(nameof(origin));
+        return ev;
+    }
+
+    /// <summary>
+    /// Applies changes coming from the external source. This is the only mutation path for
+    /// read-only (imported) events besides alarm/color toggles.
+    /// </summary>
+    public void ApplyExternalChanges(
+        ExternalOrigin origin,
+        EventTitle title,
+        Location? location,
+        Visibility visibility,
+        SingleEventSchedule schedule,
+        EventAlarm? alarm,
+        DateTimeOffset updatedAt)
+    {
+        if (ExternalOrigin == null)
+            throw new DomainException("Only imported events can receive external changes.");
+        EnsureSingleEvent();
+        ExternalOrigin = origin;
+        Title = title;
+        Location = location;
+        Visibility = visibility;
+        SingleSchedule = schedule;
+        _alarm = alarm;
+        Touch(updatedAt);
     }
 
     public void SetAlarm(EventAlarm? alarm, DateTimeOffset updatedAt)
@@ -182,6 +229,7 @@ public class CalendarEvent
         Description? description,
         DateTimeOffset updatedAt)
     {
+        EnsureEditable();
         Title = title;
         Location = location;
         Visibility = visibility;
@@ -194,6 +242,7 @@ public class CalendarEvent
         SingleEventSchedule newSchedule,
         DateTimeOffset updatedAt)
     {
+        EnsureEditable();
         EnsureSingleEvent();
         SingleSchedule = newSchedule;
         Touch(updatedAt);
@@ -392,6 +441,12 @@ public class CalendarEvent
     {
         var (startDay, endDay) = GetIndexedDaySpan();
         return startDay <= to.ToDateOnly().DayNumber && endDay >= from.ToDateOnly().DayNumber;
+    }
+
+    private void EnsureEditable()
+    {
+        if (IsReadOnly)
+            throw new DomainException("Imported events are read-only.");
     }
 
     private void EnsureSingleEvent()

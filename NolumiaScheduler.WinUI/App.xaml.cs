@@ -4,10 +4,13 @@ using Microsoft.UI.Dispatching;
 using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
+using NolumiaScheduler.Application;
+using NolumiaScheduler.Application.ExternalCalendars;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure;
 using NolumiaScheduler.Infrastructure.Diagnostics;
+using NolumiaScheduler.Infrastructure.ExternalCalendars;
 using NolumiaScheduler.Infrastructure.Seeding;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
@@ -90,6 +93,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
             MainWindow.Activate();
             Services.GetRequiredService<IAlarmService>().Start();
+            StartExternalCalendarSync();
 
             _trayIcon = new TrayIconManager(MainWindow, "Nolumia Scheduler");
             _trayIcon.ShowRequested += OnTrayShowRequested;
@@ -141,6 +145,21 @@ public partial class App : Microsoft.UI.Xaml.Application
         catch (Exception ex)
         {
             AppLog.Current.Error(AppLogCategories.Lifecycle, "Could not start the diagnostics watchers.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Starts the Outlook (Power Automate JSON) import. Best effort: the app must still run if it fails.
+    /// </summary>
+    private static void StartExternalCalendarSync()
+    {
+        try
+        {
+            Services.GetRequiredService<ExternalCalendarSyncHost>().Start();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Current.Error(AppLogCategories.ExternalCalendar, "Could not start the external calendar import.", ex);
         }
     }
 
@@ -285,6 +304,7 @@ public partial class App : Microsoft.UI.Xaml.Application
         AppDiagnostics.MarkCleanExit("tray exit");
 
         Services.GetRequiredService<IAlarmService>().Stop();
+        Services.GetRequiredService<ExternalCalendarSyncHost>().Dispose();
 
         _healthMonitor?.Dispose();
         _healthMonitor = null;
@@ -333,6 +353,14 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Alarm
         services.AddSingleton<AlarmApplicationService>();
         services.AddSingleton<IAlarmService, AlarmService>();
+
+        // External calendar (Outlook via Power Automate JSON); settings in external-calendar.json
+        services.AddSingleton(ExternalCalendarConfig.Load(StorageContext.DefaultDataDirectory));
+        services.AddSingleton(sp => new ExternalCalendarSyncService(
+            sp.GetRequiredService<ICalendarEventRepository>(),
+            sp.GetRequiredService<TimeProvider>(),
+            EventEditDefaults.DefaultTimeZone));
+        services.AddSingleton<ExternalCalendarSyncHost>();
 
         // Theme (no UI yet; preference persisted in settings.json and applied at launch)
         services.AddSingleton<ThemeService>();

@@ -79,6 +79,8 @@ internal class CalendarEventDto
     public AlarmDto? Alarm { get; set; }
     // Named color key (e.g. "Tomato"); null means the default event color.
     public string? Color { get; set; }
+    // Present only for events imported from an external calendar (read-only).
+    public ExternalOriginDto? External { get; set; }
     public int Version { get; set; }
     public string CreatedAt { get; set; } = "";
     public string UpdatedAt { get; set; } = "";
@@ -117,7 +119,13 @@ internal class CalendarEventDto
             alarm: alarm,
             colorKey: Color != null && Enum.TryParse<EventColorKey>(Color, out var parsedColor)
                 ? parsedColor
-                : EventColorKey.Default);
+                : EventColorKey.Default,
+            externalOrigin: External != null
+                ? new ExternalOrigin(
+                    External.SourceId,
+                    External.Key,
+                    External.LastModified != null ? DateTimeOffset.Parse(External.LastModified) : null)
+                : null);
     }
 
     public static CalendarEventDto FromDomain(CalendarEvent ev)
@@ -149,11 +157,24 @@ internal class CalendarEventDto
                 NotifyAtStart = ev.Alarm.NotifyAtStart
             } : null,
             Color = ev.ColorKey == EventColorKey.Default ? null : ev.ColorKey.ToString(),
+            External = ev.ExternalOrigin != null ? new ExternalOriginDto
+            {
+                SourceId = ev.ExternalOrigin.SourceId,
+                Key = ev.ExternalOrigin.ExternalKey,
+                LastModified = ev.ExternalOrigin.LastModified?.ToString("O")
+            } : null,
             Version = ev.Version.Value,
             CreatedAt = ev.CreatedAt.ToString("O"),
             UpdatedAt = ev.UpdatedAt.ToString("O")
         };
     }
+}
+
+internal class ExternalOriginDto
+{
+    public string SourceId { get; set; } = "";
+    public string Key { get; set; } = "";
+    public string? LastModified { get; set; }
 }
 
 internal class AlarmDto

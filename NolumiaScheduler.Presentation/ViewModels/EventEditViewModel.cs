@@ -132,6 +132,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private DateTime Today() => _clock.GetLocalNow().Date;
 
     public bool IsEditing => _editingEventId != null;
+    // Imported (Outlook) events are read-only: save/delete are blocked and the page shows the source.
+    public bool IsExternal { get; private set; }
+    public bool CanModify => !IsExternal;
+    public string ExternalSourceLabel => IsExternal ? "Outlook（読み取り専用）" : "";
     public string? EditingEventId => _editingEventId;
     public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
@@ -168,6 +172,10 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
         _editingEventId = eventId;
         EditingOccurrenceKey = occurrenceKey;
+        IsExternal = ev.IsReadOnly;
+        OnPropertyChanged(nameof(IsExternal));
+        OnPropertyChanged(nameof(CanModify));
+        OnPropertyChanged(nameof(ExternalSourceLabel));
         OnPropertyChanged(nameof(IsEditing));
         OnPropertyChanged(nameof(PageTitle));
         OnPropertyChanged(nameof(IsOccurrenceEditing));
@@ -957,6 +965,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     {
         ValidationError = "";
 
+        if (IsExternal)
+        {
+            ValidationError = "Outlookから取り込んだ予定は編集できません。";
+            return;
+        }
+
         if (string.IsNullOrWhiteSpace(Title))
         {
             ValidationError = AppResources.ErrorTitleRequired;
@@ -1442,6 +1456,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
 
     public void DeleteEntireEvent()
     {
+        if (IsExternal) return;
         if (_editingEventId == null) return;
         _eventService.DeleteEvent(_editingEventId);
         DeleteCompleted?.Invoke();

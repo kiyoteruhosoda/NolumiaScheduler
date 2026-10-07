@@ -9,14 +9,14 @@
   IgnorableNamespaces="uap rescap systemai">
 
   <Identity
-    Name="8a0cda0d-358d-471d-85fd-ac5325ab0cb0"
+    Name="NolumiaScheduler"
     Publisher="CN=kiyoteru.hosoda"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="8a0cda0d-358d-471d-85fd-ac5325ab0cb0" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
-    <DisplayName>NolumiaScheduler.WinUI</DisplayName>
+    <DisplayName>NolumiaScheduler</DisplayName>
     <PublisherDisplayName>kiyoteru.hosoda</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
@@ -35,8 +35,8 @@
       Executable="$targetnametoken$.exe"
       EntryPoint="$targetentrypoint$">
       <uap:VisualElements
-        DisplayName="NolumiaScheduler.WinUI"
-        Description="NolumiaScheduler.WinUI"
+        DisplayName="NolumiaScheduler"
+        Description="NolumiaScheduler"
         BackgroundColor="transparent"
         Square150x150Logo="Assets\Square150x150Logo.png"
         Square44x44Logo="Assets\Square44x44Logo.png">

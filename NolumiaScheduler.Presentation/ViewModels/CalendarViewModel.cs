@@ -409,6 +409,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
 
     public void DeleteEntireEvent(string eventId)
     {
+        if (_eventService.FindById(eventId)?.IsReadOnly == true) return;
         _eventService.DeleteEvent(eventId);
         RefreshAfterChange();
     }

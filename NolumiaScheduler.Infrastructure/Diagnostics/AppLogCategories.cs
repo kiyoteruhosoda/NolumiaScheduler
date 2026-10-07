@@ -30,4 +30,7 @@ public static class AppLogCategories
 
     /// <summary>Repository/storage access.</summary>
     public const string Storage = "Storage";
+
+    /// <summary>External calendar (Outlook) import.</summary>
+    public const string ExternalCalendar = "ExternalCalendar";
 }
