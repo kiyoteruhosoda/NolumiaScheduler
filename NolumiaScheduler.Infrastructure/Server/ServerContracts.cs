@@ -36,7 +36,13 @@ public sealed record RecurrenceRuleDto(
     YearlyRuleDto? Yearly,
     AdjustmentRuleDto? Adjustment);
 
-public sealed record AlarmDto(bool Enabled, bool Notify15Min, bool Notify5Min, bool Notify1Min, bool NotifyAtStart);
+// Spelled out: the snake_case policy would write "notify15_min", the server's name is "notify_15_min".
+public sealed record AlarmDto(
+    bool Enabled,
+    [property: JsonPropertyName("notify_15_min")] bool Notify15Min,
+    [property: JsonPropertyName("notify_5_min")] bool Notify5Min,
+    [property: JsonPropertyName("notify_1_min")] bool Notify1Min,
+    bool NotifyAtStart);
 
 public sealed record OccurrenceKeyDto(string Date, string? StartTime);
 

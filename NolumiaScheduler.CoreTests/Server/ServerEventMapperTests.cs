@@ -92,6 +92,16 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
+    public void 通知の欄はサーバーの名前で読み書きする()
+    {
+        var json = FakeSchedulerServer.Serialize(new AlarmDto(true, true, false, true, false));
+
+        Assert.AreEqual("""{"enabled":true,"notify_15_min":true,"notify_5_min":false,"notify_1_min":true,"notify_at_start":false}""", json);
+        Assert.AreEqual(new AlarmDto(true, true, false, true, false),
+            System.Text.Json.JsonSerializer.Deserialize<AlarmDto>(json, ServerJson.Options));
+    }
+
+    [TestMethod]
     public void ToUpdateDto_アプリの知らない項目はサーバーの値を送り返す()
     {
         var server = ServerEvents.Single(42);
