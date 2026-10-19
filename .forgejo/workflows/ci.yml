@@ -1,0 +1,64 @@
+# ビルド（Core）→ 試験（CoreTests）。PR と main への push で走る。
+#
+# 画面の殻（Presentation・WinUI・NolumiaSchedulerTest）は Windows 向けなので入れない。
+# 判断は Core に置いて CoreTests で守る（docs/decisions/ADR-0001）。
+#
+# ⚠ 台の既定のジョブイメージ（node:24-bookworm）で走る。`container:` は書かない。
+#   .NET SDK はイメージに無いので dotnet-install.sh で入れ、~/.dotnet を覚えておく。
+# ⚠ `uses:` は forge の鏡に在るもの（actions/checkout@v4・actions/cache@v4）だけ。
+# ⚠ GitHub の CI は作らない（GitHub は forge の写し）。
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# 同じ PR（枝）へ続けて push したら、古い実行は取り消して最新だけを検査する。
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: ビルド・試験（Core）
+    runs-on: nolumialab
+    timeout-minutes: 30
+    env:
+      DOTNET_NOLOGO: "1"
+      DOTNET_CLI_TELEMETRY_OPTOUT: "1"
+      DOTNET_SKIP_FIRST_TIME_EXPERIENCE: "1"
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: .NET SDK を覚えておいた分から戻す
+        uses: actions/cache@v4
+        with:
+          path: ~/.dotnet
+          key: dotnet-sdk-${{ hashFiles('global.json') }}
+
+      - name: NuGet の取り置きを戻す
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: nuget-${{ hashFiles('**/*.csproj') }}
+          restore-keys: nuget-
+
+      - name: .NET SDK を入れる
+        run: |
+          if [ ! -x "$HOME/.dotnet/dotnet" ]; then
+            curl -sSfL https://dot.net/v1/dotnet-install.sh -o "$RUNNER_TEMP/dotnet-install.sh"
+            bash "$RUNNER_TEMP/dotnet-install.sh" --jsonfile global.json --install-dir "$HOME/.dotnet"
+          fi
+          echo "$HOME/.dotnet" >> "$GITHUB_PATH"
+          echo "DOTNET_ROOT=$HOME/.dotnet" >> "$GITHUB_ENV"
+
+      # slnx には Windows の殻も入っているので、net10.0 の 5 つを名指しで組む。
+      - name: ビルド
+        run: |
+          for p in Domain Application Infrastructure Cli CoreTests; do
+            dotnet build "NolumiaScheduler.$p/NolumiaScheduler.$p.csproj" -c Release
+          done
+
+      - name: 試験
+        run: dotnet test NolumiaScheduler.CoreTests/NolumiaScheduler.CoreTests.csproj -c Release --no-build
