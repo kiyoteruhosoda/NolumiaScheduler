@@ -12,6 +12,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="NolumiaScheduler.CoreTests" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\NolumiaScheduler.Domain\NolumiaScheduler.Domain.csproj" />
   </ItemGroup>
 </Project>
