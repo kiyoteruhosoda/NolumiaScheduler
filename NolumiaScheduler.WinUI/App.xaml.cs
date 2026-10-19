@@ -5,13 +5,14 @@ using Microsoft.UI.Xaml;
 using Microsoft.Windows.AppNotifications;
 using NolumiaScheduler.Application.Services;
 using NolumiaScheduler.Application;
-using NolumiaScheduler.Application.ExternalCalendars;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.Services;
 using NolumiaScheduler.Infrastructure;
+using NolumiaScheduler.Infrastructure.Auth;
 using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Infrastructure.ExternalCalendars;
 using NolumiaScheduler.Infrastructure.Seeding;
+using NolumiaScheduler.Infrastructure.Server;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
@@ -149,7 +150,7 @@ public partial class App : Microsoft.UI.Xaml.Application
     }
 
     /// <summary>
-    /// Starts the Outlook (Power Automate JSON) import. Best effort: the app must still run if it fails.
+    /// Starts sending the Outlook (Power Automate JSON) feed to the server. Best effort: the app must still run if it fails.
     /// </summary>
     private static void StartExternalCalendarSync()
     {
@@ -356,12 +357,14 @@ public partial class App : Microsoft.UI.Xaml.Application
         services.AddSingleton<AlarmApplicationService>();
         services.AddSingleton<IAlarmService, AlarmService>();
 
-        // External calendar (Outlook via Power Automate JSON); settings in external-calendar.json
-        services.AddSingleton(ExternalCalendarConfig.Load(StorageContext.DefaultDataDirectory));
-        services.AddSingleton(sp => new ExternalCalendarSyncService(
-            sp.GetRequiredService<ICalendarEventRepository>(),
-            sp.GetRequiredService<TimeProvider>(),
-            EventEditDefaults.DefaultTimeZone));
+        // Scheduler server: settings (server.json), sign-in (auth.bin, DPAPI) and the API client.
+        var server = new ServerConnection(StorageContext.DefaultDataDirectory, new DpapiSecretProtector());
+        services.AddSingleton(server);
+
+        // Outlook (Power Automate JSON) is sent to the server as is; settings in external-calendar.json
+        var externalCalendar = ExternalCalendarConfig.Load(StorageContext.DefaultDataDirectory);
+        services.AddSingleton(externalCalendar);
+        services.AddSingleton(new OutlookFeedSender(server.Api, StorageContext.DefaultDataDirectory, externalCalendar.FilePath));
         services.AddSingleton<ExternalCalendarSyncHost>();
 
         // Theme (no UI yet; preference persisted in settings.json and applied at launch)

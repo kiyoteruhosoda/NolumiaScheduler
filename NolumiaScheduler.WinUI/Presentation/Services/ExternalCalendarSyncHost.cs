@@ -1,26 +1,23 @@
 using Microsoft.UI.Dispatching;
-using NolumiaScheduler.Application.ExternalCalendars;
-using NolumiaScheduler.Domain.ExternalCalendars;
 using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Infrastructure.ExternalCalendars;
+using NolumiaScheduler.Infrastructure.Server;
 
 namespace NolumiaScheduler.WinUI.Presentation.Services;
 
 /// <summary>
-/// Periodically imports the Power Automate Outlook JSON feed (settings from
-/// <c>external-calendar.json</c>). The file is read on a background thread; reconciliation runs on
-/// the UI thread because repository change notifications drive the UI and alarms.
-/// A file watcher triggers an early sync when OneDrive delivers a new file.
+/// Periodically sends the Power Automate Outlook JSON feed to the Scheduler server (settings from
+/// <c>external-calendar.json</c>; server ADR-0054 decision 6). All decisions live in
+/// <see cref="OutlookFeedSender"/>; this host only owns the timers: at startup, every
+/// <see cref="ExternalCalendarConfig.IntervalMinutes"/> and 5 seconds after the file changes.
+/// The events come back through the server copy like any other imported calendar.
 /// </summary>
 public sealed class ExternalCalendarSyncHost(
     ExternalCalendarConfig config,
-    ExternalCalendarSyncService syncService) : IDisposable
+    OutlookFeedSender sender) : IDisposable
 {
-    public const string OutlookSourceId = "outlook";
-
     private readonly ExternalCalendarConfig _config = config;
-    private readonly ExternalCalendarSyncService _syncService = syncService;
-    private readonly PowerAutomateJsonCalendarSource _source = new(OutlookSourceId, config.FilePath);
+    private readonly OutlookFeedSender _sender = sender;
     private DispatcherQueue? _dispatcher;
     private DispatcherQueueTimer? _timer;
     private DispatcherQueueTimer? _debounce;
@@ -31,7 +28,7 @@ public sealed class ExternalCalendarSyncHost(
     {
         if (!_config.Enabled)
         {
-            AppLog.Current.Info(AppLogCategories.ExternalCalendar, "External calendar import is disabled.");
+            AppLog.Current.Info(AppLogCategories.ExternalCalendar, "Sending the Outlook feed is disabled.");
             return;
         }
 
@@ -48,7 +45,7 @@ public sealed class ExternalCalendarSyncHost(
 
         TryStartWatcher();
         AppLog.Current.Info(AppLogCategories.ExternalCalendar,
-            $"External calendar import started: {_config.FilePath} every {_config.IntervalMinutes} min.");
+            $"Sending the Outlook feed: {_config.FilePath} every {_config.IntervalMinutes} min.");
         RunSync("startup");
     }
 
@@ -83,37 +80,30 @@ public sealed class ExternalCalendarSyncHost(
     {
         if (Interlocked.Exchange(ref _running, 1) == 1) return;
 
-        _ = Task.Run(() => _source.ReadSnapshot()).ContinueWith(task =>
+        _ = Task.Run(async () =>
         {
-            var enqueued = _dispatcher?.TryEnqueue(() =>
+            try
             {
-                try
-                {
-                    if (task.IsFaulted)
-                    {
-                        AppLog.Current.Error(AppLogCategories.ExternalCalendar, "Reading the external calendar failed.", task.Exception);
-                        return;
-                    }
-
-                    var result = _syncService.Apply(OutlookSourceId, task.Result);
-                    if (!result.SourceAvailable)
-                        AppLog.Current.Warning(AppLogCategories.ExternalCalendar,
-                            $"External calendar file unavailable ({reason}); keeping previous events.");
-                    else if (result.Added + result.Updated + result.Removed > 0)
-                        AppLog.Current.Info(AppLogCategories.ExternalCalendar,
-                            $"External calendar synced ({reason}): +{result.Added} ~{result.Updated} -{result.Removed} ={result.Unchanged}.");
-                }
-                catch (Exception ex)
-                {
-                    AppLog.Current.Error(AppLogCategories.ExternalCalendar, "External calendar sync failed.", ex);
-                }
-                finally
-                {
-                    Interlocked.Exchange(ref _running, 0);
-                }
-            }) ?? false;
-            if (!enqueued) Interlocked.Exchange(ref _running, 0);
-        }, TaskScheduler.Default);
+                var outcome = await _sender.SendAsync(CancellationToken.None);
+                if (outcome == OutlookSendOutcome.Sent)
+                    AppLog.Current.Info(AppLogCategories.ExternalCalendar, $"Outlook feed sent to the server ({reason}).");
+                else
+                    AppLog.Current.Warning(AppLogCategories.ExternalCalendar, $"Outlook feed not sent ({reason}): {outcome}.");
+            }
+            catch (ServerException ex)
+            {
+                // Not signed in, offline or refused: the next round sends the whole file again.
+                AppLog.Current.Warning(AppLogCategories.ExternalCalendar, $"Outlook feed not sent ({reason}).", ex);
+            }
+            catch (Exception ex)
+            {
+                AppLog.Current.Error(AppLogCategories.ExternalCalendar, "Sending the Outlook feed failed.", ex);
+            }
+            finally
+            {
+                Interlocked.Exchange(ref _running, 0);
+            }
+        });
     }
 
     public void Dispose()
