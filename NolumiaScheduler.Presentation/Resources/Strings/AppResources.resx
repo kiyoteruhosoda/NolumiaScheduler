@@ -685,4 +685,43 @@ Log file: {3}</value>
   <data name="AlarmTestEventMessage" xml:space="preserve">
     <value>This is a test display of the alarm window.</value>
   </data>
+  <data name="SettingsServerLabel" xml:space="preserve">
+    <value>Scheduler server</value>
+  </data>
+  <data name="SettingsServerSignedIn" xml:space="preserve">
+    <value>Signed in as {0}.</value>
+  </data>
+  <data name="SettingsServerSignedInNoName" xml:space="preserve">
+    <value>Signed in.</value>
+  </data>
+  <data name="SettingsServerSignedOut" xml:space="preserve">
+    <value>Not signed in. Sign in to send Outlook events to the server and to move this PC's events there.</value>
+  </data>
+  <data name="SettingsServerModeServer" xml:space="preserve">
+    <value>Events are read from and saved to the server ({0}). Moved on {1}.</value>
+  </data>
+  <data name="SettingsServerModeLocal" xml:space="preserve">
+    <value>Events are still kept on this PC.</value>
+  </data>
+  <data name="SettingsSignInButton" xml:space="preserve">
+    <value>Sign in</value>
+  </data>
+  <data name="SettingsSignOutButton" xml:space="preserve">
+    <value>Sign out</value>
+  </data>
+  <data name="SettingsSigningIn" xml:space="preserve">
+    <value>Finish signing in in the browser…</value>
+  </data>
+  <data name="SettingsMigrateButton" xml:space="preserve">
+    <value>Move this PC's events to the server</value>
+  </data>
+  <data name="SettingsMigrating" xml:space="preserve">
+    <value>Moving…</value>
+  </data>
+  <data name="SettingsMigrateDone" xml:space="preserve">
+    <value>Moved {0} events ({1} new, {2} already there). Restart the app to switch to the server. The files on this PC are kept.</value>
+  </data>
+  <data name="SettingsServerError" xml:space="preserve">
+    <value>Could not complete: {0}</value>
+  </data>
 </root>

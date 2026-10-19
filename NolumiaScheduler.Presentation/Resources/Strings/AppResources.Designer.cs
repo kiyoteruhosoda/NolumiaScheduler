@@ -229,6 +229,20 @@ public static class AppResources
     public static string ErrorNoOccurrenceInfo => Get(nameof(ErrorNoOccurrenceInfo));
 
     // Alarm debug window
+    public static string SettingsServerLabel => Get(nameof(SettingsServerLabel));
+    public static string SettingsServerSignedIn => Get(nameof(SettingsServerSignedIn));
+    public static string SettingsServerSignedInNoName => Get(nameof(SettingsServerSignedInNoName));
+    public static string SettingsServerSignedOut => Get(nameof(SettingsServerSignedOut));
+    public static string SettingsServerModeServer => Get(nameof(SettingsServerModeServer));
+    public static string SettingsServerModeLocal => Get(nameof(SettingsServerModeLocal));
+    public static string SettingsSignInButton => Get(nameof(SettingsSignInButton));
+    public static string SettingsSignOutButton => Get(nameof(SettingsSignOutButton));
+    public static string SettingsSigningIn => Get(nameof(SettingsSigningIn));
+    public static string SettingsMigrateButton => Get(nameof(SettingsMigrateButton));
+    public static string SettingsMigrating => Get(nameof(SettingsMigrating));
+    public static string SettingsMigrateDone => Get(nameof(SettingsMigrateDone));
+    public static string SettingsServerError => Get(nameof(SettingsServerError));
+
     public static string AlarmDebugTitle        => Get(nameof(AlarmDebugTitle));
     public static string AlarmDebugRefresh      => Get(nameof(AlarmDebugRefresh));
     public static string AlarmDebugTestAlarm    => Get(nameof(AlarmDebugTestAlarm));

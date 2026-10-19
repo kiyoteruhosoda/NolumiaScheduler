@@ -94,6 +94,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             MainWindow.AppWindow.SetIcon(System.IO.Path.Combine(AppContext.BaseDirectory, "Assets", "app.ico"));
             MainWindow.Activate();
             Services.GetRequiredService<IAlarmService>().Start();
+            StartServerRefresh();
             StartExternalCalendarSync();
 
             _trayIcon = new TrayIconManager(MainWindow, "Nolumia Scheduler");
@@ -146,6 +147,22 @@ public partial class App : Microsoft.UI.Xaml.Application
         catch (Exception ex)
         {
             AppLog.Current.Error(AppLogCategories.Lifecycle, "Could not start the diagnostics watchers.", ex);
+        }
+    }
+
+    /// <summary>
+    /// Keeps the server copy fresh (only after this PC's events were moved to the server). Best
+    /// effort: without the server the copy from server-cache.json keeps the calendar going.
+    /// </summary>
+    private static void StartServerRefresh()
+    {
+        try
+        {
+            Services.GetService<ServerRefreshHost>()?.Start();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Current.Error(AppLogCategories.Lifecycle, "Could not start reading the Scheduler server.", ex);
         }
     }
 
@@ -308,6 +325,7 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         Services.GetRequiredService<IAlarmService>().Stop();
         Services.GetRequiredService<ExternalCalendarSyncHost>().Dispose();
+        Services.GetService<ServerRefreshHost>()?.Dispose();
 
         _healthMonitor?.Dispose();
         _healthMonitor = null;
@@ -336,7 +354,6 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Domain services
         services.AddSingleton<IBusinessDayShiftService, BusinessDayShiftService>();
         services.AddSingleton<IOccurrenceExpander, OccurrenceExpander>();
-        services.AddSingleton<IEventExpirationService, EventExpirationService>();
 
         // Repositories. The backend is selected here at the composition root from the
         // storage.json config (default JSON); switch it with the management CLI's
@@ -346,20 +363,20 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Expose the storage location and the active backend so the UI can show them.
         services.AddSingleton(storage);
         services.AddSingleton(new ActiveStorageBackend(backend));
-        RegisterRepositories(services, storage, backend);
-
-        // Application services
-        services.AddSingleton<CalendarEventApplicationService>();
-        services.AddSingleton<BusinessCalendarApplicationService>();
-        services.AddSingleton<PurgeExpiredEventsService>();
-
-        // Alarm
-        services.AddSingleton<AlarmApplicationService>();
-        services.AddSingleton<IAlarmService, AlarmService>();
 
         // Scheduler server: settings (server.json), sign-in (auth.bin, DPAPI) and the API client.
         var server = new ServerConnection(StorageContext.DefaultDataDirectory, new DpapiSecretProtector());
         services.AddSingleton(server);
+        services.AddSingleton(new ServerEventMigrator(server.Api, TimeProvider.System));
+        RegisterRepositories(services, storage, backend, server);
+
+        // Application services
+        services.AddSingleton<CalendarEventApplicationService>();
+        services.AddSingleton<BusinessCalendarApplicationService>();
+
+        // Alarm
+        services.AddSingleton<AlarmApplicationService>();
+        services.AddSingleton<IAlarmService, AlarmService>();
 
         // Outlook (Power Automate JSON) is sent to the server as is; settings in external-calendar.json
         var externalCalendar = ExternalCalendarConfig.Load(StorageContext.DefaultDataDirectory);
@@ -393,8 +410,25 @@ public partial class App : Microsoft.UI.Xaml.Application
         return services.BuildServiceProvider();
     }
 
-    private static void RegisterRepositories(ServiceCollection services, StorageContext storage, StorageBackend backend)
+    private static void RegisterRepositories(
+        ServiceCollection services, StorageContext storage, StorageBackend backend, ServerConnection server)
     {
+        // Once this PC's events were moved (migrated-to-server.json), the server is the source of
+        // truth: events and days off come from its local copy (server ADR-0054 decisions 7 and 8).
+        // Settings (theme, language, start view) stay on this PC.
+        if (ServerEventMigrator.IsMigrated(storage.DataDirectory))
+        {
+            var store = new ServerCalendarStore(server.Api, server.CacheFile, TimeProvider.System, EventEditDefaults.DefaultTimeZone);
+            var serverEvents = new ServerCalendarEventRepository(store);
+            services.AddSingleton(store);
+            services.AddSingleton<ServerRefreshHost>();
+            services.AddSingleton<ICalendarEventRepository>(serverEvents);
+            services.AddSingleton<ICalendarEventChanges>(serverEvents);
+            services.AddSingleton<IBusinessCalendarRepository>(new ServerBusinessCalendarRepository(store));
+            services.AddSingleton(storage.CreateAppSettingsRepository(backend));
+            return;
+        }
+
         // Build the calendar event repository once and share the single instance for both
         // its read/write contract and its change-notification contract.
         var eventRepository = storage.CreateCalendarEventRepository(backend);
