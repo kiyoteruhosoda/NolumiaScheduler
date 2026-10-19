@@ -11,23 +11,19 @@ namespace NolumiaScheduler.WinUI.Presentation.Services;
 
 /// <summary>
 /// Hosts the alarm polling timer and presents notification windows. All scheduling decisions
-/// (which alarms are due, fired keys, snoozes) live in <see cref="AlarmApplicationService"/>;
-/// expired events are purged at startup and on every local-date rollover.
+/// (which alarms are due, fired keys, snoozes) live in <see cref="AlarmApplicationService"/>.
 /// </summary>
 public class AlarmService(
     AlarmApplicationService alarms,
     CalendarEventApplicationService eventService,
-    PurgeExpiredEventsService purgeService,
     TimeProvider clock) : IAlarmService
 {
     private readonly AlarmApplicationService _alarms = alarms;
     private readonly CalendarEventApplicationService _eventService = eventService;
-    private readonly PurgeExpiredEventsService _purgeService = purgeService;
     private readonly TimeProvider _clock = clock;
     private DispatcherQueueTimer? _timer;
     private bool _isShowingNotification;
     private DispatcherQueue? _dispatcherQueue;
-    private DateOnly _lastPurgeDate;
     private AlarmNotificationWindow? _currentWindow;
     private string? _currentDueEventId;
     private readonly List<(string EventId, AlarmNotificationWindow Window)> _stayWindows = [];
@@ -37,8 +33,6 @@ public class AlarmService(
 
     public void Start()
     {
-        PurgeExpiredEvents();
-
         _dispatcherQueue = DispatcherQueue.GetForCurrentThread();
         _timer = _dispatcherQueue.CreateTimer();
         _timer.Interval = TimeSpan.FromSeconds(1);
@@ -93,12 +87,6 @@ public class AlarmService(
 
     private async Task CheckAlarmsAsync()
     {
-        var now = _clock.GetLocalNow().DateTime;
-
-        // The app lives in the tray for weeks, so a startup-only purge is not enough.
-        if (DateOnly.FromDateTime(now) != _lastPurgeDate)
-            PurgeExpiredEvents();
-
         if (_isShowingNotification)
         {
             // A newer alarm for the same event has become due while an old one is still on screen
@@ -167,14 +155,6 @@ public class AlarmService(
             _stayWindows.RemoveAt(i);
             window.RequestClose();
         }
-    }
-
-    private void PurgeExpiredEvents()
-    {
-        _lastPurgeDate = DateOnly.FromDateTime(_clock.GetLocalNow().DateTime);
-        var purged = _purgeService.PurgeExpiredEvents();
-        if (purged > 0)
-            AppLog.Current.Info(AppLogCategories.Alarm, $"Purged {purged} expired event(s).");
     }
 
     private static void ShowAppNotification(DueAlarm due, string message)

@@ -686,4 +686,43 @@
   <data name="AlarmTestEventMessage" xml:space="preserve">
     <value>これはアラームウィンドウのテスト表示です</value>
   </data>
+  <data name="SettingsServerLabel" xml:space="preserve">
+    <value>Scheduler のサーバー</value>
+  </data>
+  <data name="SettingsServerSignedIn" xml:space="preserve">
+    <value>{0} でログインしています。</value>
+  </data>
+  <data name="SettingsServerSignedInNoName" xml:space="preserve">
+    <value>ログインしています。</value>
+  </data>
+  <data name="SettingsServerSignedOut" xml:space="preserve">
+    <value>ログインしていません。ログインすると、Outlook の予定をサーバーへ送り、この PC の予定をサーバーへ移せます。</value>
+  </data>
+  <data name="SettingsServerModeServer" xml:space="preserve">
+    <value>予定はサーバー（{0}）で読み書きしています（{1} に移しました）。</value>
+  </data>
+  <data name="SettingsServerModeLocal" xml:space="preserve">
+    <value>予定はまだこの PC の中にあります。</value>
+  </data>
+  <data name="SettingsSignInButton" xml:space="preserve">
+    <value>ログイン</value>
+  </data>
+  <data name="SettingsSignOutButton" xml:space="preserve">
+    <value>ログアウト</value>
+  </data>
+  <data name="SettingsSigningIn" xml:space="preserve">
+    <value>ブラウザでログインを済ませてください…</value>
+  </data>
+  <data name="SettingsMigrateButton" xml:space="preserve">
+    <value>この PC の予定をサーバーへ移す</value>
+  </data>
+  <data name="SettingsMigrating" xml:space="preserve">
+    <value>移しています…</value>
+  </data>
+  <data name="SettingsMigrateDone" xml:space="preserve">
+    <value>{0} 件を移しました（新しく {1} 件、もうあったもの {2} 件）。アプリを再起動するとサーバーの読み書きに切り替わります。この PC のファイルは残しています。</value>
+  </data>
+  <data name="SettingsServerError" xml:space="preserve">
+    <value>できませんでした: {0}</value>
+  </data>
 </root>

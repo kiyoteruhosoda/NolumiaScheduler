@@ -38,6 +38,34 @@
                           SelectionChanged="OnStartupViewSelectionChanged"/>
             </StackPanel>
 
+            <!-- Scheduler server: sign-in and the one-time move of this PC's events -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="ServerLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <TextBlock x:Name="ServerModeText"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <TextBlock x:Name="ServerAccountText"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="SignInButton"
+                            MinHeight="48"
+                            Click="OnSignInClick"/>
+                    <Button x:Name="SignOutButton"
+                            MinHeight="48"
+                            Click="OnSignOutClick"/>
+                </StackPanel>
+                <Button x:Name="MigrateButton"
+                        MinHeight="48"
+                        Click="OnMigrateClick"/>
+                <TextBlock x:Name="ServerResultText"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+            </StackPanel>
+
             <!-- Version (git describe + build time, stamped at build) -->
             <StackPanel Spacing="8">
                 <TextBlock x:Name="VersionLabelText"

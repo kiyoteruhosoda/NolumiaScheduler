@@ -7,6 +7,7 @@ using Microsoft.UI.Xaml.Navigation;
 using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Infrastructure;
+using NolumiaScheduler.Infrastructure.Server;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Diagnostics;
 using NolumiaScheduler.WinUI.Presentation.Services;
@@ -57,6 +58,7 @@ public sealed partial class SettingsPage : Page
         OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
 
         ApplyDiagnosticsTexts();
+        ApplyServerTexts();
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -137,6 +139,7 @@ public sealed partial class SettingsPage : Page
         StorageLabelText.Text  = AppResources.SettingsStorageLabel;
         OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
         ApplyDiagnosticsTexts();
+        ApplyServerTexts();
 
         ThemePicker.Items[0] = AppResources.ThemeSystem;
         ThemePicker.Items[1] = AppResources.ThemeLight;
@@ -164,6 +167,91 @@ public sealed partial class SettingsPage : Page
         var dir = AppDiagnostics.LogDirectory;
         Directory.CreateDirectory(dir);
         Process.Start(new ProcessStartInfo { FileName = dir, UseShellExecute = true });
+    }
+
+    /// <summary>
+    /// Fills in the Scheduler server section. The decisions (sending, moving, reading) live in
+    /// Infrastructure.Server; this page only shows the state and offers the buttons.
+    /// </summary>
+    private void ApplyServerTexts()
+    {
+        var server = App.Services.GetRequiredService<ServerConnection>();
+        var marker = ServerEventMigrator.ReadMarker(server.DataDirectory);
+        var signedIn = server.SignIn.IsSignedIn;
+
+        ServerLabelText.Text = AppResources.SettingsServerLabel;
+        ServerModeText.Text = marker is null
+            ? AppResources.SettingsServerModeLocal
+            : string.Format(AppResources.FormatCulture, AppResources.SettingsServerModeServer,
+                server.Settings.BaseUri.Host, marker.MigratedAt.LocalDateTime);
+        ServerAccountText.Text = !signedIn
+            ? AppResources.SettingsServerSignedOut
+            : server.SignIn.UserName is { Length: > 0 } name
+                ? string.Format(AppResources.FormatCulture, AppResources.SettingsServerSignedIn, name)
+                : AppResources.SettingsServerSignedInNoName;
+
+        SignInButton.Content = AppResources.SettingsSignInButton;
+        SignOutButton.Content = AppResources.SettingsSignOutButton;
+        MigrateButton.Content = AppResources.SettingsMigrateButton;
+        SignInButton.Visibility = signedIn ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        SignOutButton.Visibility = signedIn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        MigrateButton.Visibility = signedIn && marker is null
+            ? Microsoft.UI.Xaml.Visibility.Visible
+            : Microsoft.UI.Xaml.Visibility.Collapsed;
+    }
+
+    private async void OnSignInClick(object sender, RoutedEventArgs e)
+    {
+        var server = App.Services.GetRequiredService<ServerConnection>();
+        SignInButton.IsEnabled = false;
+        ServerResultText.Text = AppResources.SettingsSigningIn;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            await server.SignIn.SignInAsync(
+                uri => Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true }),
+                timeout.Token);
+            ServerResultText.Text = "";
+        }
+        catch (Exception ex)
+        {
+            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, ex.Message);
+        }
+        finally
+        {
+            SignInButton.IsEnabled = true;
+            ApplyServerTexts();
+        }
+    }
+
+    private void OnSignOutClick(object sender, RoutedEventArgs e)
+    {
+        App.Services.GetRequiredService<ServerConnection>().SignIn.SignOut();
+        ServerResultText.Text = "";
+        ApplyServerTexts();
+    }
+
+    private async void OnMigrateClick(object sender, RoutedEventArgs e)
+    {
+        var server = App.Services.GetRequiredService<ServerConnection>();
+        MigrateButton.IsEnabled = false;
+        ServerResultText.Text = AppResources.SettingsMigrating;
+        try
+        {
+            var report = await App.Services.GetRequiredService<ServerEventMigrator>().MigrateAsync(
+                App.Services.GetRequiredService<ICalendarEventRepository>(), server.DataDirectory, CancellationToken.None);
+            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsMigrateDone,
+                report.Sent, report.Created, report.AlreadyOnServer);
+        }
+        catch (Exception ex)
+        {
+            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, ex.Message);
+        }
+        finally
+        {
+            MigrateButton.IsEnabled = true;
+            ApplyServerTexts();
+        }
     }
 
     /// <summary>
