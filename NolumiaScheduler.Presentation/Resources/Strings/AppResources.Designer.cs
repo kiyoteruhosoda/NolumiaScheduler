@@ -53,7 +53,6 @@ public static class AppResources
 
     public static string MonthYearFormat   => Get(nameof(MonthYearFormat));
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
-    public static string HolidayDateFormat => Get(nameof(HolidayDateFormat));
 
     // Event colors
     public static string ColorLabel     => Get(nameof(ColorLabel));
@@ -71,22 +70,12 @@ public static class AppResources
 
     // Tabs
     public static string CalendarTab          => Get(nameof(CalendarTab));
-    public static string BusinessCalendarsTab => Get(nameof(BusinessCalendarsTab));
 
     // Business Calendar List
-    public static string NoCalendarsLabel  => Get(nameof(NoCalendarsLabel));
     public static string AddCalendarButton => Get(nameof(AddCalendarButton));
 
     // Business Calendar Edit
-    public static string NewCalendarTitle        => Get(nameof(NewCalendarTitle));
-    public static string EditCalendarTitle       => Get(nameof(EditCalendarTitle));
-    public static string CalendarNamePlaceholder => Get(nameof(CalendarNamePlaceholder));
-    public static string WorkdaysLabel           => Get(nameof(WorkdaysLabel));
-    public static string HolidaysLabel           => Get(nameof(HolidaysLabel));
-    public static string AddHolidayButton        => Get(nameof(AddHolidayButton));
-    public static string HolidayNamePlaceholder  => Get(nameof(HolidayNamePlaceholder));
     public static string SaveButton              => Get(nameof(SaveButton));
-    public static string DeleteCalendarButton    => Get(nameof(DeleteCalendarButton));
 
     // Event Edit
     public static string NewEventTitle            => Get(nameof(NewEventTitle));
@@ -125,8 +114,6 @@ public static class AppResources
     public static string AdjustmentCancel         => Get(nameof(AdjustmentCancel));
     public static string AdjustmentBusinessDaysLabel => Get(nameof(AdjustmentBusinessDaysLabel));
     public static string MonthlyLastDay           => Get(nameof(MonthlyLastDay));
-    public static string AdjustmentHolidayShiftLabel => Get(nameof(AdjustmentHolidayShiftLabel));
-    public static string CalendarEnabledLabel        => Get(nameof(CalendarEnabledLabel));
     public static string AdjustmentDateTypeLabel     => Get(nameof(AdjustmentDateTypeLabel));
     public static string AdjustmentScheduledDate     => Get(nameof(AdjustmentScheduledDate));
     public static string AdjustmentBaseDate          => Get(nameof(AdjustmentBaseDate));
@@ -140,8 +127,6 @@ public static class AppResources
     public static string EditButton              => Get(nameof(EditButton));
     public static string DeleteButton            => Get(nameof(DeleteButton));
     public static string CancelButton            => Get(nameof(CancelButton));
-    public static string ReplaceButton           => Get(nameof(ReplaceButton));
-    public static string ReplaceHolidayMessage   => Get(nameof(ReplaceHolidayMessage));
     public static string DeleteEventTitle        => Get(nameof(DeleteEventTitle));
     public static string DeleteOccurrence        => Get(nameof(DeleteOccurrence));
     public static string DeleteThisAndFollowing  => Get(nameof(DeleteThisAndFollowing));
@@ -243,23 +228,8 @@ public static class AppResources
     public static string SettingsMigrateDone => Get(nameof(SettingsMigrateDone));
     public static string SettingsServerError => Get(nameof(SettingsServerError));
 
-    public static string AlarmDebugTitle        => Get(nameof(AlarmDebugTitle));
-    public static string AlarmDebugRefresh      => Get(nameof(AlarmDebugRefresh));
-    public static string AlarmDebugTestAlarm    => Get(nameof(AlarmDebugTestAlarm));
-    public static string AlarmDebugCopy         => Get(nameof(AlarmDebugCopy));
-    public static string AlarmDebugOpenFolder   => Get(nameof(AlarmDebugOpenFolder));
-    public static string AlarmDebugOpenFolderError => Get(nameof(AlarmDebugOpenFolderError));
-    public static string AlarmDebugCloseButton  => Get(nameof(AlarmDebugCloseButton));
-    public static string AlarmDebugSummaryHeader        => Get(nameof(AlarmDebugSummaryHeader));
-    public static string AlarmDebugAllEventsHeader      => Get(nameof(AlarmDebugAllEventsHeader));
-    public static string AlarmDebugOccurrencesHeader    => Get(nameof(AlarmDebugOccurrencesHeader));
-    public static string AlarmDebugEnginePipelineHeader => Get(nameof(AlarmDebugEnginePipelineHeader));
-    public static string AlarmDebugFiredKeysHeader      => Get(nameof(AlarmDebugFiredKeysHeader));
-    public static string AlarmDebugScheduledAlarmsHeader => Get(nameof(AlarmDebugScheduledAlarmsHeader));
 
     // Test alarm fixture
-    public static string AlarmTestEventTitle   => Get(nameof(AlarmTestEventTitle));
-    public static string AlarmTestEventMessage => Get(nameof(AlarmTestEventMessage));
 
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;

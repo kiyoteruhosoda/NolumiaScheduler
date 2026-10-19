@@ -171,41 +171,11 @@
   <data name="CalendarTab" xml:space="preserve">
     <value>カレンダー</value>
   </data>
-  <data name="BusinessCalendarsTab" xml:space="preserve">
-    <value>営業日カレンダー</value>
-  </data>
-  <data name="NoCalendarsLabel" xml:space="preserve">
-    <value>営業日カレンダーなし</value>
-  </data>
   <data name="AddCalendarButton" xml:space="preserve">
     <value>＋ 新規カレンダー</value>
   </data>
-  <data name="NewCalendarTitle" xml:space="preserve">
-    <value>新規カレンダー</value>
-  </data>
-  <data name="EditCalendarTitle" xml:space="preserve">
-    <value>カレンダー編集</value>
-  </data>
-  <data name="CalendarNamePlaceholder" xml:space="preserve">
-    <value>カレンダー名</value>
-  </data>
-  <data name="WorkdaysLabel" xml:space="preserve">
-    <value>営業日</value>
-  </data>
-  <data name="HolidaysLabel" xml:space="preserve">
-    <value>祝日・休日</value>
-  </data>
-  <data name="AddHolidayButton" xml:space="preserve">
-    <value>追加</value>
-  </data>
-  <data name="HolidayNamePlaceholder" xml:space="preserve">
-    <value>祝日名（任意）</value>
-  </data>
   <data name="SaveButton" xml:space="preserve">
     <value>保存</value>
-  </data>
-  <data name="DeleteCalendarButton" xml:space="preserve">
-    <value>カレンダーを削除</value>
   </data>
   <data name="NewEventTitle" xml:space="preserve">
     <value>新規予定</value>
@@ -315,12 +285,6 @@
   <data name="MonthlyLastDay" xml:space="preserve">
     <value>月末</value>
   </data>
-  <data name="AdjustmentHolidayShiftLabel" xml:space="preserve">
-    <value>休日のみシフト</value>
-  </data>
-  <data name="CalendarEnabledLabel" xml:space="preserve">
-    <value>有効</value>
-  </data>
   <data name="AdjustmentDateTypeLabel" xml:space="preserve">
     <value>日付タイプ</value>
   </data>
@@ -354,12 +318,6 @@
   <data name="CancelButton" xml:space="preserve">
     <value>キャンセル</value>
   </data>
-  <data name="ReplaceButton" xml:space="preserve">
-    <value>置換</value>
-  </data>
-  <data name="ReplaceHolidayMessage" xml:space="preserve">
-    <value>既存の祝日「{0}」を置換しますか？</value>
-  </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="DeleteEventTitle" xml:space="preserve">
     <value>予定を削除</value>
@@ -381,9 +339,6 @@
   </data>
   <data name="SelectedDayFormat" xml:space="preserve">
     <value>M月d日 (ddd)</value>
-  </data>
-  <data name="HolidayDateFormat" xml:space="preserve">
-    <value>yyyy年M月d日 (ddd)</value>
   </data>
   <data name="ColorLabel" xml:space="preserve">
     <value>色</value>
@@ -639,53 +594,8 @@
   </data>
 
   <!-- Alarm debug window -->
-  <data name="AlarmDebugTitle" xml:space="preserve">
-    <value>アラームデバッグ</value>
-  </data>
-  <data name="AlarmDebugRefresh" xml:space="preserve">
-    <value>更新</value>
-  </data>
-  <data name="AlarmDebugTestAlarm" xml:space="preserve">
-    <value>テストアラーム表示</value>
-  </data>
-  <data name="AlarmDebugCopy" xml:space="preserve">
-    <value>クリップボードにコピー</value>
-  </data>
-  <data name="AlarmDebugOpenFolder" xml:space="preserve">
-    <value>JSONフォルダを開く</value>
-  </data>
-  <data name="AlarmDebugOpenFolderError" xml:space="preserve">
-    <value>フォルダを開けません</value>
-  </data>
-  <data name="AlarmDebugCloseButton" xml:space="preserve">
-    <value>閉じる</value>
-  </data>
-  <data name="AlarmDebugSummaryHeader" xml:space="preserve">
-    <value>サマリー</value>
-  </data>
-  <data name="AlarmDebugAllEventsHeader" xml:space="preserve">
-    <value>全イベント (リポジトリ生データ)</value>
-  </data>
-  <data name="AlarmDebugOccurrencesHeader" xml:space="preserve">
-    <value>オカレンス展開結果 (today～tomorrow)</value>
-  </data>
-  <data name="AlarmDebugEnginePipelineHeader" xml:space="preserve">
-    <value>アラームエンジン判定パイプライン</value>
-  </data>
-  <data name="AlarmDebugFiredKeysHeader" xml:space="preserve">
-    <value>発火済キー一覧</value>
-  </data>
-  <data name="AlarmDebugScheduledAlarmsHeader" xml:space="preserve">
-    <value>スケジュール済アラーム</value>
-  </data>
 
   <!-- Test alarm fixture -->
-  <data name="AlarmTestEventTitle" xml:space="preserve">
-    <value>テストアラーム</value>
-  </data>
-  <data name="AlarmTestEventMessage" xml:space="preserve">
-    <value>これはアラームウィンドウのテスト表示です</value>
-  </data>
   <data name="SettingsServerLabel" xml:space="preserve">
     <value>Scheduler のサーバー</value>
   </data>

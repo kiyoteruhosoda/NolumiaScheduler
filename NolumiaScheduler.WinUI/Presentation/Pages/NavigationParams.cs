@@ -10,6 +10,3 @@ public sealed record EventEditParams(
     int? OccurrenceEndMinute = null,
     bool AllDay = false,
     string? CloneEventId = null);
-
-public sealed record BusinessCalendarEditParams(
-    string? CalendarId = null);

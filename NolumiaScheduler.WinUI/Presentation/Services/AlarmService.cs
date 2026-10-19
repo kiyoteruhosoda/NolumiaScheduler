@@ -81,9 +81,6 @@ public class AlarmService(
     }
 
     public void ResetFiredKeys(string eventId) => _alarms.ResetFiredKeys(eventId);
-    public IReadOnlyList<AlarmScheduleEntry> GetScheduledAlarms() => _alarms.GetScheduledAlarms();
-    public IReadOnlyList<string> GetFiredKeys() => _alarms.GetFiredKeys();
-    public IReadOnlyList<string> GetDiagnosticLines() => _alarms.GetDiagnosticLines();
 
     private async Task CheckAlarmsAsync()
     {
@@ -301,14 +298,5 @@ public class AlarmService(
                 _isShowingNotification = false;
             }
         }
-    }
-
-    public async Task ShowTestAlarmAsync()
-    {
-        var due = new DueAlarm(
-            "test-debug", AppResources.AlarmTestEventTitle, "https://example.com",
-            OffsetMinutes: 0, IsSnoozeReminder: false,
-            _clock.GetLocalNow().DateTime.AddMinutes(30));
-        await ShowAlarmAsync(due, AppResources.AlarmTestEventMessage);
     }
 }
