@@ -48,7 +48,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         MonthNavItem.Content        = AppResources.MonthViewLabel;
         WeekNavItem.Content         = AppResources.WeekViewLabel;
         WeekdaysNavItem.Content     = AppResources.WeekdaysViewLabel;
-        BusinessCalendarNavItem.Content = AppResources.BusinessCalendarsTab;
 
         NavigationService.Instance.Initialize(ContentFrame);
 
@@ -123,8 +122,6 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 "Weekdays" => WeekdaysNavItem,
                 _          => WeekNavItem,
             };
-        else if (e.SourcePageType == typeof(BusinessCalendarListPage))
-            NavView.SelectedItem = BusinessCalendarNavItem;
         _suppressNavChange = false;
     }
 
@@ -151,31 +148,8 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 case "Weekdays":
                     ContentFrame.Navigate(typeof(CalendarPage), "Weekdays");
                     break;
-                case "BusinessCalendars":
-                    if (ContentFrame.CurrentSourcePageType != typeof(BusinessCalendarListPage))
-                        ContentFrame.Navigate(typeof(BusinessCalendarListPage));
-                    break;
-                case "Debug":
-                    OpenAlarmDebugWindow();
-                    break;
             }
         }
-    }
-
-    private AlarmDebugWindow? _debugWindow;
-
-    private void OpenAlarmDebugWindow()
-    {
-        if (_debugWindow is null || _debugWindow.AppWindow is null)
-        {
-            var services = App.Services;
-            _debugWindow = new AlarmDebugWindow(
-                services.GetRequiredService<IAlarmService>(),
-                services.GetRequiredService<CalendarEventApplicationService>(),
-                services.GetRequiredService<IOccurrenceExpander>(),
-                services.GetRequiredService<TimeProvider>());
-        }
-        _debugWindow.Activate();
     }
 
     private void OnBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)

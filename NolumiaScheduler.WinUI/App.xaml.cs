@@ -397,14 +397,10 @@ public partial class App : Microsoft.UI.Xaml.Application
 
         // ViewModels
         services.AddTransient<CalendarViewModel>();
-        services.AddTransient<BusinessCalendarListViewModel>();
-        services.AddTransient<BusinessCalendarEditViewModel>();
         services.AddTransient<EventEditViewModel>();
 
         // Pages
         services.AddTransient<CalendarPage>();
-        services.AddTransient<BusinessCalendarListPage>();
-        services.AddTransient<BusinessCalendarEditPage>();
         services.AddTransient<EventEditPage>();
 
         return services.BuildServiceProvider();
