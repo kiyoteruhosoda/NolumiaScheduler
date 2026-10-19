@@ -149,7 +149,7 @@ public sealed class ServerCalendarStore
     public void Delete(string eventId)
     {
         if (FindDto(eventId) is not { } dto) return;
-        var error = Task.Run(async Task<ServerException?> () =>
+        var error = Task.Run<ServerException?>(async () =>
         {
             try
             {
