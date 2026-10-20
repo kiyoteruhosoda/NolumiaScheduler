@@ -222,6 +222,8 @@ public static class AppResources
     // Alarm debug window
     public static string SettingsServerLabel => Get(nameof(SettingsServerLabel));
     public static string SettingsServerSignedIn => Get(nameof(SettingsServerSignedIn));
+    public static string SettingsUpdateReady => Get(nameof(SettingsUpdateReady));
+    public static string SettingsUpdateNowButton => Get(nameof(SettingsUpdateNowButton));
     public static string SettingsServerSignedInNoName => Get(nameof(SettingsServerSignedInNoName));
     public static string SettingsServerSignedOut => Get(nameof(SettingsServerSignedOut));
     public static string SettingsServerModeServer => Get(nameof(SettingsServerModeServer));

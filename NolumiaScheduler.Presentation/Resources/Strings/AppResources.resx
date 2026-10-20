@@ -646,4 +646,10 @@ Log file: {3}</value>
   <data name="ExternalSourceFeed" xml:space="preserve">
     <value>Imported event (it cannot be changed here). Change it in the original calendar.</value>
   </data>
+  <data name="SettingsUpdateReady" xml:space="preserve">
+    <value>Version {0} is ready. It is swapped in when you quit the app.</value>
+  </data>
+  <data name="SettingsUpdateNowButton" xml:space="preserve">
+    <value>Update now and restart</value>
+  </data>
 </root>

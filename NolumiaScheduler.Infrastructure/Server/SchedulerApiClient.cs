@@ -26,6 +26,12 @@ public sealed class SchedulerApiClient
 
     public Uri BaseUri { get; }
 
+    /// <summary>
+    /// Where Velopack reads new versions of this app: the server relays the release index and
+    /// packages from the distribution bucket (task #551, ADR-0007). Bearer, like every other call.
+    /// </summary>
+    public Uri ReleasesUri => Url("api/windows/releases/");
+
     // ── Events ─────────────────────────────────────────────────────────────
 
     public Task<List<EventDto>> ListEventsAsync(DateOnly from, DateOnly to, CancellationToken ct)

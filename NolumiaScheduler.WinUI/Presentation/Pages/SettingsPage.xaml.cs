@@ -59,6 +59,7 @@ public sealed partial class SettingsPage : Page
 
         ApplyDiagnosticsTexts();
         ApplyServerTexts();
+        ApplyUpdateTexts();
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -140,6 +141,7 @@ public sealed partial class SettingsPage : Page
         OpenDataFolderButton.Content = AppResources.SettingsOpenDataFolderLink;
         ApplyDiagnosticsTexts();
         ApplyServerTexts();
+        ApplyUpdateTexts();
 
         ThemePicker.Items[0] = AppResources.ThemeSystem;
         ThemePicker.Items[1] = AppResources.ThemeLight;
@@ -198,6 +200,25 @@ public sealed partial class SettingsPage : Page
         MigrateButton.Visibility = signedIn && marker is null
             ? Microsoft.UI.Xaml.Visibility.Visible
             : Microsoft.UI.Xaml.Visibility.Collapsed;
+    }
+
+    /// <summary>Offers the downloaded version, if any (task #551). It is applied on exit anyway.</summary>
+    private void ApplyUpdateTexts()
+    {
+        var ready = App.Services.GetRequiredService<AppUpdateHost>().ReadyVersion;
+        var visibility = ready is null ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
+        UpdateReadyText.Text = ready is null
+            ? ""
+            : string.Format(AppResources.FormatCulture, AppResources.SettingsUpdateReady, ready);
+        UpdateNowButton.Content = AppResources.SettingsUpdateNowButton;
+        UpdateReadyText.Visibility = visibility;
+        UpdateNowButton.Visibility = visibility;
+    }
+
+    private void OnUpdateNowClick(object sender, RoutedEventArgs e)
+    {
+        UpdateNowButton.IsEnabled = false;
+        App.Services.GetRequiredService<AppUpdateHost>().ApplyAndRestart();
     }
 
     private async void OnSignInClick(object sender, RoutedEventArgs e)

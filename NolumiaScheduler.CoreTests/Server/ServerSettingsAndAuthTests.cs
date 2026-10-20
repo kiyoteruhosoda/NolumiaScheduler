@@ -43,6 +43,22 @@ public class ServerSettingsAndAuthTests
     }
 
     [TestMethod]
+    public void 更新の置き場はサーバーの中継を向く()
+    {
+        using var http = new HttpClient();
+        var api = new SchedulerApiClient(http, new Uri("https://schedulerstg.nolumia.com"), new NoTokens());
+
+        Assert.AreEqual("https://schedulerstg.nolumia.com/api/windows/releases/", api.ReleasesUri.AbsoluteUri);
+    }
+
+    private sealed class NoTokens : IAccessTokenSource
+    {
+        public Task<string?> GetAccessTokenAsync(CancellationToken cancellationToken) => Task.FromResult<string?>(null);
+
+        public void Invalidate(string accessToken) { }
+    }
+
+    [TestMethod]
     public void 読めない設定は既定に戻る()
     {
         File.WriteAllText(Path.Combine(_dir, ServerSettings.FileName), "{ not json");

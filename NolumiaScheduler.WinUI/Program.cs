@@ -2,6 +2,7 @@ using Microsoft.UI.Dispatching;
 using Microsoft.Windows.AppLifecycle;
 using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.WinUI.Diagnostics;
+using Velopack;
 
 namespace NolumiaScheduler.WinUI;
 
@@ -16,6 +17,10 @@ public static class Program
     [STAThread]
     private static void Main()
     {
+        // Velopack runs this process with install/update/uninstall hooks and may exit here, so it
+        // goes before anything else (task #551, ADR-0007).
+        VelopackApp.Build().Run();
+
         WinRT.ComWrappersSupport.InitializeComWrappers();
 
         // Task Scheduler starts processes with a non-app current directory by default.
