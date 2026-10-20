@@ -17,7 +17,10 @@
 1. **組む手順はこのリポジトリに置かない。** GitHub の別の公開の置き場 `kiyoteruhosoda/nolumiascheduler-build` が
    15 分ごとに写しの main の先頭を見て、新しければ Windows で画面ごと組み、Velopack で Setup.exe と更新の一式を作って
    その置き場の Release に置く。失敗は ntfy に知らせる。
-   - forge の main → 写し（push mirror）→ 次の定期の確認、で組まれる。forge 側には何も足さない
+   - forge の main → 写し（push mirror）→ 次の確認、で組まれる。このリポジトリには何も足さない
+   - ⚠ **起動は家の側から**（2026-10-20 追記）: GitHub の定期の起動が作ってから 2 時間以上一度も来なかったので、
+     持ち主の選択で、forge の取り込み係が 15 分ごとに写しの main を見て、まだ組まれていなければ GitHub のビルドを
+     workflow_dispatch で押す。鍵はその置き場の Actions だけを許す fine-grained トークン（受け取りの窓口 `scheduler-gh-dispatch`）
    - 家の置き場（Garage）は外から書けないので、GitHub は書く鍵を持たない。家の側（forge `kyon/nolumiascheduler-build`）が
      Release を取りに来て `nolumiascheduler` の入れ物へ上げ、share.nolumia.com から入れられるようにする
    - どちらも使い捨て。消えても配布が止まるだけで、このリポジトリと動いているアプリには響かない（作り直せばよい）
