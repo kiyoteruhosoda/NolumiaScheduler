@@ -96,6 +96,7 @@ public partial class App : Microsoft.UI.Xaml.Application
             Services.GetRequiredService<IAlarmService>().Start();
             StartServerRefresh();
             StartExternalCalendarSync();
+            StartAppUpdates();
 
             _trayIcon = new TrayIconManager(MainWindow, "Nolumia Scheduler");
             _trayIcon.ShowRequested += OnTrayShowRequested;
@@ -154,6 +155,18 @@ public partial class App : Microsoft.UI.Xaml.Application
     /// Keeps the server copy fresh (only after this PC's events were moved to the server). Best
     /// effort: without the server the copy from server-cache.json keeps the calendar going.
     /// </summary>
+    private static void StartAppUpdates()
+    {
+        try
+        {
+            Services.GetRequiredService<AppUpdateHost>().Start();
+        }
+        catch (Exception ex)
+        {
+            AppLog.Current.Error(AppLogCategories.Lifecycle, "Could not start checking for updates.", ex);
+        }
+    }
+
     private static void StartServerRefresh()
     {
         try
@@ -368,6 +381,8 @@ public partial class App : Microsoft.UI.Xaml.Application
         var server = new ServerConnection(StorageContext.DefaultDataDirectory, new DpapiSecretProtector());
         services.AddSingleton(server);
         services.AddSingleton(new ServerEventMigrator(server.Api, TimeProvider.System));
+        // Updates come through the same server, with the same sign-in (task #551, ADR-0007).
+        services.AddSingleton(new AppUpdateHost(server.Api.ReleasesUri, server.SignIn));
         RegisterRepositories(services, storage, backend, server);
 
         // Application services

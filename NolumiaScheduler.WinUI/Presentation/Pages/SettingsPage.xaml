@@ -73,6 +73,15 @@
                 <TextBlock x:Name="VersionValueText"
                            IsTextSelectionEnabled="True"
                            Style="{StaticResource BodyTextBlockStyle}"/>
+                <!-- Shown only when a newer version has been downloaded (task #551) -->
+                <TextBlock x:Name="UpdateReadyText"
+                           Visibility="Collapsed"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <Button x:Name="UpdateNowButton"
+                        Visibility="Collapsed"
+                        MinHeight="48"
+                        Click="OnUpdateNowClick"/>
             </StackPanel>
 
             <!-- Storage backend + data folder -->

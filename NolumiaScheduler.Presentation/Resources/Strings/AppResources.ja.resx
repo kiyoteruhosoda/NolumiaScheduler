@@ -647,4 +647,10 @@
   <data name="ExternalSourceFeed" xml:space="preserve">
     <value>取り込んだ予定です（ここでは直せません）。元のカレンダーで直してください。</value>
   </data>
+  <data name="SettingsUpdateReady" xml:space="preserve">
+    <value>新しい版 {0} を用意しました。アプリを終了すると入れ替わります。</value>
+  </data>
+  <data name="SettingsUpdateNowButton" xml:space="preserve">
+    <value>いま更新して再起動</value>
+  </data>
 </root>

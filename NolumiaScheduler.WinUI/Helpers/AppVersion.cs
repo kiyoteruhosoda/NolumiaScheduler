@@ -27,8 +27,14 @@ public static class AppVersion
     /// <summary>UTC instant the assembly was built, ISO-8601 (<c>yyyy-MM-ddTHH:mm:ssZ</c>).</summary>
     public static string BuildTimestampUtc { get; } = Metadata("BuildTimestampUtc") ?? "unknown";
 
+    /// <summary>
+    /// Release number, e.g. <c>1.0.123</c>. The release build passes <c>-p:Version=1.0.&lt;commit count&gt;</c>,
+    /// which is also the version Velopack installs and updates by (task #551); a local build shows 1.0.0.
+    /// </summary>
+    public static string Release { get; } = Assembly.GetName().Version?.ToString(3) ?? "unknown";
+
     /// <summary>Single-line summary suitable for an "About"/settings row.</summary>
-    public static string Display { get; } = $"{GitDescribe} ({BuildTimestampUtc})";
+    public static string Display { get; } = $"{Release} · {GitDescribe} ({BuildTimestampUtc})";
 
     private static string? Metadata(string key)
     {
