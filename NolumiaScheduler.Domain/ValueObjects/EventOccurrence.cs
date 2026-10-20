@@ -17,7 +17,8 @@ public sealed class EventOccurrence(
     bool isOverridden = false,
     OccurrenceLocalKey? seriesKey = null,
     EventColorKey colorKey = EventColorKey.Default,
-    bool alarmEnabled = true)
+    bool alarmEnabled = true,
+    EventOrigin origin = EventOrigin.Manual)
 {
     public EventId EventId { get; } = eventId;
     public LocalDateValue Date { get; } = date;
@@ -29,6 +30,9 @@ public sealed class EventOccurrence(
     public bool IsMoved { get; } = isMoved;
     public bool IsOverridden { get; } = isOverridden;
     public EventColorKey ColorKey { get; } = colorKey;
+
+    /// <summary>The event's origin, carried to the calendar's marks (task #550).</summary>
+    public EventOrigin Origin { get; } = origin;
 
     /// <summary>
     /// Whether this occurrence raises its series alarm. A per-occurrence override can silence a

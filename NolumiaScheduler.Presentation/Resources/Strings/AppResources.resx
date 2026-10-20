@@ -634,4 +634,16 @@ Log file: {3}</value>
   <data name="SettingsServerError" xml:space="preserve">
     <value>Could not complete: {0}</value>
   </data>
+  <data name="OriginOutlookName" xml:space="preserve">
+    <value>Imported from Outlook</value>
+  </data>
+  <data name="OriginFeedName" xml:space="preserve">
+    <value>Imported event</value>
+  </data>
+  <data name="ExternalSourceOutlook" xml:space="preserve">
+    <value>Imported from Outlook (it cannot be changed here). Change it in Outlook.</value>
+  </data>
+  <data name="ExternalSourceFeed" xml:space="preserve">
+    <value>Imported event (it cannot be changed here). Change it in the original calendar.</value>
+  </data>
 </root>

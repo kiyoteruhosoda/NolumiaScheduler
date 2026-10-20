@@ -63,7 +63,7 @@ public static class ServerEventMapper
         var title = string.IsNullOrWhiteSpace(dto.Title) ? "(no title)" : dto.Title;
         return CalendarEvent.CreateExternalSingle(
             new EventId(key),
-            new ExternalOrigin(ImportedSourceId, key, null),
+            new ExternalOrigin(ImportedSourceId, key, null, OriginOf(dto)),
             new EventTitle(title),
             string.IsNullOrWhiteSpace(dto.Location) ? null : new Location(dto.Location),
             dto.IsPrivate ? Visibility.Private : Visibility.Public,
@@ -73,6 +73,13 @@ public static class ServerEventMapper
             ToAlarm(dto.Reminder) ?? new EventAlarm(false, false, false, false, false),
             DateTimeOffset.UnixEpoch);
     }
+
+    /// <summary>
+    /// The server's <c>origin</c> (ADR-0057): OUTLOOK or FEED. A server that does not send it yet is
+    /// read as Outlook, which is what the app sends there.
+    /// </summary>
+    private static EventOrigin OriginOf(ImportedOccurrenceDto dto)
+        => string.Equals(dto.Origin, "FEED", StringComparison.Ordinal) ? EventOrigin.Feed : EventOrigin.Outlook;
 
     // FNV-1a: deterministic across runs (string.GetHashCode is randomized per process).
     private static uint StableHash(string text)

@@ -554,12 +554,13 @@ public sealed partial class WeekCalendarView : UserControl
                 Width = chipColWidth - 4
             };
             ApplyChipSelectionVisual(chip, block.BackgroundColor, block.IsSelected);
-            var label = new TextBlock
+            var title = new TextBlock
             {
                 Text = block.Title,
                 FontSize = 10,
                 Foreground = new SolidColorBrush(Microsoft.UI.Colors.White)
             };
+            var label = WithOriginMark(title, block.Origin);
 
             if (block.IsRecurring && !block.IsModifiedOccurrence)
             {
@@ -636,6 +637,38 @@ public sealed partial class WeekCalendarView : UserControl
     private static Windows.UI.Color DarkenColor(Windows.UI.Color color, double factor)
         => Windows.UI.Color.FromArgb(color.A, (byte)(color.R * factor), (byte)(color.G * factor), (byte)(color.B * factor));
 
+    // Imported events get a small boxed mark before the title ("O" = Outlook, "ics"; task #550), in
+    // the title's white so it reads on any event color. Hand-made events keep the bare title.
+    private static FrameworkElement WithOriginMark(TextBlock title, EventOrigin origin)
+    {
+        if (!EventOriginMark.Has(origin)) return title;
+        var mark = new Border
+        {
+            BorderBrush = new SolidColorBrush(Microsoft.UI.Colors.White),
+            BorderThickness = new Thickness(1),
+            CornerRadius = new CornerRadius(2),
+            Padding = new Thickness(2, 0, 2, 0),
+            Margin = new Thickness(0, 0, 3, 0),
+            VerticalAlignment = VerticalAlignment.Center,
+            Child = new TextBlock
+            {
+                Text = EventOriginMark.Text(origin),
+                FontSize = 8,
+                FontWeight = Microsoft.UI.Text.FontWeights.Bold,
+                Foreground = new SolidColorBrush(Microsoft.UI.Colors.White),
+            },
+        };
+        Microsoft.UI.Xaml.Automation.AutomationProperties.SetName(mark, EventOriginMark.Name(origin));
+        ToolTipService.SetToolTip(mark, EventOriginMark.Name(origin));
+        var row = new Grid { VerticalAlignment = title.VerticalAlignment };
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = GridLength.Auto });
+        row.ColumnDefinitions.Add(new ColumnDefinition { Width = new GridLength(1, GridUnitType.Star) });
+        Grid.SetColumn(title, 1);
+        row.Children.Add(mark);
+        row.Children.Add(title);
+        return row;
+    }
+
     // Builds a small icon badge for occurrences that have been dragged out of their recurring
     // series (IsMoved). Shows the recurrence symbol overlaid with a small cancel/X mark, similar
     // to Outlook's "exception" occurrence indicator.
@@ -689,7 +722,7 @@ public sealed partial class WeekCalendarView : UserControl
         // cursor + manipulation hit-testing (see OnChipPointerMoved / EdgeAt).
         border.Padding = new Thickness(4, 0, 4, 0);
 
-        var titleLabel = new TextBlock
+        var titleText = new TextBlock
         {
             Text = block.Title,
             FontSize = 10,
@@ -698,6 +731,7 @@ public sealed partial class WeekCalendarView : UserControl
             TextWrapping = TextWrapping.NoWrap,
             TextTrimming = TextTrimming.CharacterEllipsis
         };
+        var titleLabel = WithOriginMark(titleText, block.Origin);
 
         if (block.IsRecurring && !block.IsModifiedOccurrence)
         {

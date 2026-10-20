@@ -728,7 +728,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                         var firstOccurrence = new EventOccurrence(
                             occ.EventId, occ.Date, occ.StartTime, firstDuration,
                             occ.Title, occ.Location, occ.Visibility,
-                            occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled);
+                            occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled, occ.Origin);
                         weekly[dayIdx].Add(new CalendarEventItem(firstOccurrence, isRecurringEvent));
                     }
 
@@ -739,7 +739,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                             LocalDateValue.FromDateOnly(occ.Date.ToDateOnly().AddDays(1)),
                             new LocalTimeValue(0, 0, 0), secondDuration,
                             occ.Title, occ.Location, occ.Visibility,
-                            occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled);
+                            occ.IsMoved, occ.IsOverridden, occ.SeriesKey, occ.ColorKey, occ.AlarmEnabled, occ.Origin);
                         weekly[dayIdx + 1].Add(new CalendarEventItem(secondOccurrence, isRecurringEvent));
                     }
                 }
@@ -794,6 +794,7 @@ public partial class CalendarViewModel : INotifyPropertyChanged
                 WidthRatio = b.WidthRatio,
                 IsHoliday = b.IsHoliday,
                 IsRecurring = b.IsRecurring,
+                Origin = b.Origin,
                 IsModifiedOccurrence = b.IsModifiedOccurrence,
             }).ToList();
             WeekAllDayEventBlocks.Clear();

@@ -36,6 +36,8 @@ public sealed class WeekEventBlock : System.ComponentModel.INotifyPropertyChange
         }
     }
     public required bool IsRecurring { get; init; }
+    /// <summary>Where the event came from; imported events carry a mark (task #550).</summary>
+    public EventOrigin Origin { get; init; }
     public required bool IsModifiedOccurrence { get; init; }
     public required Rect ResizeHandleBounds { get; init; }
 

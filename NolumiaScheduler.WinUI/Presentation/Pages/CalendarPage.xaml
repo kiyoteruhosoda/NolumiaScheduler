@@ -150,8 +150,19 @@
                                                     Margin="1,0" Padding="3,0"
                                                     Background="{x:Bind ChipColor, Converter={StaticResource ColorToBrush}}"
                                                     ToolTipService.ToolTip="{x:Bind ToolTipText}">
-                                                <TextBlock Text="{x:Bind Title}" FontSize="10"
-                                                           Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                <!-- Imported events carry a boxed mark ("O" = Outlook, "ics"); task #550 -->
+                                                <Grid ColumnDefinitions="Auto,*" ColumnSpacing="2">
+                                                    <Border Grid.Column="0" BorderBrush="White" BorderThickness="1" CornerRadius="2"
+                                                            Padding="2,0" VerticalAlignment="Center"
+                                                            AutomationProperties.Name="{x:Bind OriginName}"
+                                                            ToolTipService.ToolTip="{x:Bind OriginName}"
+                                                            Visibility="{x:Bind HasOriginMark, Converter={StaticResource BoolToVisible}}">
+                                                        <TextBlock Text="{x:Bind OriginMarkText}" FontSize="8" FontWeight="Bold"
+                                                                   Foreground="White" AutomationProperties.AccessibilityView="Raw"/>
+                                                    </Border>
+                                                    <TextBlock Grid.Column="1" Text="{x:Bind Title}" FontSize="10"
+                                                               Foreground="White" TextTrimming="CharacterEllipsis"/>
+                                                </Grid>
                                             </Border>
                                         </DataTemplate>
                                     </ItemsRepeater.ItemTemplate>
@@ -218,8 +229,20 @@
                                     <Rectangle Grid.Column="0" Width="4" Height="32" RadiusX="2" RadiusY="2"
                                            Fill="{x:Bind DotColor, Converter={StaticResource ColorToBrush}}"/>
                                     <StackPanel Grid.Column="1" Margin="8,0,0,0" VerticalAlignment="Center">
-                                        <TextBlock Text="{x:Bind Title}" FontSize="14"
-                                               Foreground="{ThemeResource GCalTextPrimary}"/>
+                                        <!-- Imported events carry a boxed mark ("O" = Outlook, "ics"); task #550 -->
+                                        <StackPanel Orientation="Horizontal" Spacing="6">
+                                            <Border BorderBrush="{ThemeResource GCalTextSecondary}" BorderThickness="1" CornerRadius="2"
+                                                    Padding="4,0" VerticalAlignment="Center"
+                                                    AutomationProperties.Name="{x:Bind OriginName}"
+                                                    ToolTipService.ToolTip="{x:Bind OriginName}"
+                                                    Visibility="{x:Bind HasOriginMark, Converter={StaticResource BoolToVisible}}">
+                                                <TextBlock Text="{x:Bind OriginMarkText}" FontSize="10" FontWeight="Bold"
+                                                           Foreground="{ThemeResource GCalTextSecondary}"
+                                                           AutomationProperties.AccessibilityView="Raw"/>
+                                            </Border>
+                                            <TextBlock Text="{x:Bind Title}" FontSize="14"
+                                                       Foreground="{ThemeResource GCalTextPrimary}"/>
+                                        </StackPanel>
                                         <TextBlock Text="{x:Bind TimeRange}" FontSize="12"
                                                Foreground="{ThemeResource GCalTextSecondary}"/>
                                     </StackPanel>

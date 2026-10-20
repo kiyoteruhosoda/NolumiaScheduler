@@ -132,10 +132,12 @@ public partial class EventEditViewModel : INotifyPropertyChanged
     private DateTime Today() => _clock.GetLocalNow().Date;
 
     public bool IsEditing => _editingEventId != null;
-    // Imported (Outlook) events are read-only: save/delete are blocked and the page shows the source.
+    // Imported (Outlook, iCalendar) events are read-only: save/delete are blocked and the page shows the source.
     public bool IsExternal { get; private set; }
     public bool CanModify => !IsExternal;
-    public string ExternalSourceLabel => IsExternal ? "Outlook（読み取り専用）" : "";
+    public EventOrigin ExternalKind { get; private set; }
+    public string ExternalSourceLabel => !IsExternal ? ""
+        : ExternalKind == EventOrigin.Feed ? AppResources.ExternalSourceFeed : AppResources.ExternalSourceOutlook;
     public string? EditingEventId => _editingEventId;
     public OccurrenceLocalKey? EditingOccurrenceKey { get; private set; }
     public bool IsOccurrenceEditing => EditingOccurrenceKey != null;
@@ -173,6 +175,7 @@ public partial class EventEditViewModel : INotifyPropertyChanged
         _editingEventId = eventId;
         EditingOccurrenceKey = occurrenceKey;
         IsExternal = ev.IsReadOnly;
+        ExternalKind = ev.Origin;
         OnPropertyChanged(nameof(IsExternal));
         OnPropertyChanged(nameof(CanModify));
         OnPropertyChanged(nameof(ExternalSourceLabel));

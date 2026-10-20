@@ -36,7 +36,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 ev.Id, startDate,
                 LocalSchedulePoint.LocalTimeOf(schedule.StartUtc, tz), schedule.DurationMinutes,
                 ev.Title, ev.Location, ev.Visibility,
-                colorKey: ev.ColorKey)
+                colorKey: ev.ColorKey,
+                origin: ev.Origin)
         ];
     }
 
@@ -104,7 +105,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                         isMoved: true,
                         seriesKey: key,
                         colorKey: ev.ColorKey,
-                        alarmEnabled: movedOverride?.AlarmEnabled ?? true));
+                        alarmEnabled: movedOverride?.AlarmEnabled ?? true,
+                        origin: ev.Origin));
                 }
                 continue;
             }
@@ -136,7 +138,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                     isOverridden: true,
                     seriesKey: key,
                     colorKey: ev.ColorKey,
-                    alarmEnabled: ov.AlarmEnabled ?? true));
+                    alarmEnabled: ov.AlarmEnabled ?? true,
+                    origin: ev.Origin));
                 continue;
             }
 
@@ -145,7 +148,8 @@ public class OccurrenceExpander(IBusinessDayShiftService shiftService) : IOccurr
                 SeriesTimeAt(adjustedDate), schedule.DurationMinutes,
                 ev.Title, ev.Location, ev.Visibility,
                 seriesKey: key,
-                colorKey: ev.ColorKey));
+                colorKey: ev.ColorKey,
+                origin: ev.Origin));
         }
 
         return results;
