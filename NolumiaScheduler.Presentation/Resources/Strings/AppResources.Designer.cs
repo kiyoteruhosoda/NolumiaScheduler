@@ -51,6 +51,12 @@ public static class AppResources
     public static string BadgeMoved     => Get(nameof(BadgeMoved));
     public static string BadgeModified  => Get(nameof(BadgeModified));
 
+    // Marks on imported events (task #550)
+    public static string OriginOutlookName     => Get(nameof(OriginOutlookName));
+    public static string OriginFeedName        => Get(nameof(OriginFeedName));
+    public static string ExternalSourceOutlook => Get(nameof(ExternalSourceOutlook));
+    public static string ExternalSourceFeed    => Get(nameof(ExternalSourceFeed));
+
     public static string MonthYearFormat   => Get(nameof(MonthYearFormat));
     public static string SelectedDayFormat => Get(nameof(SelectedDayFormat));
 

@@ -27,6 +27,7 @@ public sealed class CalendarEventItem
         Location = occ.Location?.Value;
         IsMoved = occ.IsMoved;
         IsOverridden = occ.IsOverridden;
+        Origin = occ.Origin;
 
         StartMinuteOfDay = occ.StartMinuteOfDay;
         var endFromStart = occ.StartMinuteOfDay + occ.DurationMinutes;
@@ -84,4 +85,10 @@ public sealed class CalendarEventItem
     public bool CrossesMidnight { get; }
     public bool HasLocation => !string.IsNullOrEmpty(Location);
     public bool HasBadge => BadgeText != null;
+
+    /// <summary>Where the event came from; imported events carry a mark (task #550).</summary>
+    public EventOrigin Origin { get; }
+    public bool HasOriginMark => EventOriginMark.Has(Origin);
+    public string OriginMarkText => EventOriginMark.Text(Origin);
+    public string OriginName => EventOriginMark.Name(Origin);
 }

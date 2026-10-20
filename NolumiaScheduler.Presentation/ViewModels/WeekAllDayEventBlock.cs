@@ -31,6 +31,8 @@ public sealed class WeekAllDayEventBlock : System.ComponentModel.INotifyProperty
     /// </summary>
     public bool IsHoliday { get; init; }
     public bool IsRecurring { get; init; }
+    /// <summary>Where the event came from; imported events carry a mark (task #550).</summary>
+    public EventOrigin Origin { get; init; }
     public bool IsModifiedOccurrence { get; init; }
     public double Top => Row * 24;
     public static double Height => 22;

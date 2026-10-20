@@ -635,4 +635,16 @@
   <data name="SettingsServerError" xml:space="preserve">
     <value>できませんでした: {0}</value>
   </data>
+  <data name="OriginOutlookName" xml:space="preserve">
+    <value>Outlook から取り込んだ予定</value>
+  </data>
+  <data name="OriginFeedName" xml:space="preserve">
+    <value>取り込んだ予定</value>
+  </data>
+  <data name="ExternalSourceOutlook" xml:space="preserve">
+    <value>Outlook から取り込んだ予定です（ここでは直せません）。Outlook で直してください。</value>
+  </data>
+  <data name="ExternalSourceFeed" xml:space="preserve">
+    <value>取り込んだ予定です（ここでは直せません）。元のカレンダーで直してください。</value>
+  </data>
 </root>

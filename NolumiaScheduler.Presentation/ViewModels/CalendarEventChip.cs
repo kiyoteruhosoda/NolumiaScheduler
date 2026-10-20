@@ -9,6 +9,12 @@ public sealed class CalendarEventChip(EventOccurrence occ)
     private const int MinutesPerDay = 24 * 60;
 
     public string Title { get; } = occ.Title.Value;
+
+    /// <summary>Where the event came from; imported events carry a mark (task #550).</summary>
+    public EventOrigin Origin { get; } = occ.Origin;
+    public bool HasOriginMark => EventOriginMark.Has(Origin);
+    public string OriginMarkText => EventOriginMark.Text(Origin);
+    public string OriginName => EventOriginMark.Name(Origin);
     public string ToolTipText { get; } =
         occ.StartMinuteOfDay == 0 && occ.DurationMinutes == MinutesPerDay
             ? occ.Title.Value

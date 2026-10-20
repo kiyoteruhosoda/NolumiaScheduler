@@ -36,6 +36,9 @@ public class CalendarEvent
     public ExternalOrigin? ExternalOrigin { get; private set; }
     public bool IsReadOnly => ExternalOrigin != null;
 
+    /// <summary>Where the event came from (marks imported events apart from hand-made ones; task #550).</summary>
+    public EventOrigin Origin => ExternalOrigin?.Kind ?? EventOrigin.Manual;
+
     public VersionNo Version { get; private set; }
     public DateTimeOffset CreatedAt { get; }
     public DateTimeOffset UpdatedAt { get; private set; }

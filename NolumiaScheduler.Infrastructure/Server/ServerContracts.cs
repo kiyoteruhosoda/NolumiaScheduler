@@ -179,4 +179,5 @@ public sealed record ImportedOccurrenceDto(
     int DurationMinutes,
     bool IsAllDay,
     bool IsPrivate = false,
-    AlarmDto? Reminder = null);
+    AlarmDto? Reminder = null,
+    string? Origin = null);
