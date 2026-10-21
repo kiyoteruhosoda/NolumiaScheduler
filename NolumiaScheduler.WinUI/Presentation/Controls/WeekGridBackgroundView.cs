@@ -24,30 +24,10 @@ public partial class WeekGridBackgroundView : UserControl
         DependencyProperty.Register(nameof(IsToday), typeof(bool), typeof(WeekGridBackgroundView),
             new PropertyMetadata(false, (d, _) => ((WeekGridBackgroundView)d).Redraw()));
 
-    public static readonly DependencyProperty IsCurrentWeekProperty =
-        DependencyProperty.Register(nameof(IsCurrentWeek), typeof(bool), typeof(WeekGridBackgroundView),
-            new PropertyMetadata(false, (d, _) => ((WeekGridBackgroundView)d).Redraw()));
-
-    public static readonly DependencyProperty CurrentTimeLineTopProperty =
-        DependencyProperty.Register(nameof(CurrentTimeLineTop), typeof(double), typeof(WeekGridBackgroundView),
-            new PropertyMetadata(0d, (d, _) => ((WeekGridBackgroundView)d).Redraw()));
-
     public bool IsToday
     {
         get => (bool)GetValue(IsTodayProperty);
         set => SetValue(IsTodayProperty, value);
-    }
-
-    public bool IsCurrentWeek
-    {
-        get => (bool)GetValue(IsCurrentWeekProperty);
-        set => SetValue(IsCurrentWeekProperty, value);
-    }
-
-    public double CurrentTimeLineTop
-    {
-        get => (double)GetValue(CurrentTimeLineTopProperty);
-        set => SetValue(CurrentTimeLineTopProperty, value);
     }
 
     public WeekGridBackgroundView()
@@ -104,16 +84,6 @@ public partial class WeekGridBackgroundView : UserControl
             X1 = 0, Y1 = 0, X2 = 0, Y2 = gridHeight,
             Stroke = hourStroke, StrokeThickness = 1.3
         });
-
-        if (IsCurrentWeek)
-        {
-            _canvas.Children.Add(new Line
-            {
-                X1 = 0, Y1 = CurrentTimeLineTop, X2 = width, Y2 = CurrentTimeLineTop,
-                Stroke = new SolidColorBrush(WinColors.GCalCurrentTimeLine),
-                StrokeThickness = 2
-            });
-        }
 
         if (IsToday)
         {
