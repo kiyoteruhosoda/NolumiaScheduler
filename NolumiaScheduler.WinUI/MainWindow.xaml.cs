@@ -48,6 +48,7 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
         MonthNavItem.Content        = AppResources.MonthViewLabel;
         WeekNavItem.Content         = AppResources.WeekViewLabel;
         WeekdaysNavItem.Content     = AppResources.WeekdaysViewLabel;
+        SyncStatusNavItem.Content   = AppResources.SyncStatusTitle;
 
         NavigationService.Instance.Initialize(ContentFrame);
 
@@ -148,8 +149,23 @@ public sealed partial class MainWindow : Window, INotifyPropertyChanged
                 case "Weekdays":
                     ContentFrame.Navigate(typeof(CalendarPage), "Weekdays");
                     break;
+                case "SyncStatus":
+                    OpenSyncStatusWindow();
+                    break;
             }
         }
+    }
+
+    private SyncStatusWindow? _syncStatusWindow;
+
+    private void OpenSyncStatusWindow()
+    {
+        if (_syncStatusWindow is null)
+        {
+            _syncStatusWindow = new SyncStatusWindow(App.Services);
+            _syncStatusWindow.Closed += (_, _) => _syncStatusWindow = null;
+        }
+        _syncStatusWindow.Activate();
     }
 
     private void OnBackRequested(NavigationView sender, NavigationViewBackRequestedEventArgs args)

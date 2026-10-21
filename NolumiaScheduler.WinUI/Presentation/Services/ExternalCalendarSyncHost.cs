@@ -10,14 +10,20 @@ namespace NolumiaScheduler.WinUI.Presentation.Services;
 /// <c>external-calendar.json</c>; server ADR-0054 decision 6). All decisions live in
 /// <see cref="OutlookFeedSender"/>; this host only owns the timers: at startup, every
 /// <see cref="ExternalCalendarConfig.IntervalMinutes"/> and 5 seconds after the file changes.
-/// The events come back through the server copy like any other imported calendar.
+/// The events come back through the server copy like any other imported calendar: after a send the
+/// copy is read again at once, so the calendar does not wait for the next 5-minute read. Each round
+/// is noted in <see cref="SyncActivity"/> for the sync status window.
 /// </summary>
 public sealed class ExternalCalendarSyncHost(
     ExternalCalendarConfig config,
-    OutlookFeedSender sender) : IDisposable
+    OutlookFeedSender sender,
+    SyncActivity activity,
+    ServerRefreshHost? refresh = null) : IDisposable
 {
     private readonly ExternalCalendarConfig _config = config;
     private readonly OutlookFeedSender _sender = sender;
+    private readonly SyncActivity _activity = activity;
+    private readonly ServerRefreshHost? _refresh = refresh;
     private DispatcherQueue? _dispatcher;
     private DispatcherQueueTimer? _timer;
     private DispatcherQueueTimer? _debounce;
@@ -76,6 +82,13 @@ public sealed class ExternalCalendarSyncHost(
         }
     }
 
+    /// <summary>Sends now (the sync status window's button). Does nothing while sending is disabled.</summary>
+    public void SyncNow()
+    {
+        if (_dispatcher is null) return;
+        RunSync("manual");
+    }
+
     private void RunSync(string reason)
     {
         if (Interlocked.Exchange(ref _running, 1) == 1) return;
@@ -85,18 +98,27 @@ public sealed class ExternalCalendarSyncHost(
             try
             {
                 var outcome = await _sender.SendAsync(CancellationToken.None);
-                if (outcome == OutlookSendOutcome.Sent)
+                var sent = outcome == OutlookSendOutcome.Sent;
+                _activity.OutlookSend(reason, sent, outcome.ToString());
+                if (sent)
+                {
                     AppLog.Current.Info(AppLogCategories.ExternalCalendar, $"Outlook feed sent to the server ({reason}).");
+                    if (_refresh is { } refresh) _dispatcher?.TryEnqueue(() => refresh.RefreshNow("outlook sent"));
+                }
                 else
+                {
                     AppLog.Current.Warning(AppLogCategories.ExternalCalendar, $"Outlook feed not sent ({reason}): {outcome}.");
+                }
             }
             catch (ServerException ex)
             {
                 // Not signed in, offline or refused: the next round sends the whole file again.
+                _activity.OutlookSend(reason, false, "Failed", SyncActivity.Describe(ex));
                 AppLog.Current.Warning(AppLogCategories.ExternalCalendar, $"Outlook feed not sent ({reason}).", ex);
             }
             catch (Exception ex)
             {
+                _activity.OutlookSend(reason, false, "Failed", SyncActivity.Describe(ex));
                 AppLog.Current.Error(AppLogCategories.ExternalCalendar, "Sending the Outlook feed failed.", ex);
             }
             finally

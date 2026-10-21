@@ -33,6 +33,15 @@
             </NavigationViewItem>
         </NavigationView.MenuItems>
 
+        <NavigationView.FooterMenuItems>
+            <!-- Opens its own window; the calendar stays the selected page. -->
+            <NavigationViewItem x:Name="SyncStatusNavItem" Tag="SyncStatus" SelectsOnInvoked="False">
+                <NavigationViewItem.Icon>
+                    <FontIcon Glyph="&#xE895;"/>
+                </NavigationViewItem.Icon>
+            </NavigationViewItem>
+        </NavigationView.FooterMenuItems>
+
         <Frame x:Name="ContentFrame" NavigationFailed="OnNavigationFailed"/>
     </NavigationView>
 </Window>

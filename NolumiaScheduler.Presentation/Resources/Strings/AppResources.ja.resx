@@ -653,4 +653,70 @@
   <data name="SettingsUpdateNowButton" xml:space="preserve">
     <value>いま更新して再起動</value>
   </data>
+  <data name="SyncStatusTitle" xml:space="preserve">
+    <value>連携の状況</value>
+  </data>
+  <data name="SyncStatusSendNow" xml:space="preserve">
+    <value>Outlook を今すぐ送る</value>
+  </data>
+  <data name="SyncStatusReadNow" xml:space="preserve">
+    <value>サーバーから今すぐ読む</value>
+  </data>
+  <data name="SyncStatusCopy" xml:space="preserve">
+    <value>コピー</value>
+  </data>
+  <data name="SyncStatusOpenLogFolder" xml:space="preserve">
+    <value>ログのフォルダを開く</value>
+  </data>
+  <data name="SyncStatusProblemsHeader" xml:space="preserve">
+    <value>気になる点</value>
+  </data>
+  <data name="SyncStatusNoProblems" xml:space="preserve">
+    <value>おかしな点は見つかりません。</value>
+  </data>
+  <data name="SyncStatusServerHeader" xml:space="preserve">
+    <value>サーバー</value>
+  </data>
+  <data name="SyncStatusOutlookHeader" xml:space="preserve">
+    <value>Outlook（Power Automate が書くファイル）</value>
+  </data>
+  <data name="SyncStatusTodayHeader" xml:space="preserve">
+    <value>アプリにある今日の Outlook の予定</value>
+  </data>
+  <data name="SyncStatusLogHeader" xml:space="preserve">
+    <value>最近のログ</value>
+  </data>
+  <data name="SyncProblemNotSignedIn" xml:space="preserve">
+    <value>サーバーにログインしていません。送ることも読むこともできません。設定からログインしてください。</value>
+  </data>
+  <data name="SyncProblemNotMovedToServer" xml:space="preserve">
+    <value>この PC の予定をサーバーへ移していないので、アプリはまだ PC に置いた予定を表示しています。</value>
+  </data>
+  <data name="SyncProblemOutlookDisabled" xml:space="preserve">
+    <value>Outlook の予定を送る設定が切れています（external-calendar.json の enabled が false）。</value>
+  </data>
+  <data name="SyncProblemOutlookFileMissing" xml:space="preserve">
+    <value>Power Automate が書くファイルがありません。フローが動いているか、OneDrive がこの PC に同期しているかを確かめてください。</value>
+  </data>
+  <data name="SyncProblemOutlookFileOld" xml:space="preserve">
+    <value>Power Automate のファイルが 1 日以上変わっていません。フローか OneDrive が止まっているかもしれません。</value>
+  </data>
+  <data name="SyncProblemOutlookFileNotSentYet" xml:space="preserve">
+    <value>最後に送った後にファイルが変わりましたが、まだ送り直していません。</value>
+  </data>
+  <data name="SyncProblemOutlookSendFailed" xml:space="preserve">
+    <value>最後に Outlook のファイルを送ろうとして失敗しました。下の Last attempt を見てください。</value>
+  </data>
+  <data name="SyncProblemServerReadFailed" xml:space="preserve">
+    <value>最後にサーバーから読もうとして失敗しました。アプリは前に保存した写しを表示しています。</value>
+  </data>
+  <data name="SyncProblemServerCopyOld" xml:space="preserve">
+    <value>アプリが持っているサーバーの写しが 15 分以上前のものです。</value>
+  </data>
+  <data name="SyncProblemOutlookNotInCopy" xml:space="preserve">
+    <value>サーバーに Outlook のカレンダーはありますが、アプリの写しにはその予定が 1 件もありません。</value>
+  </data>
+  <data name="SyncProblemItemsSkipped" xml:space="preserve">
+    <value>サーバーから来た予定の一部が読めず、表示していません。下の Not readable を見てください。</value>
+  </data>
 </root>

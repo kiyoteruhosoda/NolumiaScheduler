@@ -104,10 +104,13 @@ public sealed class FileAppLog : IAppLog
         return builder.ToString();
     }
 
-    private string FilePathFor(DateTimeOffset now)
+    private string FilePathFor(DateTimeOffset now) => PathFor(LogDirectory, now);
+
+    /// <summary>The file a log in <paramref name="logDirectory"/> writes to on the local day of <paramref name="localNow"/>.</summary>
+    public static string PathFor(string logDirectory, DateTimeOffset localNow)
         => Path.Combine(
-            LogDirectory,
-            FilePrefix + now.ToString(DateStampFormat, CultureInfo.InvariantCulture) + FileExtension);
+            logDirectory,
+            FilePrefix + localNow.ToString(DateStampFormat, CultureInfo.InvariantCulture) + FileExtension);
 
     /// <summary>
     /// Deletes expired log files, at most once per local day. Runs inside the write lock and

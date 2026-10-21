@@ -239,6 +239,30 @@ public static class AppResources
 
     // Test alarm fixture
 
+    // Sync status window
+    public static string SyncStatusTitle => Get(nameof(SyncStatusTitle));
+    public static string SyncStatusSendNow => Get(nameof(SyncStatusSendNow));
+    public static string SyncStatusReadNow => Get(nameof(SyncStatusReadNow));
+    public static string SyncStatusCopy => Get(nameof(SyncStatusCopy));
+    public static string SyncStatusOpenLogFolder => Get(nameof(SyncStatusOpenLogFolder));
+    public static string SyncStatusProblemsHeader => Get(nameof(SyncStatusProblemsHeader));
+    public static string SyncStatusNoProblems => Get(nameof(SyncStatusNoProblems));
+    public static string SyncStatusServerHeader => Get(nameof(SyncStatusServerHeader));
+    public static string SyncStatusOutlookHeader => Get(nameof(SyncStatusOutlookHeader));
+    public static string SyncStatusTodayHeader => Get(nameof(SyncStatusTodayHeader));
+    public static string SyncStatusLogHeader => Get(nameof(SyncStatusLogHeader));
+    public static string SyncProblemNotSignedIn => Get(nameof(SyncProblemNotSignedIn));
+    public static string SyncProblemNotMovedToServer => Get(nameof(SyncProblemNotMovedToServer));
+    public static string SyncProblemOutlookDisabled => Get(nameof(SyncProblemOutlookDisabled));
+    public static string SyncProblemOutlookFileMissing => Get(nameof(SyncProblemOutlookFileMissing));
+    public static string SyncProblemOutlookFileOld => Get(nameof(SyncProblemOutlookFileOld));
+    public static string SyncProblemOutlookFileNotSentYet => Get(nameof(SyncProblemOutlookFileNotSentYet));
+    public static string SyncProblemOutlookSendFailed => Get(nameof(SyncProblemOutlookSendFailed));
+    public static string SyncProblemServerReadFailed => Get(nameof(SyncProblemServerReadFailed));
+    public static string SyncProblemServerCopyOld => Get(nameof(SyncProblemServerCopyOld));
+    public static string SyncProblemOutlookNotInCopy => Get(nameof(SyncProblemOutlookNotInCopy));
+    public static string SyncProblemItemsSkipped => Get(nameof(SyncProblemItemsSkipped));
+
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
 }

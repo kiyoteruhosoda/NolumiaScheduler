@@ -68,6 +68,9 @@ public sealed class ServerCalendarStore
 
     public IReadOnlyList<CalendarEvent> ImportedEvents => _state.Imported;
 
+    /// <summary>Events and imported occurrences of the copy that could not be read, one line each (not shown in the app).</summary>
+    public IReadOnlyList<string> Skipped => _state.Skipped;
+
     /// <summary>The server's copy of an event (by the app's id, including a not-yet-replaced id of a new event).</summary>
     public EventDto? FindDto(string eventId)
     {
@@ -267,7 +270,8 @@ public sealed class ServerCalendarStore
         IReadOnlyDictionary<string, EventDto> Dtos,
         IReadOnlyList<CalendarEvent> Events,
         IReadOnlyList<CalendarEvent> Imported,
-        BusinessCalendar DaysOff);
+        BusinessCalendar DaysOff,
+        IReadOnlyList<string> Skipped);
 
     private void Replace(ServerSnapshot snapshot, bool raise)
     {
@@ -282,6 +286,7 @@ public sealed class ServerCalendarStore
     {
         var dtos = new Dictionary<string, EventDto>();
         var events = new List<CalendarEvent>();
+        var skipped = new List<string>();
         foreach (var dto in snapshot.Events)
         {
             // One unreadable event must not hide the rest of the calendar.
@@ -292,6 +297,7 @@ public sealed class ServerCalendarStore
             }
             catch (Exception ex) when (ex is FormatException or ArgumentException or TimeZoneNotFoundException or DomainException)
             {
+                skipped.Add($"event {dto.Id} \"{dto.Title}\": {ex.GetType().Name}: {ex.Message}");
             }
         }
 
@@ -304,11 +310,12 @@ public sealed class ServerCalendarStore
             }
             catch (Exception ex) when (ex is FormatException or ArgumentException or DomainException)
             {
+                skipped.Add($"imported {dto.Id} \"{dto.Title}\" {dto.Start:O}: {ex.GetType().Name}: {ex.Message}");
             }
         }
 
         return new State(snapshot, dtos, events, imported,
-            ServerDaysOffCalendar.Build(snapshot.Calendars, snapshot.DayOffMarks, _timeZoneId));
+            ServerDaysOffCalendar.Build(snapshot.Calendars, snapshot.DayOffMarks, _timeZoneId), skipped);
     }
 
     private static string Comparable(ServerSnapshot snapshot)

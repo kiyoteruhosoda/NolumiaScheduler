@@ -8,6 +8,7 @@ using NolumiaScheduler.Domain.Repositories;
 using NolumiaScheduler.Domain.ValueObjects;
 using NolumiaScheduler.Infrastructure;
 using NolumiaScheduler.Infrastructure.Server;
+using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.WinUI.Diagnostics;
 using NolumiaScheduler.WinUI.Presentation.Services;
@@ -185,7 +186,7 @@ public sealed partial class SettingsPage : Page
         ServerModeText.Text = marker is null
             ? AppResources.SettingsServerModeLocal
             : string.Format(AppResources.FormatCulture, AppResources.SettingsServerModeServer,
-                server.Settings.BaseUri.Host, marker.MigratedAt.LocalDateTime);
+                server.Settings.BaseUri.Host, DiagnosticTime.Format(marker.MigratedAt, TimeZoneInfo.Local));
         ServerAccountText.Text = !signedIn
             ? AppResources.SettingsServerSignedOut
             : server.SignIn.UserName is { Length: > 0 } name
