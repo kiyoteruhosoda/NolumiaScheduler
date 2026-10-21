@@ -251,7 +251,7 @@ public sealed partial class WeekCalendarView : UserControl
 
     private void ApplyCurrentTimeLine(Rectangle line)
     {
-        line.Visibility = IsCurrentWeek ? Visibility.Visible : Visibility.Collapsed;
+        line.Visibility = IsCurrentWeek ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
         Canvas.SetTop(line, CurrentTimeLineTop - CurrentTimeLineThickness / 2);
     }
 
