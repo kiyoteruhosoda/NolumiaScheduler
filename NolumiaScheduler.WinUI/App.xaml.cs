@@ -380,6 +380,8 @@ public partial class App : Microsoft.UI.Xaml.Application
         // Scheduler server: settings (server.json), sign-in (auth.bin, DPAPI) and the API client.
         var server = new ServerConnection(StorageContext.DefaultDataDirectory, new DpapiSecretProtector());
         services.AddSingleton(server);
+        // What the Outlook send and the server read last did, for the sync status window.
+        services.AddSingleton(new SyncActivity(TimeProvider.System));
         services.AddSingleton(new ServerEventMigrator(server.Api, TimeProvider.System));
         // Updates come through the same server, with the same sign-in (task #551, ADR-0007).
         services.AddSingleton(new AppUpdateHost(server.Api.ReleasesUri, server.SignIn));
