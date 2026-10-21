@@ -238,6 +238,23 @@ public sealed partial class WeekCalendarView : UserControl
     private static IEnumerable<Rectangle> PastTimeShadesIn(Canvas lane) =>
         lane.Children.OfType<Rectangle>().Where(r => ReferenceEquals(r.Tag, PastTimeShadeMarker));
 
+    /// <summary>
+    /// Tags the current-time line, drawn on the lane itself (not the background grid) so it sits
+    /// above the event chips.
+    /// </summary>
+    private static readonly object CurrentTimeLineMarker = new();
+
+    private static IEnumerable<Rectangle> CurrentTimeLinesIn(Canvas lane) =>
+        lane.Children.OfType<Rectangle>().Where(r => ReferenceEquals(r.Tag, CurrentTimeLineMarker));
+
+    private const double CurrentTimeLineThickness = 2;
+
+    private void ApplyCurrentTimeLine(Rectangle line)
+    {
+        line.Visibility = IsCurrentWeek ? Visibility.Visible : Visibility.Collapsed;
+        Canvas.SetTop(line, CurrentTimeLineTop - CurrentTimeLineThickness / 2);
+    }
+
     private void UpdateBackgroundViews()
     {
         foreach (var canvas in WeekBodyGrid.Children.OfType<Canvas>())
@@ -248,8 +265,6 @@ public sealed partial class WeekCalendarView : UserControl
                 .Any(b => b.StartDate.Date <= day.Date.Date && b.EndDate.Date >= day.Date.Date) ?? false;
             foreach (var bg in canvas.Children.OfType<WeekGridBackgroundView>())
             {
-                bg.IsCurrentWeek = IsCurrentWeek;
-                bg.CurrentTimeLineTop = CurrentTimeLineTop;
                 bg.HasAllDayEvents = hasAllDay;
             }
 
@@ -257,6 +272,8 @@ public sealed partial class WeekCalendarView : UserControl
             // clock tick that moves the line rather than only when the week is rebuilt.
             foreach (var shade in PastTimeShadesIn(canvas))
                 shade.Height = day.PastShadeHeight(CurrentTimeLineTop, WeekCanvasHeight);
+            foreach (var line in CurrentTimeLinesIn(canvas))
+                ApplyCurrentTimeLine(line);
         }
     }
 
@@ -413,8 +430,6 @@ public sealed partial class WeekCalendarView : UserControl
                 Source = day,
                 Path = new PropertyPath(nameof(WeekDayColumn.IsToday))
             });
-            bg.IsCurrentWeek = IsCurrentWeek;
-            bg.CurrentTimeLineTop = CurrentTimeLineTop;
             bg.HasAllDayEvents = allDayBlocksForDay;
             Canvas.SetLeft(bg, 0);
             Canvas.SetTop(bg, 0);
@@ -469,6 +484,22 @@ public sealed partial class WeekCalendarView : UserControl
             Canvas.SetZIndex(pastShade, 40);
             lane.Children.Add(pastShade);
             lane.SizeChanged += (_, e) => pastShade.Width = e.NewSize.Width;
+
+            // Current-time line. Above the event chips (0) and the past-time shade (40) so it is
+            // never hidden or dimmed by an event, but below the interaction overlay (50).
+            var nowLine = new Rectangle
+            {
+                Tag = CurrentTimeLineMarker,
+                Width = _weekDayColumnWidth,
+                Height = CurrentTimeLineThickness,
+                Fill = new SolidColorBrush(WinColors.GCalCurrentTimeLine),
+                IsHitTestVisible = false,
+            };
+            Canvas.SetLeft(nowLine, 0);
+            ApplyCurrentTimeLine(nowLine);
+            Canvas.SetZIndex(nowLine, 45);
+            lane.Children.Add(nowLine);
+            lane.SizeChanged += (_, e) => nowLine.Width = e.NewSize.Width;
 
             // Tap on empty slot
             lane.Tapped += OnLaneTapped;
