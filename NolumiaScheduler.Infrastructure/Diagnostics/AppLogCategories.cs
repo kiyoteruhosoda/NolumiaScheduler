@@ -33,4 +33,7 @@ public static class AppLogCategories
 
     /// <summary>External calendar (Outlook) import.</summary>
     public const string ExternalCalendar = "ExternalCalendar";
+
+    /// <summary>Reading the Scheduler server copy: failures with the request and answer, and the recovery.</summary>
+    public const string Server = "Server";
 }

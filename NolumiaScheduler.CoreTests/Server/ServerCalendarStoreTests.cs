@@ -113,6 +113,35 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
+    public void 断られた読み直しは_どの口で何が返ったかを持つ()
+    {
+        // nolumiatask #936: GET /api/calendar/events が 422 を返し続け、ログからはどの口か分からなかった
+        var store = NewStore();
+        _server.On(HttpMethod.Get, "/api/calendar/events", HttpStatusCode.UnprocessableEntity,
+            """{"detail":"the period must be at most 400 days"}""");
+
+        var error = Assert.ThrowsExactly<ServerException>(() => Refresh(store));
+
+        Assert.AreEqual(HttpStatusCode.UnprocessableEntity, error.StatusCode);
+        Assert.AreEqual("GET /api/calendar/events?from=1970-01-01&to=9999-01-01", error.Request);
+        StringAssert.Contains(error.Message, "the period must be at most 400 days");
+        StringAssert.Contains(
+            NolumiaScheduler.Infrastructure.Diagnostics.SyncActivity.Describe(error),
+            "HTTP 422: The Scheduler server refused the request (422: the period must be at most 400 days). [GET /api/calendar/events?from=1970-01-01&to=9999-01-01]");
+    }
+
+    [TestMethod]
+    public void つながらないときも_どの口かを持つ()
+    {
+        var store = NewStore();
+        _server.Offline = true;
+
+        var error = Assert.ThrowsExactly<ServerException>(() => Refresh(store));
+
+        Assert.AreEqual("GET /api/calendars", error.Request);
+    }
+
+    [TestMethod]
     public void 何も変わらない読み直しでは変更を知らせない()
     {
         var store = NewStore();

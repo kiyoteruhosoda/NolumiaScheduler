@@ -259,6 +259,7 @@ public static class AppResources
     public static string SyncProblemOutlookFileNotSentYet => Get(nameof(SyncProblemOutlookFileNotSentYet));
     public static string SyncProblemOutlookSendFailed => Get(nameof(SyncProblemOutlookSendFailed));
     public static string SyncProblemServerReadFailed => Get(nameof(SyncProblemServerReadFailed));
+    public static string SyncProblemServerNeverRead => Get(nameof(SyncProblemServerNeverRead));
     public static string SyncProblemServerCopyOld => Get(nameof(SyncProblemServerCopyOld));
     public static string SyncProblemOutlookNotInCopy => Get(nameof(SyncProblemOutlookNotInCopy));
     public static string SyncProblemItemsSkipped => Get(nameof(SyncProblemItemsSkipped));

@@ -23,6 +23,8 @@ public sealed class SyncActivity(TimeProvider clock)
     private SyncAttempt? _lastSent;
     private SyncAttempt? _lastRead;
     private SyncAttempt? _lastReadOk;
+    private int _readFailures;
+    private DateTimeOffset? _readFailingSince;
 
     /// <summary>The latest attempt to send the Outlook feed, whatever its outcome.</summary>
     public SyncAttempt? LastOutlookSend { get { lock (_gate) return _lastSend; } }
@@ -35,6 +37,12 @@ public sealed class SyncActivity(TimeProvider clock)
 
     /// <summary>The latest round that read the server copy.</summary>
     public SyncAttempt? LastServerReadOk { get { lock (_gate) return _lastReadOk; } }
+
+    /// <summary>How many reads of the server copy have failed in a row (0 after a read that worked).</summary>
+    public int ServerReadFailures { get { lock (_gate) return _readFailures; } }
+
+    /// <summary>When the current run of failed reads began (since the app started); null while reads work.</summary>
+    public DateTimeOffset? ServerReadFailingSince { get { lock (_gate) return _readFailingSince; } }
 
     public void OutlookSend(string reason, bool succeeded, string result, string? error = null)
     {
@@ -52,12 +60,30 @@ public sealed class SyncActivity(TimeProvider clock)
         lock (_gate)
         {
             _lastRead = attempt;
-            if (succeeded) _lastReadOk = attempt;
+            if (succeeded)
+            {
+                _lastReadOk = attempt;
+                _readFailures = 0;
+                _readFailingSince = null;
+            }
+            else
+            {
+                _readFailures++;
+                _readFailingSince ??= attempt.At;
+            }
         }
     }
 
-    /// <summary>One line for an exception: the HTTP status and the server's reason when there is one.</summary>
-    public static string Describe(Exception exception) => exception switch
+    /// <summary>
+    /// One line for an exception: the HTTP status and the server's reason when there is one, then the
+    /// call that failed (<see cref="ServerException.Request"/>) when it is known.
+    /// </summary>
+    public static string Describe(Exception exception)
+        => exception is ServerException { Request: { Length: > 0 } request }
+            ? $"{DescribeOutcome(exception)} [{request}]"
+            : DescribeOutcome(exception);
+
+    private static string DescribeOutcome(Exception exception) => exception switch
     {
         ServerNotSignedInException => "not signed in",
         ServerException { IsUnreachable: true } s =>

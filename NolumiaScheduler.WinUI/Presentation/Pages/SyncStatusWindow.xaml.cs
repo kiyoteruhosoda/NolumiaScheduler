@@ -104,7 +104,7 @@ public sealed partial class SyncStatusWindow : Window
         ClockLabel.Text = DiagnosticTime.Format(status.Now, status.Zone);
         ProblemsLabel.Text = status.Problems.Count == 0
             ? AppResources.SyncStatusNoProblems
-            : string.Join("\n", status.Problems.Select(p => "• " + Describe(p)));
+            : string.Join("\n", status.Problems.Select(p => "• " + Describe(p, status)));
         ServerLabel.Text = ServerText(status);
         OutlookLabel.Text = OutlookText(status);
         TodayLabel.Text = TodayText(status);
@@ -127,7 +127,7 @@ public sealed partial class SyncStatusWindow : Window
             FileAppLog.PathFor(AppDiagnostics.LogDirectory, _clock.GetLocalNow()));
     }
 
-    private static string Describe(SyncProblem problem) => problem switch
+    private static string Describe(SyncProblem problem, SyncStatus status) => problem switch
     {
         SyncProblem.NotSignedIn => AppResources.SyncProblemNotSignedIn,
         SyncProblem.NotMovedToServer => AppResources.SyncProblemNotMovedToServer,
@@ -136,7 +136,10 @@ public sealed partial class SyncStatusWindow : Window
         SyncProblem.OutlookFileOld => AppResources.SyncProblemOutlookFileOld,
         SyncProblem.OutlookFileNotSentYet => AppResources.SyncProblemOutlookFileNotSentYet,
         SyncProblem.OutlookSendFailed => AppResources.SyncProblemOutlookSendFailed,
-        SyncProblem.ServerReadFailed => AppResources.SyncProblemServerReadFailed,
+        SyncProblem.ServerReadFailed => status.FetchedAt is { } fetched
+            ? string.Format(AppResources.FormatCulture, AppResources.SyncProblemServerReadFailed,
+                DiagnosticTime.Format(fetched, status.Zone), status.ServerReadFailures)
+            : string.Format(AppResources.FormatCulture, AppResources.SyncProblemServerNeverRead, status.ServerReadFailures),
         SyncProblem.ServerCopyOld => AppResources.SyncProblemServerCopyOld,
         SyncProblem.OutlookNotInCopy => AppResources.SyncProblemOutlookNotInCopy,
         SyncProblem.ItemsSkipped => AppResources.SyncProblemItemsSkipped,
@@ -154,6 +157,7 @@ public sealed partial class SyncStatusWindow : Window
             $"Moved to server : {(s.MovedAt is { } moved ? Time(s, moved) : "no (events are on this PC)")}",
             $"Copy read at    : {(s.FetchedAt is { } fetched ? Time(s, fetched) : "never")}",
             $"Last read       : {Attempt(s, s.LastServerRead)}",
+            $"Failing reads   : {(s.ServerReadFailures == 0 ? "none" : $"{s.ServerReadFailures} in a row since {Time(s, s.ServerReadFailingSince ?? s.Now)}")}",
             $"Copy holds      : {s.EventCount} events, {s.ImportedCount} imported occurrences",
             $"  from Outlook  : {s.OutlookCount}{(s.OutlookFirst is { } first && s.OutlookLast is { } last ? $" ({Date(s, first)} .. {Date(s, last)})" : "")}",
             $"Not readable    : {s.Skipped.Count}",

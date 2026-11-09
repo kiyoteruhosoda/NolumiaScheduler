@@ -179,11 +179,17 @@ public class SyncStatusTests
             new SchedulerApiClient(new HttpClient(server), new Uri("https://scheduler.example/"), new FixedToken()),
             Path.Combine(_dir, "server-cache.json"), clock, "Asia/Tokyo");
         store.RefreshAsync(CancellationToken.None).GetAwaiter().GetResult();
+        var activity = new SyncActivity(clock);
+        activity.ServerRead("timer", false, "HTTP 422");
 
         var status = SyncStatus.Collect(new SyncStatusSources(
             clock, "scheduler.example", true, null, Now.AddDays(-1), store,
             new ExternalCalendarConfig { Enabled = true, FilePath = Path.Combine(_dir, "none.json") },
-            OutlookCalendarId: 6, new SyncActivity(clock), Path.Combine(_dir, "missing.log")));
+            OutlookCalendarId: 6, activity, Path.Combine(_dir, "missing.log")));
+
+        Assert.AreEqual(1, status.ServerReadFailures);
+        Assert.AreEqual(Now, status.ServerReadFailingSince);
+        CollectionAssert.Contains(status.Problems.ToArray(), SyncProblem.ServerReadFailed);
 
         Assert.AreEqual(4, status.ImportedCount);
         Assert.AreEqual(3, status.OutlookCount);
@@ -234,6 +240,38 @@ public class SyncStatusTests
         Assert.AreEqual("server unreachable: no route",
             SyncActivity.Describe(new ServerException("x", null, null, new HttpRequestException("no route"))));
         Assert.AreEqual("IOException: locked", SyncActivity.Describe(new IOException("locked")));
+    }
+
+    [TestMethod]
+    public void Describe_失敗した口を末尾に添える()
+    {
+        var error = new ServerException("refused", System.Net.HttpStatusCode.UnprocessableEntity)
+        {
+            Request = "GET /api/calendar/events?from=1970-01-01&to=9999-01-01",
+        };
+        Assert.AreEqual("HTTP 422: refused [GET /api/calendar/events?from=1970-01-01&to=9999-01-01]", SyncActivity.Describe(error));
+    }
+
+    [TestMethod]
+    public void SyncActivity_続けて失敗した回数といつからを数え_読めたら戻す()
+    {
+        var clock = new FakeClock(Now);
+        var activity = new SyncActivity(clock);
+        Assert.AreEqual(0, activity.ServerReadFailures);
+        Assert.IsNull(activity.ServerReadFailingSince);
+
+        activity.ServerRead("startup", false, "HTTP 422");
+        clock.Advance(TimeSpan.FromMinutes(5));
+        activity.ServerRead("timer", false, "HTTP 422");
+
+        Assert.AreEqual(2, activity.ServerReadFailures);
+        Assert.AreEqual(Now, activity.ServerReadFailingSince);
+
+        clock.Advance(TimeSpan.FromMinutes(5));
+        activity.ServerRead("timer", true);
+
+        Assert.AreEqual(0, activity.ServerReadFailures);
+        Assert.IsNull(activity.ServerReadFailingSince);
     }
 
     [TestMethod]
