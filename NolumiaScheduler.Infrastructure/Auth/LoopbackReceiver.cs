@@ -10,28 +10,24 @@ namespace NolumiaScheduler.Infrastructure.Auth;
 /// </summary>
 public sealed class LoopbackReceiver : IDisposable
 {
-    private const string DonePage = """
-        <!doctype html><html lang="ja"><head><meta charset="utf-8"><title>NolumiaScheduler</title></head>
-        <body style="font-family: 'Yu Gothic UI', sans-serif; margin: 3em;">
-        <h1 style="font-size: 1.4em;">NolumiaScheduler にログインしました</h1>
-        <p>このタブは閉じてかまいません。</p></body></html>
-        """;
-
     private readonly TcpListener _listener;
     private readonly string _path;
     private readonly TimeSpan _readTimeout;
+    private readonly string _donePage;
 
     /// <param name="redirectUri">戻り先。</param>
     /// <param name="readTimeout">
     /// 1 本の接続で要求が届くまで待つ長さ（既定 5 秒）。ブラウザは先回りで中身の無い接続を開くことがあり、
     /// それを待ち続けると本物の戻りを受けられない。
     /// </param>
-    public LoopbackReceiver(Uri redirectUri, TimeSpan? readTimeout = null)
+    /// <param name="page">ログインが戻ったときにブラウザへ出す画面（アプリの言語。既定は英語）。</param>
+    public LoopbackReceiver(Uri redirectUri, TimeSpan? readTimeout = null, SignInPage? page = null)
     {
         _readTimeout = readTimeout ?? TimeSpan.FromSeconds(5);
+        _donePage = (page ?? SignInPage.English).ToHtml();
         if (!IPAddress.TryParse(redirectUri.Host, out var address) || !IPAddress.IsLoopback(address))
         {
-            throw new ArgumentException("戻り先は 127.0.0.1 でなければなりません。", nameof(redirectUri));
+            throw new ArgumentException("The redirect URI must be a loopback address (127.0.0.1).", nameof(redirectUri));
         }
 
         _path = redirectUri.AbsolutePath;
@@ -80,7 +76,7 @@ public sealed class LoopbackReceiver : IDisposable
                 continue;
             }
 
-            await WriteAsync(stream, "200 OK", DonePage, cancellationToken).ConfigureAwait(false);
+            await WriteAsync(stream, "200 OK", _donePage, cancellationToken).ConfigureAwait(false);
             return ParseQuery(target.Value.Query);
         }
     }

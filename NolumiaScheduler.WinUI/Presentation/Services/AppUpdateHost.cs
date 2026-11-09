@@ -123,7 +123,7 @@ public sealed class AppUpdateHost(Uri releasesUri, SignInSession signIn) : IDisp
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
             // A refused token (expired sign-in) has already signed out in SignInSession.
-            LastError = ex.Message;
+            LastError = SignInTexts.Describe(ex);
             AppLog.Current.Warning(AppLogCategories.Lifecycle, $"Could not check for updates ({reason}).", ex);
             return signIn.IsSignedIn ? UpdateCheckOutcome.Failed : UpdateCheckOutcome.SignedOut;
         }

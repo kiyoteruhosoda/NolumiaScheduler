@@ -748,4 +748,40 @@ Log file: {3}</value>
   <data name="SyncProblemItemsSkipped" xml:space="preserve">
     <value>Some events from the server could not be read and are not shown. See Not readable below.</value>
   </data>
+  <data name="SignInPageHeading" xml:space="preserve">
+    <value>Signed in to NolumiaScheduler</value>
+  </data>
+  <data name="SignInPageBody" xml:space="preserve">
+    <value>You can close this tab and go back to NolumiaScheduler.</value>
+  </data>
+  <data name="SignInFailureWithDetail" xml:space="preserve">
+    <value>{0} ({1})</value>
+  </data>
+  <data name="SignInFailureLoopbackUnavailable" xml:space="preserve">
+    <value>Could not open the address the sign-in comes back to. Check that no other app is using it.</value>
+  </data>
+  <data name="SignInFailureRefused" xml:space="preserve">
+    <value>The sign-in did not go through.</value>
+  </data>
+  <data name="SignInFailureMismatch" xml:space="preserve">
+    <value>The sign-in answer does not match the one this PC started. Sign in again.</value>
+  </data>
+  <data name="SignInFailureNoCode" xml:space="preserve">
+    <value>The sign-in answer had no code. Sign in again.</value>
+  </data>
+  <data name="SignInFailureNoRefreshToken" xml:space="preserve">
+    <value>The sign-in did not give this PC a way to stay signed in. Sign in again.</value>
+  </data>
+  <data name="SignInFailureIdTokenUnreadable" xml:space="preserve">
+    <value>The sign-in answer could not be read. Sign in again.</value>
+  </data>
+  <data name="SignInFailureServiceUnreachable" xml:space="preserve">
+    <value>Could not reach the sign-in service. Check the network and try again.</value>
+  </data>
+  <data name="SignInFailureServiceRefused" xml:space="preserve">
+    <value>The sign-in service refused the sign-in.</value>
+  </data>
+  <data name="SignInFailureServiceReplyUnreadable" xml:space="preserve">
+    <value>The sign-in service answer could not be read. Try again.</value>
+  </data>
 </root>

@@ -43,7 +43,8 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
     /// ログインする。ブラウザでログイン画面を開き、戻り先（127.0.0.1）で結果を受ける。
     /// </summary>
     /// <param name="openBrowser">ログイン画面を既定のブラウザで開く。</param>
-    public async Task SignInAsync(Action<Uri> openBrowser, CancellationToken cancellationToken)
+    /// <param name="page">戻ったときにブラウザへ出す画面（アプリの言語。省くと英語）。</param>
+    public async Task SignInAsync(Action<Uri> openBrowser, CancellationToken cancellationToken, SignInPage? page = null)
     {
         var state = Pkce.RandomToken();
         var nonce = Pkce.RandomToken();
@@ -53,11 +54,12 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
         LoopbackReceiver receiver;
         try
         {
-            receiver = new LoopbackReceiver(_oidc.Settings.RedirectUri);
+            receiver = new LoopbackReceiver(_oidc.Settings.RedirectUri, page: page);
         }
         catch (System.Net.Sockets.SocketException exception)
         {
-            throw new SignInException($"ログインの戻り先（{_oidc.Settings.RedirectUri.Authority}）を開けません。ほかのアプリが使っていないか確かめてください。", exception);
+            var authority = _oidc.Settings.RedirectUri.Authority;
+            throw new SignInException(SignInFailure.LoopbackUnavailable, $"Could not listen on the sign-in return address ({authority}). Another app may be using it.", authority, exception);
         }
 
         using (receiver)
@@ -70,17 +72,18 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
         if (callback.TryGetValue("error", out var error))
         {
             callback.TryGetValue("error_description", out var description);
-            throw new SignInException($"ログインできませんでした（{error}{(string.IsNullOrEmpty(description) ? "" : $": {description}")}）。");
+            var detail = $"{error}{(string.IsNullOrEmpty(description) ? "" : $": {description}")}";
+            throw new SignInException(SignInFailure.Refused, $"The sign-in was refused ({detail}).", detail);
         }
 
         if (!callback.TryGetValue("state", out var returnedState) || returnedState != state)
         {
-            throw new SignInException("ログインの応答が、この PC から始めたものと合いません（state）。もう一度ログインしてください。");
+            throw new SignInException(SignInFailure.Mismatch, "The sign-in answer does not match the one this PC started (state). Sign in again.", "state");
         }
 
         if (!callback.TryGetValue("code", out var code) || code.Length == 0)
         {
-            throw new SignInException("ログインの応答にコードがありません。");
+            throw new SignInException(SignInFailure.NoCode, "The sign-in answer has no code.");
         }
 
         TokenResponse tokens;
@@ -90,13 +93,13 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
         }
         catch (TokenEndpointException exception)
         {
-            throw new SignInException(exception.Message, exception);
+            throw new SignInException(exception.Failure, exception.Message, exception.Detail, exception);
         }
 
         var userName = CheckIdToken(tokens.IdToken, nonce);
         if (string.IsNullOrEmpty(tokens.RefreshToken))
         {
-            throw new SignInException("更新トークンが返りませんでした（offline_access）。");
+            throw new SignInException(SignInFailure.NoRefreshToken, "No refresh token came back (offline_access).");
         }
 
         Accept(tokens);
@@ -188,7 +191,7 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
         var claims = OidcClient.ReadIdTokenClaims(idToken);
         if (!claims.TryGetValue("nonce", out var returned) || returned.GetString() != nonce)
         {
-            throw new SignInException("ログインの応答が、この PC から始めたものと合いません（nonce）。もう一度ログインしてください。");
+            throw new SignInException(SignInFailure.Mismatch, "The sign-in answer does not match the one this PC started (nonce). Sign in again.", "nonce");
         }
 
         foreach (var name in new[] { "preferred_username", "name", "email" })

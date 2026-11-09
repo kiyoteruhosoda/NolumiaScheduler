@@ -263,13 +263,14 @@ public sealed partial class SettingsPage : Page
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             await updates.SignIn.SignInAsync(
                 uri => Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true }),
-                timeout.Token);
+                timeout.Token,
+                SignInTexts.Page());
             // Signing in starts a check on its own (AppUpdateHost).
             UpdateResultText.Text = "";
         }
         catch (Exception ex)
         {
-            UpdateResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, ex.Message);
+            UpdateResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, SignInTexts.Describe(ex));
         }
         finally
         {
@@ -319,12 +320,13 @@ public sealed partial class SettingsPage : Page
             using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
             await server.SignIn.SignInAsync(
                 uri => Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true }),
-                timeout.Token);
+                timeout.Token,
+                SignInTexts.Page());
             ServerResultText.Text = "";
         }
         catch (Exception ex)
         {
-            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, ex.Message);
+            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, SignInTexts.Describe(ex));
         }
         finally
         {
@@ -354,7 +356,7 @@ public sealed partial class SettingsPage : Page
         }
         catch (Exception ex)
         {
-            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, ex.Message);
+            ServerResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, SignInTexts.Describe(ex));
         }
         finally
         {
