@@ -16,13 +16,14 @@
 
 1. **組む手順はこのリポジトリに置かない。** GitHub の別の公開の置き場 `kiyoteruhosoda/nolumiascheduler-build` が
    15 分ごとに写しの main の先頭を見て、新しければ Windows で画面ごと組み、Velopack で Setup.exe と更新の一式を作って
-   その置き場の Release に置く。失敗は ntfy に知らせる。
+   その置き場の Release に置く。失敗は家の側の係が notice の監視へ知らせる（2026-11-09 に ntfy から移した。task #940）。
    - forge の main → 写し（push mirror）→ 次の確認、で組まれる。このリポジトリには何も足さない
    - ⚠ **起動は家の側から**（2026-10-20 追記）: GitHub の定期の起動が作ってから 2 時間以上一度も来なかったので、
      持ち主の選択で、forge の取り込み係が 15 分ごとに写しの main を見て、まだ組まれていなければ GitHub のビルドを
      workflow_dispatch で押す。鍵はその置き場の Actions だけを許す fine-grained トークン（受け取りの窓口 `scheduler-gh-dispatch`）
    - 家の置き場（Garage）は外から書けないので、GitHub は書く鍵を持たない。家の側（forge `kyon/nolumiascheduler-build`）が
-     Release を取りに来て `nolumiascheduler` の入れ物へ上げ、share.nolumia.com から入れられるようにする
+     Release を取りに来て share.nolumia.com へ上げる（⚠ 2026-11-09 から置き場は ADR-0009 の決定 4。入れ物
+     `nolumiascheduler` は消した。task #941）
    - どちらも使い捨て。消えても配布が止まるだけで、このリポジトリと動いているアプリには響かない（作り直せばよい）
 2. **入れるのと更新は Velopack。** `Program.Main` の最初で `VelopackApp.Build().Run()` を呼ぶ。
    - 版は `1.0.<commit の数>`（WinTrack と同じ）。設定の画面の「バージョン」に出る
@@ -30,6 +31,7 @@
      データは `%LocalAppData%\NolumiaScheduler`（docs/storage.md）なので、同じ名前にすると予定と設定が消える
 3. **更新はサーバーの中継から取る（WinTrack と同じ形）。** Velopack は `https://<サーバー>/api/windows/releases/` を
    assay のトークン付きで読む（`SchedulerApiClient.ReleasesUri`）。サーバーは配布の入れ物を読む鍵だけを持って中継する。
+   ⚠ ADR-0009 で置き換えた（blobshare から取る）。サーバーの中継は 2026-11-09 に外した（サーバー ADR-0074・task #941）
    - 6 時間ごとと起動時に確かめ、新しい版は裏で落として**アプリを終えたときに入れ替える**（常駐して何日も動くため）。
      設定の画面に「いま更新して再起動」も出す
    - ログインしていない・サーバーにつながらない・Velopack で入れていない（開発中）ときは黙って確かめない
