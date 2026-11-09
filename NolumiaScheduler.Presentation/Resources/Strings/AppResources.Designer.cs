@@ -273,6 +273,20 @@ public static class AppResources
     public static string SyncProblemOutlookNotInCopy => Get(nameof(SyncProblemOutlookNotInCopy));
     public static string SyncProblemItemsSkipped => Get(nameof(SyncProblemItemsSkipped));
 
+    // Sign-in (page shown in the browser and failures; task: SSO wording follows the app language)
+    public static string SignInPageHeading => Get(nameof(SignInPageHeading));
+    public static string SignInPageBody => Get(nameof(SignInPageBody));
+    public static string SignInFailureWithDetail => Get(nameof(SignInFailureWithDetail));
+    public static string SignInFailureLoopbackUnavailable => Get(nameof(SignInFailureLoopbackUnavailable));
+    public static string SignInFailureRefused => Get(nameof(SignInFailureRefused));
+    public static string SignInFailureMismatch => Get(nameof(SignInFailureMismatch));
+    public static string SignInFailureNoCode => Get(nameof(SignInFailureNoCode));
+    public static string SignInFailureNoRefreshToken => Get(nameof(SignInFailureNoRefreshToken));
+    public static string SignInFailureIdTokenUnreadable => Get(nameof(SignInFailureIdTokenUnreadable));
+    public static string SignInFailureServiceUnreachable => Get(nameof(SignInFailureServiceUnreachable));
+    public static string SignInFailureServiceRefused => Get(nameof(SignInFailureServiceRefused));
+    public static string SignInFailureServiceReplyUnreadable => Get(nameof(SignInFailureServiceReplyUnreadable));
+
     private static string Get(string name) =>
         ResourceManager.GetString(name, Culture) ?? name;
 }

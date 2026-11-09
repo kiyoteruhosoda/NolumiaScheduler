@@ -5,8 +5,18 @@ using System.Text.Json.Serialization;
 
 namespace NolumiaScheduler.Infrastructure.Auth;
 
-/// <summary>ログインが失敗した（画面にそのまま出す）。</summary>
-public sealed class SignInException(string message, Exception? innerException = null) : Exception(message, innerException);
+/// <summary>
+/// ログインが失敗した。画面は <see cref="Failure"/> をアプリの言語で出し、<see cref="Detail"/> を添える
+/// （<see cref="Exception.Message"/> は記録用の英語）。
+/// </summary>
+public sealed class SignInException(SignInFailure failure, string message, string? detail = null, Exception? innerException = null)
+    : Exception(message, innerException)
+{
+    public SignInFailure Failure { get; } = failure;
+
+    /// <summary>失敗ごとに変わる部分（番号・エラーの名前など）。無ければ null。</summary>
+    public string? Detail { get; } = detail;
+}
 
 /// <summary>トークンの口の応答。</summary>
 public sealed record TokenResponse(
@@ -73,18 +83,18 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
         var parts = idToken.Split('.');
         if (parts.Length < 2)
         {
-            throw new SignInException("ID トークンの形が読めません。");
+            throw new SignInException(SignInFailure.IdTokenUnreadable, "The ID token is not in a readable shape.");
         }
 
         try
         {
             var json = Encoding.UTF8.GetString(Pkce.FromBase64Url(parts[1]));
             return JsonSerializer.Deserialize<Dictionary<string, JsonElement>>(json)
-                ?? throw new SignInException("ID トークンが空です。");
+                ?? throw new SignInException(SignInFailure.IdTokenUnreadable, "The ID token is empty.");
         }
         catch (Exception exception) when (exception is FormatException or JsonException)
         {
-            throw new SignInException("ID トークンが読めません。", exception);
+            throw new SignInException(SignInFailure.IdTokenUnreadable, "The ID token could not be read.", null, exception);
         }
     }
 
@@ -98,12 +108,12 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
         try
         {
             _discovery = await http.GetFromJsonAsync<DiscoveryDocument>(settings.DiscoveryUri, cancellationToken).ConfigureAwait(false)
-                ?? throw new SignInException("ログインの設定（discovery）が空でした。");
+                ?? throw new SignInException(SignInFailure.ServiceUnreachable, "The sign-in service (assay) sent empty settings (discovery).");
             return _discovery;
         }
         catch (Exception exception) when (exception is HttpRequestException or JsonException)
         {
-            throw new SignInException("ログインの仕組み（assay）につながりません。", exception);
+            throw new SignInException(SignInFailure.ServiceUnreachable, "Could not reach the sign-in service (assay).", null, exception);
         }
     }
 
@@ -118,7 +128,7 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
         }
         catch (HttpRequestException exception)
         {
-            throw new TokenEndpointException(null, "ログインの仕組み（assay）につながりません。", exception);
+            throw new TokenEndpointException(null, SignInFailure.ServiceUnreachable, "Could not reach the sign-in service (assay).", null, exception);
         }
 
         using (response)
@@ -126,17 +136,18 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
             if (!response.IsSuccessStatusCode)
             {
                 var error = await ReadErrorAsync(response, cancellationToken).ConfigureAwait(false);
-                throw new TokenEndpointException(error, $"ログインの仕組みに断られました（{(int)response.StatusCode} {error}）。");
+                var detail = $"{(int)response.StatusCode} {error}".Trim();
+                throw new TokenEndpointException(error, SignInFailure.ServiceRefused, $"The sign-in service refused ({detail}).", detail);
             }
 
             try
             {
                 return await response.Content.ReadFromJsonAsync<TokenResponse>(cancellationToken).ConfigureAwait(false)
-                    ?? throw new TokenEndpointException(null, "トークンの応答が空でした。");
+                    ?? throw new TokenEndpointException(null, SignInFailure.ServiceReplyUnreadable, "The token response was empty.");
             }
             catch (JsonException exception)
             {
-                throw new TokenEndpointException(null, "トークンの応答が読めませんでした。", exception);
+                throw new TokenEndpointException(null, SignInFailure.ServiceReplyUnreadable, "The token response could not be read.", null, exception);
             }
         }
     }
@@ -156,10 +167,16 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
 }
 
 /// <summary>トークンの口が失敗した。<see cref="Error"/> は OAuth の <c>error</c>（<c>invalid_grant</c> など）。</summary>
-public sealed class TokenEndpointException(string? error, string message, Exception? innerException = null)
+public sealed class TokenEndpointException(
+    string? error, SignInFailure failure, string message, string? detail = null, Exception? innerException = null)
     : Exception(message, innerException)
 {
     public string? Error { get; } = error;
+
+    /// <summary>画面に出すときの種類（<see cref="SignInException.Failure"/> と同じ）。</summary>
+    public SignInFailure Failure { get; } = failure;
+
+    public string? Detail { get; } = detail;
 
     /// <summary>更新トークンが使えない（取り消された・切れた）。もう一度ログインが要る。</summary>
     public bool NeedsSignIn => Error is "invalid_grant" or "invalid_client" or "unauthorized_client";

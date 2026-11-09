@@ -749,4 +749,40 @@
   <data name="SyncProblemItemsSkipped" xml:space="preserve">
     <value>サーバーから来た予定の一部が読めず、表示していません。下の Not readable を見てください。</value>
   </data>
+  <data name="SignInPageHeading" xml:space="preserve">
+    <value>NolumiaScheduler にログインしました</value>
+  </data>
+  <data name="SignInPageBody" xml:space="preserve">
+    <value>このタブは閉じてかまいません。</value>
+  </data>
+  <data name="SignInFailureWithDetail" xml:space="preserve">
+    <value>{0}（{1}）</value>
+  </data>
+  <data name="SignInFailureLoopbackUnavailable" xml:space="preserve">
+    <value>ログインの戻り先を開けません。ほかのアプリが使っていないか確かめてください。</value>
+  </data>
+  <data name="SignInFailureRefused" xml:space="preserve">
+    <value>ログインできませんでした。</value>
+  </data>
+  <data name="SignInFailureMismatch" xml:space="preserve">
+    <value>ログインの応答が、この PC から始めたものと合いません。もう一度ログインしてください。</value>
+  </data>
+  <data name="SignInFailureNoCode" xml:space="preserve">
+    <value>ログインの応答にコードがありません。もう一度ログインしてください。</value>
+  </data>
+  <data name="SignInFailureNoRefreshToken" xml:space="preserve">
+    <value>ログインを続けるための情報が返りませんでした。もう一度ログインしてください。</value>
+  </data>
+  <data name="SignInFailureIdTokenUnreadable" xml:space="preserve">
+    <value>ログインの応答が読めませんでした。もう一度ログインしてください。</value>
+  </data>
+  <data name="SignInFailureServiceUnreachable" xml:space="preserve">
+    <value>ログインの仕組みにつながりません。ネットワークを確かめて、もう一度試してください。</value>
+  </data>
+  <data name="SignInFailureServiceRefused" xml:space="preserve">
+    <value>ログインの仕組みに断られました。</value>
+  </data>
+  <data name="SignInFailureServiceReplyUnreadable" xml:space="preserve">
+    <value>ログインの仕組みの応答が読めませんでした。もう一度試してください。</value>
+  </data>
 </root>
