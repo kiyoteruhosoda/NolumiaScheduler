@@ -37,24 +37,46 @@ public sealed class ServerRefreshHost(ServerCalendarStore store, SyncActivity ac
         _running = true;
         try
         {
+            var failuresBefore = _activity.ServerReadFailures;
+            var failingSince = _activity.ServerReadFailingSince;
             await _store.RefreshAsync(CancellationToken.None);
             _activity.ServerRead(reason, true);
+            if (failuresBefore > 0)
+            {
+                AppLog.Current.Info(AppLogCategories.Server,
+                    $"Read the Scheduler server again ({reason}) after {failuresBefore} failed read(s) in a row since {Utc(failingSince)}.");
+            }
         }
         catch (ServerException ex)
         {
-            _activity.ServerRead(reason, false, SyncActivity.Describe(ex));
-            AppLog.Current.Warning(AppLogCategories.Lifecycle, $"Could not read the Scheduler server ({reason}); showing the local copy.", ex);
+            Failed(reason, ex, error: false);
         }
         catch (Exception ex)
         {
-            _activity.ServerRead(reason, false, SyncActivity.Describe(ex));
-            AppLog.Current.Error(AppLogCategories.Lifecycle, $"Reading the Scheduler server failed ({reason}).", ex);
+            Failed(reason, ex, error: true);
         }
         finally
         {
             _running = false;
         }
     }
+
+    // Says which call failed and what came back (SyncActivity.Describe), how long the copy has not been
+    // refreshed and how many rounds in a row have failed, so one log line explains a stale calendar.
+    private void Failed(string reason, Exception ex, bool error)
+    {
+        var description = SyncActivity.Describe(ex);
+        _activity.ServerRead(reason, false, description);
+        var message =
+            $"Could not read the Scheduler server ({reason}); showing the local copy. {description}. " +
+            $"Failed {_activity.ServerReadFailures} time(s) in a row since {Utc(_activity.ServerReadFailingSince)}; " +
+            $"last successful read {Utc(_store.FetchedAt)}.";
+        if (error) AppLog.Current.Error(AppLogCategories.Server, message, ex);
+        else AppLog.Current.Warning(AppLogCategories.Server, message, ex);
+    }
+
+    private static string Utc(DateTimeOffset? moment)
+        => moment is { } m ? m.UtcDateTime.ToString("yyyy-MM-dd HH:mm:ss 'UTC'", System.Globalization.CultureInfo.InvariantCulture) : "never";
 
     public void Dispose() => _timer?.Stop();
 }

@@ -17,6 +17,7 @@ internal static class AppEventIds
     public const uint Alarm = 1050;
     public const uint Tray = 1060;
     public const uint Storage = 1070;
+    public const uint Server = 1080;
     public const uint Other = 1900;
 
     public static uint For(string category) => category switch
@@ -29,6 +30,7 @@ internal static class AppEventIds
         AppLogCategories.Alarm => Alarm,
         AppLogCategories.Tray => Tray,
         AppLogCategories.Storage => Storage,
+        AppLogCategories.Server => Server,
         _ => Other,
     };
 }

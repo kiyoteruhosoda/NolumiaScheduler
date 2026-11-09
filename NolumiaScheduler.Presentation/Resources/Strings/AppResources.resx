@@ -734,7 +734,10 @@ Log file: {3}</value>
     <value>The last attempt to send the Outlook file failed. See Last attempt below.</value>
   </data>
   <data name="SyncProblemServerReadFailed" xml:space="preserve">
-    <value>The last read from the server failed. The app is showing the copy it saved earlier.</value>
+    <value>The app cannot read the server: {1} failed attempt(s) in a row; the last successful read was {0}. The app is showing the copy it saved then. The latest error is under "Last read" below.</value>
+  </data>
+  <data name="SyncProblemServerNeverRead" xml:space="preserve">
+    <value>The app has never read the server: {0} failed attempt(s) in a row. The latest error is under "Last read" below.</value>
   </data>
   <data name="SyncProblemServerCopyOld" xml:space="preserve">
     <value>The app's copy of the server is more than 15 minutes old.</value>

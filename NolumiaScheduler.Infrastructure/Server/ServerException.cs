@@ -12,6 +12,12 @@ public class ServerException(string message, HttpStatusCode? statusCode = null, 
     public HttpStatusCode? StatusCode { get; } = statusCode;
     public string? Reason { get; } = reason;
 
+    /// <summary>
+    /// The call that failed, as <c>GET /api/calendar/events?from=…&amp;to=…</c> (method, path and query;
+    /// never the body or the token). Set by <see cref="SchedulerApiClient"/>; null when not known.
+    /// </summary>
+    public string? Request { get; internal set; }
+
     /// <summary>The server could not be reached (offline, DNS, timeout) — the local copy stays in use.</summary>
     public bool IsUnreachable => StatusCode is null;
 
