@@ -648,7 +648,34 @@
     <value>取り込んだ予定です（ここでは直せません）。元のカレンダーで直してください。</value>
   </data>
   <data name="SettingsUpdateReady" xml:space="preserve">
-    <value>新しい版 {0} を用意しました。アプリを終了すると入れ替わります。</value>
+    <value>新しいバージョン {0} を用意しました。アプリを終了すると入れ替わります。</value>
+  </data>
+  <data name="SettingsUpdateLabel" xml:space="preserve">
+    <value>アプリの更新</value>
+  </data>
+  <data name="SettingsUpdateSignedOut" xml:space="preserve">
+    <value>新しいバージョンを自動で受け取るには、ログインしてください。Scheduler のサーバーとは別のログインです（share.nolumia.com と同じアカウントで入れます）。</value>
+  </data>
+  <data name="SettingsUpdateSignedIn" xml:space="preserve">
+    <value>{0} でログインしています。新しいバージョンは自動で取り込み、アプリを終了したときに入れ替えます。</value>
+  </data>
+  <data name="SettingsUpdateSignedInNoName" xml:space="preserve">
+    <value>ログインしています。新しいバージョンは自動で取り込み、アプリを終了したときに入れ替えます。</value>
+  </data>
+  <data name="SettingsUpdateNotInstalled" xml:space="preserve">
+    <value>このアプリはインストーラで入れたものではないため、自動では更新されません。share.nolumia.com の Setup か Portable の zip から入れ直してください。</value>
+  </data>
+  <data name="SettingsUpdateCheckButton" xml:space="preserve">
+    <value>今すぐ確認</value>
+  </data>
+  <data name="SettingsUpdateChecking" xml:space="preserve">
+    <value>確認しています…</value>
+  </data>
+  <data name="SettingsUpdateUpToDate" xml:space="preserve">
+    <value>最新のバージョンです。</value>
+  </data>
+  <data name="SettingsUpdateFailed" xml:space="preserve">
+    <value>確認できませんでした: {0}</value>
   </data>
   <data name="SettingsUpdateNowButton" xml:space="preserve">
     <value>いま更新して再起動</value>

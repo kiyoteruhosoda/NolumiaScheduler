@@ -647,7 +647,34 @@ Log file: {3}</value>
     <value>Imported event (it cannot be changed here). Change it in the original calendar.</value>
   </data>
   <data name="SettingsUpdateReady" xml:space="preserve">
-    <value>Version {0} is ready. It is swapped in when you quit the app.</value>
+    <value>Version {0} is ready. It is installed when you quit the app.</value>
+  </data>
+  <data name="SettingsUpdateLabel" xml:space="preserve">
+    <value>Updates</value>
+  </data>
+  <data name="SettingsUpdateSignedOut" xml:space="preserve">
+    <value>Sign in to receive new versions automatically. This sign-in is separate from the Scheduler server; use the same account as share.nolumia.com.</value>
+  </data>
+  <data name="SettingsUpdateSignedIn" xml:space="preserve">
+    <value>Signed in as {0}. New versions are downloaded automatically and installed when you quit the app.</value>
+  </data>
+  <data name="SettingsUpdateSignedInNoName" xml:space="preserve">
+    <value>Signed in. New versions are downloaded automatically and installed when you quit the app.</value>
+  </data>
+  <data name="SettingsUpdateNotInstalled" xml:space="preserve">
+    <value>This copy was not installed with the installer, so it is not updated automatically. Install it again from the Setup or Portable zip on share.nolumia.com.</value>
+  </data>
+  <data name="SettingsUpdateCheckButton" xml:space="preserve">
+    <value>Check for updates</value>
+  </data>
+  <data name="SettingsUpdateChecking" xml:space="preserve">
+    <value>Checking…</value>
+  </data>
+  <data name="SettingsUpdateUpToDate" xml:space="preserve">
+    <value>You have the latest version.</value>
+  </data>
+  <data name="SettingsUpdateFailed" xml:space="preserve">
+    <value>Could not check: {0}</value>
   </data>
   <data name="SettingsUpdateNowButton" xml:space="preserve">
     <value>Update now and restart</value>

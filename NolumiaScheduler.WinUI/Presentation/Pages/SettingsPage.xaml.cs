@@ -61,6 +61,7 @@ public sealed partial class SettingsPage : Page
         ApplyDiagnosticsTexts();
         ApplyServerTexts();
         ApplyUpdateTexts();
+        App.Services.GetRequiredService<AppUpdateHost>().ReadyChanged += OnUpdateReady;
 
         // Theme picker
         ThemePicker.Items.Clear();
@@ -96,6 +97,14 @@ public sealed partial class SettingsPage : Page
 
         _suppress = false;
     }
+
+    protected override void OnNavigatedFrom(NavigationEventArgs e)
+    {
+        base.OnNavigatedFrom(e);
+        App.Services.GetRequiredService<AppUpdateHost>().ReadyChanged -= OnUpdateReady;
+    }
+
+    private void OnUpdateReady() => DispatcherQueue.TryEnqueue(ApplyUpdateTexts);
 
     private void OnThemeSelectionChanged(object sender, SelectionChangedEventArgs e)
     {
@@ -203,10 +212,32 @@ public sealed partial class SettingsPage : Page
             : Microsoft.UI.Xaml.Visibility.Collapsed;
     }
 
-    /// <summary>Offers the downloaded version, if any (task #551). It is applied on exit anyway.</summary>
+    /// <summary>
+    /// Fills in the updates section (task #937, ADR-0009): the update sign-in, which is separate from
+    /// the server's, and the downloaded version, if any. It is installed on quit anyway.
+    /// </summary>
     private void ApplyUpdateTexts()
     {
-        var ready = App.Services.GetRequiredService<AppUpdateHost>().ReadyVersion;
+        var updates = App.Services.GetRequiredService<AppUpdateHost>();
+        var installed = AppUpdateHost.IsInstalled;
+        var signedIn = updates.SignIn.IsSignedIn;
+
+        UpdateLabelText.Text = AppResources.SettingsUpdateLabel;
+        UpdateAccountText.Text = !installed
+            ? AppResources.SettingsUpdateNotInstalled
+            : !signedIn
+                ? AppResources.SettingsUpdateSignedOut
+                : updates.SignIn.UserName is { Length: > 0 } name
+                    ? string.Format(AppResources.FormatCulture, AppResources.SettingsUpdateSignedIn, name)
+                    : AppResources.SettingsUpdateSignedInNoName;
+        UpdateSignInButton.Content = AppResources.SettingsSignInButton;
+        UpdateSignOutButton.Content = AppResources.SettingsSignOutButton;
+        UpdateCheckButton.Content = AppResources.SettingsUpdateCheckButton;
+        UpdateSignInButton.Visibility = installed && !signedIn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        UpdateSignOutButton.Visibility = signedIn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+        UpdateCheckButton.Visibility = installed && signedIn ? Microsoft.UI.Xaml.Visibility.Visible : Microsoft.UI.Xaml.Visibility.Collapsed;
+
+        var ready = updates.ReadyVersion;
         var visibility = ready is null ? Microsoft.UI.Xaml.Visibility.Collapsed : Microsoft.UI.Xaml.Visibility.Visible;
         UpdateReadyText.Text = ready is null
             ? ""
@@ -220,6 +251,62 @@ public sealed partial class SettingsPage : Page
     {
         UpdateNowButton.IsEnabled = false;
         App.Services.GetRequiredService<AppUpdateHost>().ApplyAndRestart();
+    }
+
+    private async void OnUpdateSignInClick(object sender, RoutedEventArgs e)
+    {
+        var updates = App.Services.GetRequiredService<AppUpdateHost>();
+        UpdateSignInButton.IsEnabled = false;
+        UpdateResultText.Text = AppResources.SettingsSigningIn;
+        try
+        {
+            using var timeout = new CancellationTokenSource(TimeSpan.FromMinutes(5));
+            await updates.SignIn.SignInAsync(
+                uri => Process.Start(new ProcessStartInfo { FileName = uri.AbsoluteUri, UseShellExecute = true }),
+                timeout.Token);
+            // Signing in starts a check on its own (AppUpdateHost).
+            UpdateResultText.Text = "";
+        }
+        catch (Exception ex)
+        {
+            UpdateResultText.Text = string.Format(AppResources.FormatCulture, AppResources.SettingsServerError, ex.Message);
+        }
+        finally
+        {
+            UpdateSignInButton.IsEnabled = true;
+            ApplyUpdateTexts();
+        }
+    }
+
+    private void OnUpdateSignOutClick(object sender, RoutedEventArgs e)
+    {
+        App.Services.GetRequiredService<AppUpdateHost>().SignIn.SignOut();
+        UpdateResultText.Text = "";
+        ApplyUpdateTexts();
+    }
+
+    private async void OnUpdateCheckClick(object sender, RoutedEventArgs e)
+    {
+        var updates = App.Services.GetRequiredService<AppUpdateHost>();
+        UpdateCheckButton.IsEnabled = false;
+        UpdateResultText.Text = AppResources.SettingsUpdateChecking;
+        try
+        {
+            var outcome = await updates.CheckNowAsync();
+            UpdateResultText.Text = outcome switch
+            {
+                UpdateCheckOutcome.NotInstalled => AppResources.SettingsUpdateNotInstalled,
+                UpdateCheckOutcome.SignedOut => AppResources.SettingsUpdateSignedOut,
+                UpdateCheckOutcome.UpToDate => AppResources.SettingsUpdateUpToDate,
+                UpdateCheckOutcome.Ready => "",
+                _ => string.Format(AppResources.FormatCulture, AppResources.SettingsUpdateFailed, updates.LastError),
+            };
+        }
+        finally
+        {
+            UpdateCheckButton.IsEnabled = true;
+            ApplyUpdateTexts();
+        }
     }
 
     private async void OnSignInClick(object sender, RoutedEventArgs e)

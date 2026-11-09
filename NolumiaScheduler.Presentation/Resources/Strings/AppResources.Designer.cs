@@ -224,6 +224,15 @@ public static class AppResources
     public static string SettingsServerSignedIn => Get(nameof(SettingsServerSignedIn));
     public static string SettingsUpdateReady => Get(nameof(SettingsUpdateReady));
     public static string SettingsUpdateNowButton => Get(nameof(SettingsUpdateNowButton));
+    public static string SettingsUpdateLabel => Get(nameof(SettingsUpdateLabel));
+    public static string SettingsUpdateSignedOut => Get(nameof(SettingsUpdateSignedOut));
+    public static string SettingsUpdateSignedIn => Get(nameof(SettingsUpdateSignedIn));
+    public static string SettingsUpdateSignedInNoName => Get(nameof(SettingsUpdateSignedInNoName));
+    public static string SettingsUpdateNotInstalled => Get(nameof(SettingsUpdateNotInstalled));
+    public static string SettingsUpdateCheckButton => Get(nameof(SettingsUpdateCheckButton));
+    public static string SettingsUpdateChecking => Get(nameof(SettingsUpdateChecking));
+    public static string SettingsUpdateUpToDate => Get(nameof(SettingsUpdateUpToDate));
+    public static string SettingsUpdateFailed => Get(nameof(SettingsUpdateFailed));
     public static string SettingsServerSignedInNoName => Get(nameof(SettingsServerSignedInNoName));
     public static string SettingsServerSignedOut => Get(nameof(SettingsServerSignedOut));
     public static string SettingsServerModeServer => Get(nameof(SettingsServerModeServer));
