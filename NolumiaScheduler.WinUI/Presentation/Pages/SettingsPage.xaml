@@ -73,7 +73,31 @@
                 <TextBlock x:Name="VersionValueText"
                            IsTextSelectionEnabled="True"
                            Style="{StaticResource BodyTextBlockStyle}"/>
-                <!-- Shown only when a newer version has been downloaded (task #551) -->
+            </StackPanel>
+
+            <!-- Updates: a sign-in of their own (blobshare), check now, and the downloaded version (task #937, ADR-0009) -->
+            <StackPanel Spacing="8">
+                <TextBlock x:Name="UpdateLabelText"
+                           Style="{StaticResource BodyStrongTextBlockStyle}"/>
+                <TextBlock x:Name="UpdateAccountText"
+                           TextWrapping="Wrap"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                    <Button x:Name="UpdateSignInButton"
+                            MinHeight="48"
+                            Click="OnUpdateSignInClick"/>
+                    <Button x:Name="UpdateSignOutButton"
+                            MinHeight="48"
+                            Click="OnUpdateSignOutClick"/>
+                    <Button x:Name="UpdateCheckButton"
+                            MinHeight="48"
+                            Click="OnUpdateCheckClick"/>
+                </StackPanel>
+                <TextBlock x:Name="UpdateResultText"
+                           TextWrapping="Wrap"
+                           IsTextSelectionEnabled="True"
+                           Style="{StaticResource BodyTextBlockStyle}"/>
+                <!-- Shown only when a newer version has been downloaded -->
                 <TextBlock x:Name="UpdateReadyText"
                            Visibility="Collapsed"
                            TextWrapping="Wrap"

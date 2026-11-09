@@ -6,20 +6,36 @@ using Velopack.Sources;
 
 namespace NolumiaScheduler.WinUI.Presentation.Services;
 
-/// <summary>
-/// Keeps the installed app up to date (task #551, ADR-0007), the same shape as WinTrack: Velopack
-/// reads the release index and packages through the Scheduler server's relay
-/// (<see cref="Infrastructure.Server.SchedulerApiClient.ReleasesUri"/>, Bearer from the assay sign-in).
-/// A newer version is downloaded in the background and swapped in when the app exits; the settings
-/// page can also apply it right away. A build not installed by Velopack, a signed-out user or an
-/// unreachable server all just mean "could not check" and stay quiet.
-/// </summary>
-public sealed class AppUpdateHost(Uri releasesUri, IAccessTokenSource tokens) : IDisposable
+/// <summary>What a check that the user asked for found (an automatic check stays quiet).</summary>
+public enum UpdateCheckOutcome
 {
+    /// <summary>Not installed by Velopack (a dev build run in place): nothing to update.</summary>
+    NotInstalled,
+    /// <summary>Nobody has signed in for updates.</summary>
+    SignedOut,
+    UpToDate,
+    /// <summary>A newer version is downloaded and waits for the app to quit (<see cref="AppUpdateHost.ReadyVersion"/>).</summary>
+    Ready,
+    Failed,
+}
+
+/// <summary>
+/// Keeps the installed app up to date the way RustEdit does (task #937, ADR-0009): Velopack reads the
+/// release index and packages from blobshare's relay with the update sign-in's Bearer token
+/// (<see cref="Infrastructure.Updates.UpdateConnection"/>). Checks run a minute after start, every six
+/// hours, right after signing in, and on request. A newer version downloads on its own, as in Chrome,
+/// and waits; quitting the app installs it, so the next start is the new version (if the app dies
+/// instead, Velopack installs it on the next start). The settings page can also apply it right away.
+/// Automatic checks keep quiet when they cannot check; a requested one always answers.
+/// </summary>
+public sealed class AppUpdateHost(Uri releasesUri, SignInSession signIn) : IDisposable
+{
+    public static readonly TimeSpan FirstCheckAfter = TimeSpan.FromMinutes(1);
     public static readonly TimeSpan Interval = TimeSpan.FromHours(6);
 
+    private readonly SemaphoreSlim _checking = new(1, 1);
+    private DispatcherQueue? _dispatcher;
     private DispatcherQueueTimer? _timer;
-    private bool _running;
     private UpdateInfo? _ready;
 
     /// <summary>Raised on the UI thread when a new version has been downloaded.</summary>
@@ -27,6 +43,12 @@ public sealed class AppUpdateHost(Uri releasesUri, IAccessTokenSource tokens) : 
 
     /// <summary>The downloaded version waiting to be swapped in, or null.</summary>
     public string? ReadyVersion => _ready?.TargetFullRelease.Version.ToString();
+
+    /// <summary>The sign-in that unlocks the relay (shown and driven by the settings page).</summary>
+    public SignInSession SignIn => signIn;
+
+    /// <summary>The last error of a check, for the settings page.</summary>
+    public string? LastError { get; private set; }
 
     /// <summary>True when this process was installed by Velopack (false for a dev build run in place).</summary>
     public static bool IsInstalled
@@ -47,39 +69,86 @@ public sealed class AppUpdateHost(Uri releasesUri, IAccessTokenSource tokens) : 
     public void Start()
     {
         if (!IsInstalled) return;
-        _timer = DispatcherQueue.GetForCurrentThread().CreateTimer();
-        _timer.Interval = Interval;
-        _timer.Tick += (_, _) => _ = CheckAsync("timer");
+        _dispatcher = DispatcherQueue.GetForCurrentThread();
+        _timer = _dispatcher.CreateTimer();
+        _timer.Interval = FirstCheckAfter;
+        _timer.Tick += (_, _) =>
+        {
+            _timer.Interval = Interval;
+            _ = CheckAsync("timer");
+        };
         _timer.Start();
-        _ = CheckAsync("startup");
+        signIn.Changed += OnSignInChanged;
     }
 
-    private async Task CheckAsync(string reason)
+    /// <summary>A check the user asked for. Always answers.</summary>
+    public Task<UpdateCheckOutcome> CheckNowAsync() => CheckAsync("asked");
+
+    private void OnSignInChanged(object? sender, EventArgs e)
     {
-        if (_running) return;
-        _running = true;
+        if (signIn.IsSignedIn)
+        {
+            _dispatcher?.TryEnqueue(() => _ = CheckAsync("signed in"));
+        }
+    }
+
+    private async Task<UpdateCheckOutcome> CheckAsync(string reason)
+    {
+        if (!IsInstalled) return UpdateCheckOutcome.NotInstalled;
+        if (!signIn.IsSignedIn) return UpdateCheckOutcome.SignedOut;
+
+        await _checking.WaitAsync();
         try
         {
             var manager = Manager();
             var found = await manager.CheckForUpdatesAsync();
-            if (found is null || found.TargetFullRelease.Version == _ready?.TargetFullRelease.Version) return;
+            if (found is null)
+            {
+                LastError = null;
+                return _ready is null ? UpdateCheckOutcome.UpToDate : UpdateCheckOutcome.Ready;
+            }
 
-            await manager.DownloadUpdatesAsync(found);
-            // The app stays resident in the tray for days, so the swap waits for this process to
-            // exit; the next start runs the new version. No restart: quitting means quitting.
-            manager.WaitExitThenApplyUpdates(found.TargetFullRelease, silent: true, restart: false);
-            _ready = found;
-            AppLog.Current.Info(AppLogCategories.Lifecycle,
-                $"Update {ReadyVersion} downloaded ({reason}); it is applied when the app exits.");
-            ReadyChanged?.Invoke();
+            if (found.TargetFullRelease.Version != _ready?.TargetFullRelease.Version)
+            {
+                await manager.DownloadUpdatesAsync(found);
+                _ready = found;
+                AppLog.Current.Info(AppLogCategories.Lifecycle,
+                    $"Update {ReadyVersion} downloaded ({reason}); it is installed when the app quits.");
+                ReadyChanged?.Invoke();
+            }
+
+            LastError = null;
+            return UpdateCheckOutcome.Ready;
         }
         catch (Exception ex) when (ex is not OutOfMemoryException)
         {
+            // A refused token (expired sign-in) has already signed out in SignInSession.
+            LastError = ex.Message;
             AppLog.Current.Warning(AppLogCategories.Lifecycle, $"Could not check for updates ({reason}).", ex);
+            return signIn.IsSignedIn ? UpdateCheckOutcome.Failed : UpdateCheckOutcome.SignedOut;
         }
         finally
         {
-            _running = false;
+            _checking.Release();
+        }
+    }
+
+    /// <summary>
+    /// Called while the app quits: hands the downloaded version to Velopack, which waits for this
+    /// process to end and swaps it in without starting it (quitting means quitting).
+    /// </summary>
+    public void ApplyOnExit()
+    {
+        if (_ready is null) return;
+        try
+        {
+            Manager().WaitExitThenApplyUpdates(_ready.TargetFullRelease, silent: true, restart: false);
+            AppLog.Current.Info(AppLogCategories.Lifecycle, $"Update {ReadyVersion} is installed after exit.");
+        }
+        catch (Exception ex) when (ex is not OutOfMemoryException)
+        {
+            // Velopack also installs a downloaded version on the next start.
+            AppLog.Current.Warning(AppLogCategories.Lifecycle, "Could not hand the update over on exit.", ex);
         }
     }
 
@@ -90,12 +159,16 @@ public sealed class AppUpdateHost(Uri releasesUri, IAccessTokenSource tokens) : 
         Manager().ApplyUpdatesAndRestart(_ready.TargetFullRelease);
     }
 
-    public void Dispose() => _timer?.Stop();
+    public void Dispose()
+    {
+        _timer?.Stop();
+        signIn.Changed -= OnSignInChanged;
+    }
 
     private UpdateManager Manager() =>
-        new(new SimpleWebSource(releasesUri, new BearerFileDownloader(tokens)));
+        new(new SimpleWebSource(releasesUri, new BearerFileDownloader(signIn)));
 
-    /// <summary>Adds the assay access token to every request Velopack makes to the relay.</summary>
+    /// <summary>Adds the update sign-in's access token to every request Velopack makes to the relay.</summary>
     private sealed class BearerFileDownloader(IAccessTokenSource tokens) : HttpClientFileDownloader
     {
         public override async Task DownloadFile(

@@ -13,6 +13,7 @@ using NolumiaScheduler.Infrastructure.Diagnostics;
 using NolumiaScheduler.Infrastructure.ExternalCalendars;
 using NolumiaScheduler.Infrastructure.Seeding;
 using NolumiaScheduler.Infrastructure.Server;
+using NolumiaScheduler.Infrastructure.Updates;
 using NolumiaScheduler.Presentation.Resources.Strings;
 using NolumiaScheduler.Presentation.Services;
 using NolumiaScheduler.Presentation.ViewModels;
@@ -340,6 +341,11 @@ public partial class App : Microsoft.UI.Xaml.Application
         Services.GetRequiredService<ExternalCalendarSyncHost>().Dispose();
         Services.GetService<ServerRefreshHost>()?.Dispose();
 
+        // A downloaded version is installed once this process has gone (task #937, ADR-0009).
+        var updates = Services.GetRequiredService<AppUpdateHost>();
+        updates.Dispose();
+        updates.ApplyOnExit();
+
         _healthMonitor?.Dispose();
         _healthMonitor = null;
         if (_systemStateWatcher is not null)
@@ -383,8 +389,10 @@ public partial class App : Microsoft.UI.Xaml.Application
         // What the Outlook send and the server read last did, for the sync status window.
         services.AddSingleton(new SyncActivity(TimeProvider.System));
         services.AddSingleton(new ServerEventMigrator(server.Api, TimeProvider.System));
-        // Updates come through the same server, with the same sign-in (task #551, ADR-0007).
-        services.AddSingleton(new AppUpdateHost(server.Api.ReleasesUri, server.SignIn));
+        // Updates come from blobshare with a sign-in of their own, as in RustEdit (task #937, ADR-0009).
+        var updates = new UpdateConnection(StorageContext.DefaultDataDirectory, new DpapiSecretProtector());
+        services.AddSingleton(updates);
+        services.AddSingleton(new AppUpdateHost(UpdateConnection.ReleasesUri, updates.SignIn));
         RegisterRepositories(services, storage, backend, server);
 
         // Application services
