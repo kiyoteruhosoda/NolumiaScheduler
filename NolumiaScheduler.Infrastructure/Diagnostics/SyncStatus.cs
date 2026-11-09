@@ -90,7 +90,13 @@ public sealed record SyncStatus(
 
     private const int RecentLogRecords = 40;
 
-    private static readonly string[] LogCategories = [AppLogCategories.ExternalCalendar];
+    private static readonly string[] LogCategories = [AppLogCategories.ExternalCalendar, AppLogCategories.Server];
+
+    /// <summary>Reads of the server copy that failed in a row (0 while reads work).</summary>
+    public int ServerReadFailures { get; init; }
+
+    /// <summary>When the current run of failed reads began (since the app started); null while reads work.</summary>
+    public DateTimeOffset? ServerReadFailingSince { get; init; }
 
     public IReadOnlyList<SyncProblem> Problems => Diagnose(this);
 
@@ -123,7 +129,11 @@ public sealed record SyncStatus(
             file.Exists, file.WrittenAt, file.Size,
             sources.Activity.LastOutlookSend, sources.Activity.LastOutlookSent,
             sources.Activity.LastServerRead, sources.Activity.LastServerReadOk,
-            AppLogTail.Read(sources.LogFile, LogCategories, RecentLogRecords));
+            AppLogTail.Read(sources.LogFile, LogCategories, RecentLogRecords))
+        {
+            ServerReadFailures = sources.Activity.ServerReadFailures,
+            ServerReadFailingSince = sources.Activity.ServerReadFailingSince,
+        };
     }
 
     /// <summary>The problems in the order a person should look at them (the first one usually explains the rest).</summary>

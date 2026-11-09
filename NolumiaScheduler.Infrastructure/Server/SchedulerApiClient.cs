@@ -101,6 +101,10 @@ public sealed class SchedulerApiClient
 
     // ── Plumbing ───────────────────────────────────────────────────────────
 
+    /// <summary>Method, path and query of a call, for logs (no body, no headers).</summary>
+    internal static string Describe(HttpRequestMessage request)
+        => $"{request.Method} {request.RequestUri?.PathAndQuery}";
+
     private static string Day(DateOnly day) => day.ToString("yyyy-MM-dd", CultureInfo.InvariantCulture);
 
     private Uri Url(string path) => new(BaseUri, path);
@@ -127,11 +131,17 @@ public sealed class SchedulerApiClient
         try
         {
             return await response.Content.ReadFromJsonAsync<T>(ServerJson.Options, ct).ConfigureAwait(false)
-                ?? throw new ServerException("The Scheduler server sent an empty response.", response.StatusCode);
+                ?? throw new ServerException("The Scheduler server sent an empty response.", response.StatusCode)
+                {
+                    Request = response.RequestMessage is { } m ? Describe(m) : null,
+                };
         }
         catch (JsonException ex)
         {
-            throw new ServerException("The Scheduler server's response could not be read.", response.StatusCode, null, ex);
+            throw new ServerException("The Scheduler server's response could not be read.", response.StatusCode, null, ex)
+            {
+                Request = response.RequestMessage is { } m ? Describe(m) : null,
+            };
         }
     }
 
@@ -143,6 +153,7 @@ public sealed class SchedulerApiClient
                 ?? throw new ServerNotSignedInException();
 
             using var request = createRequest();
+            var call = Describe(request);
             request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", token);
             HttpResponseMessage response;
             try
@@ -151,11 +162,11 @@ public sealed class SchedulerApiClient
             }
             catch (HttpRequestException ex)
             {
-                throw new ServerException("Could not reach the Scheduler server.", null, null, ex);
+                throw new ServerException("Could not reach the Scheduler server.", null, null, ex) { Request = call };
             }
             catch (TaskCanceledException ex) when (!ct.IsCancellationRequested)
             {
-                throw new ServerException("The Scheduler server did not answer in time.", null, null, ex);
+                throw new ServerException("The Scheduler server did not answer in time.", null, null, ex) { Request = call };
             }
 
             if (response.StatusCode == HttpStatusCode.Unauthorized)
@@ -163,7 +174,7 @@ public sealed class SchedulerApiClient
                 response.Dispose();
                 _tokens.Invalidate(token);
                 if (attempt == 0) continue;
-                throw new ServerNotSignedInException();
+                throw new ServerNotSignedInException { Request = call };
             }
 
             if (!response.IsSuccessStatusCode)
@@ -172,7 +183,7 @@ public sealed class SchedulerApiClient
                 var (reason, detail) = await ReadErrorAsync(response, ct).ConfigureAwait(false);
                 response.Dispose();
                 var suffix = detail is null ? "" : $": {detail}";
-                throw new ServerException($"The Scheduler server refused the request ({(int)status}{suffix}).", status, reason);
+                throw new ServerException($"The Scheduler server refused the request ({(int)status}{suffix}).", status, reason) { Request = call };
             }
 
             return response;

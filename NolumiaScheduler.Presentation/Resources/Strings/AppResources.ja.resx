@@ -708,7 +708,10 @@
     <value>最後に Outlook のファイルを送ろうとして失敗しました。下の Last attempt を見てください。</value>
   </data>
   <data name="SyncProblemServerReadFailed" xml:space="preserve">
-    <value>最後にサーバーから読もうとして失敗しました。アプリは前に保存した写しを表示しています。</value>
+    <value>サーバーを読めていません（最後に読めたのは {0}・{1} 回続けて失敗）。アプリはその時に保存した写しを表示しています。失敗の中身は下の「Last read」にあります。</value>
+  </data>
+  <data name="SyncProblemServerNeverRead" xml:space="preserve">
+    <value>サーバーを一度も読めていません（{0} 回続けて失敗）。失敗の中身は下の「Last read」にあります。</value>
   </data>
   <data name="SyncProblemServerCopyOld" xml:space="preserve">
     <value>アプリが持っているサーバーの写しが 15 分以上前のものです。</value>
