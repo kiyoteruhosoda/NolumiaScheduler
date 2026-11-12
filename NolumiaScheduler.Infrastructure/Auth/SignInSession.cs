@@ -5,12 +5,12 @@ using NolumiaScheduler.Infrastructure.Server;
 namespace NolumiaScheduler.Infrastructure.Auth;
 
 /// <summary>
-/// Scheduler のサーバーへ付けるトークンを持つ（サーバーの ADR-0054 決定 7。WinTrack の同名のものを写した）。
-/// 更新トークンは <see cref="ISecretProtector"/> で暗号化してファイルに置き、アクセストークン（300 秒）はメモリにだけ持つ。
+/// Holds the tokens attached to requests to the Scheduler server (server ADR-0054 decision 7; copied from the class of the same name in WinTrack).
+/// The refresh token is encrypted with <see cref="ISecretProtector"/> and stored in a file; the access token (300 seconds) is kept only in memory.
 /// </summary>
 public sealed class SignInSession : IAccessTokenSource, IDisposable
 {
-    /// <summary>切れる少し前に取り直す。</summary>
+    /// <summary>Refresh a little before expiry.</summary>
     private static readonly TimeSpan Margin = TimeSpan.FromSeconds(30);
 
     private readonly OidcClient _oidc;
@@ -31,19 +31,19 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
         UserName = stored?.UserName;
     }
 
-    /// <summary>ログインしている人の名前（ID トークンの preferred_username など）。ログインしていなければ null。</summary>
+    /// <summary>Name of the signed-in user (preferred_username etc. from the ID token). Null when not signed in.</summary>
     public string? UserName { get; private set; }
 
     public bool IsSignedIn => File.Exists(_file);
 
-    /// <summary>ログインの状態が変わった（入った・出た・切れた）。</summary>
+    /// <summary>The sign-in state changed (signed in, signed out, or expired).</summary>
     public event EventHandler? Changed;
 
     /// <summary>
-    /// ログインする。ブラウザでログイン画面を開き、戻り先（127.0.0.1）で結果を受ける。
+    /// Signs in. Opens the sign-in page in a browser and receives the result at the redirect URI (127.0.0.1).
     /// </summary>
-    /// <param name="openBrowser">ログイン画面を既定のブラウザで開く。</param>
-    /// <param name="page">戻ったときにブラウザへ出す画面（アプリの言語。省くと英語）。</param>
+    /// <param name="openBrowser">Opens the sign-in page in the default browser.</param>
+    /// <param name="page">Page shown in the browser on return (in the app language; English if omitted).</param>
     public async Task SignInAsync(Action<Uri> openBrowser, CancellationToken cancellationToken, SignInPage? page = null)
     {
         var state = Pkce.RandomToken();
@@ -147,7 +147,7 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
                 Accept(tokens);
                 if (!string.IsNullOrEmpty(tokens.RefreshToken) && tokens.RefreshToken != stored.RefreshToken)
                 {
-                    // 更新トークンが回された。新しいほうを残す。
+                    // The refresh token was rotated. Keep the new one.
                     Save(stored with { RefreshToken = tokens.RefreshToken });
                 }
 
@@ -155,13 +155,13 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
             }
             catch (TokenEndpointException exception) when (exception.NeedsSignIn)
             {
-                // 取り消された・切れた。もう一度ログインしてもらう。
+                // Revoked or expired. Ask the user to sign in again.
                 SignOut();
                 return null;
             }
             catch (TokenEndpointException exception)
             {
-                // つながらないだけ。ログインは残す。
+                // Just unreachable. Keep the sign-in.
                 throw new ServerException(exception.Message, null, null, exception);
             }
         }
@@ -225,7 +225,7 @@ public sealed class SignInSession : IAccessTokenSource, IDisposable
         }
         catch (Exception exception) when (exception is JsonException or IOException or System.Security.Cryptography.CryptographicException)
         {
-            // 別の利用者・別の PC で暗号化されたものなど。読めなければログインし直してもらう。
+            // E.g. encrypted by another user or on another PC. If unreadable, ask the user to sign in again.
             return null;
         }
     }

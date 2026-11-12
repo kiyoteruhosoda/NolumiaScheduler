@@ -1113,7 +1113,7 @@ public sealed partial class WeekCalendarView : UserControl
             flyout.Items.Add(openLocation);
         }
 
-        // 右クリック位置に表示
+        // Show at the right-click position
         flyout.ShowAt(b, e.GetPosition(b));
     }
     

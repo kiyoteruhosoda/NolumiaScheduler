@@ -32,19 +32,19 @@ public class ImportedEventOriginTests
     [TestMethod]
     [DataRow("OUTLOOK", EventOrigin.Outlook)]
     [DataRow("FEED", EventOrigin.Feed)]
-    [DataRow(null, EventOrigin.Outlook, DisplayName = "origin を返さないサーバーは Outlook とみなす")]
-    public void 取り込んだ回の出どころが画面に渡る回まで届く(string? origin, EventOrigin expected)
+    [DataRow(null, EventOrigin.Outlook, DisplayName = "A server that returns no origin is treated as Outlook")]
+    public void ImportedOccurrenceOrigin_ReachesDisplayedOccurrence(string? origin, EventOrigin expected)
     {
         var ev = ServerEventMapper.ToDomain(Imported(origin), "Asia/Tokyo");
 
         Assert.IsTrue(ev.IsReadOnly);
         Assert.AreEqual(expected, ev.Origin);
         Assert.AreEqual(expected, Displayed(ev, Tokyo).Origin);
-        Assert.AreEqual(expected, Displayed(ev, NewYork).Origin, "別のタイムゾーンへ直しても出どころは残る");
+        Assert.AreEqual(expected, Displayed(ev, NewYork).Origin, "The origin survives conversion to another time zone");
     }
 
     [TestMethod]
-    public void 手で作った予定は印の無い出どころ()
+    public void ManuallyCreatedEvent_HasUnmarkedOrigin()
     {
         var ev = ServerEventMapper.ToDomain(ServerEvents.Single(42), new BusinessCalendarId(ServerDaysOffCalendar.Id));
 
@@ -54,13 +54,13 @@ public class ImportedEventOriginTests
     }
 
     [TestMethod]
-    public void 前のアプリのOutlookの取り込みはOutlookのまま()
+    public void PreviousAppOutlookImport_StaysOutlook()
     {
         Assert.AreEqual(EventOrigin.Outlook, new ExternalOrigin("outlook", "AAMkAD-1", null).Kind);
     }
 
     [TestMethod]
-    public void 取り込みの出どころは手で作ったものにできない()
+    public void ImportOrigin_CannotBeManual()
     {
         Assert.ThrowsExactly<DomainException>(() => new ExternalOrigin("x", "k", null, EventOrigin.Manual));
     }

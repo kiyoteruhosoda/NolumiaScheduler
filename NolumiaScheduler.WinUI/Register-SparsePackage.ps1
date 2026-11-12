@@ -1,31 +1,30 @@
 ﻿#Requires -Version 5.1
 <#
 .SYNOPSIS
-	NolumiaScheduler のスパースパッケージを自己署名証明書でビルド・署名・登録します。
-	登録後はタスクマネージャー「詳細」タブの「パッケージ名」列に NolumiaScheduler が表示されます。
+	Builds, signs (with a self-signed certificate) and registers the NolumiaScheduler sparse package.
+	After registration, NolumiaScheduler appears in the "Package name" column of the Task Manager "Details" tab.
 
 .DESCRIPTION
-	アプリは WindowsPackageType=None（アンパッケージ）で動いているため、
-	タスクマネージャーの「パッケージ名」列が空白になります。
-	スパースパッケージ（manifest のみの軽量 .appx）を使うことで、MSIX フル移行なしに
-	パッケージ ID を付与できます。
+	The app runs as WindowsPackageType=None (unpackaged), so the "Package name" column
+	in Task Manager is empty. A sparse package (a lightweight manifest-only .appx) gives it
+	a package identity without a full move to MSIX.
 
-	前提条件:
-	- Windows SDK の MakeAppx.exe と SignTool.exe が PATH にある、
-	  またはスクリプトが自動検索します（HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots）。
-	- 管理者権限は不要ですが、証明書を「信頼されたルート証明機関」へ追加する
-	  ステップだけは昇格が必要です（初回のみ）。
+	Prerequisites:
+	- MakeAppx.exe and SignTool.exe from the Windows SDK are on PATH,
+	  or the script finds them (HKLM:\SOFTWARE\Microsoft\Windows Kits\Installed Roots).
+	- Admin rights are not needed, except for the step that adds the certificate to
+	  "Trusted Root Certification Authorities" (first run only).
 
 .PARAMETER ExeDir
-	NolumiaScheduler.WinUI.exe が置かれたフォルダのパス。
-	省略すると最終更新の NolumiaScheduler.WinUI.exe を自動検出します。
+	Path of the folder containing NolumiaScheduler.WinUI.exe.
+	If omitted, the most recently written NolumiaScheduler.WinUI.exe is detected automatically.
 
 .EXAMPLE
-	# デバッグビルドを対象に登録
+	# Register the Debug build
 	.\Register-SparsePackage.ps1
 
 .EXAMPLE
-	# リリースビルドを対象に登録
+	# Register the Release build
 	.\Register-SparsePackage.ps1 -ExeDir "bin\x64\Release\net10.0-windows10.0.22621.0"
 #>
 [CmdletBinding()]
@@ -37,7 +36,7 @@ Set-StrictMode -Version Latest
 $ErrorActionPreference = 'Stop'
 
 # ---------------------------------------------------------------------------
-# 0. パス解決
+# 0. Resolve paths
 # ---------------------------------------------------------------------------
 $scriptDir = $PSScriptRoot
 
@@ -46,16 +45,16 @@ if (-not $ExeDir) {
 		Sort-Object LastWriteTime -Descending
 	if ($candidates) {
 		$ExeDir = $candidates[0].DirectoryName
-		Write-Host "EXE を自動検出しました: $ExeDir"
+		Write-Host "Detected the EXE automatically: $ExeDir"
 	} else {
-		Write-Error 'NolumiaScheduler.WinUI.exe が見つかりません。-ExeDir で明示してください。'
+		Write-Error 'NolumiaScheduler.WinUI.exe was not found. Specify it with -ExeDir.'
 	}
 }
 
 $ExeDir = (Resolve-Path $ExeDir).Path
 
 # ---------------------------------------------------------------------------
-# 1. Windows SDK ツールを検索
+# 1. Find the Windows SDK tools
 # ---------------------------------------------------------------------------
 function Find-SdkTool {
 	param([string] $ToolName)
@@ -67,7 +66,7 @@ function Find-SdkTool {
 		-ErrorAction SilentlyContinue).'KitsRoot10'
 
 	if (-not $kitsRoot) {
-		Write-Error "$ToolName が見つかりません。Windows SDK をインストールしてください。"
+		Write-Error "$ToolName was not found. Install the Windows SDK."
 		return
 	}
 
@@ -77,7 +76,7 @@ function Find-SdkTool {
 		Select-Object -First 1
 
 	if (-not $tool) {
-		Write-Error "$ToolName が Windows SDK 内に見つかりません。"
+		Write-Error "$ToolName was not found in the Windows SDK."
 		return
 	}
 
@@ -90,14 +89,14 @@ Write-Host "MakeAppx : $makeAppx"
 Write-Host "SignTool  : $signTool"
 
 # ---------------------------------------------------------------------------
-# 2. 作業ディレクトリ
+# 2. Working directory
 # ---------------------------------------------------------------------------
 $workDir = Join-Path $env:TEMP 'NolumiaScheduler_SparsePackage'
 Remove-Item $workDir -Recurse -Force -ErrorAction SilentlyContinue
 New-Item $workDir -ItemType Directory | Out-Null
 
 # ---------------------------------------------------------------------------
-# 3. スパースパッケージ用 manifest を生成
+# 3. Generate the manifest for the sparse package
 # ---------------------------------------------------------------------------
 $srcManifest = Join-Path $scriptDir 'Package.appxmanifest'
 $dstManifest = Join-Path $workDir 'AppxManifest.xml'
@@ -105,18 +104,18 @@ $dstManifest = Join-Path $workDir 'AppxManifest.xml'
 [xml] $xml = Get-Content $srcManifest -Encoding UTF8
 $xml.Package.Identity.Version = '1.0.0.0'
 $xml.Save($dstManifest)
-Write-Host 'Manifest を生成しました'
+Write-Host 'Generated the manifest'
 
 # ---------------------------------------------------------------------------
-# 4. スパース .appx をビルド
+# 4. Build the sparse .appx
 # ---------------------------------------------------------------------------
 $appxPath = Join-Path $workDir 'NolumiaScheduler.appx'
 & $makeAppx pack /d $workDir /p $appxPath /nv /o
-if ($LASTEXITCODE -ne 0) { Write-Error "MakeAppx が失敗しました (exit $LASTEXITCODE)" }
-Write-Host "appx を作成しました: $appxPath"
+if ($LASTEXITCODE -ne 0) { Write-Error "MakeAppx failed (exit $LASTEXITCODE)" }
+Write-Host "Created the appx: $appxPath"
 
 # ---------------------------------------------------------------------------
-# 5. 自己署名証明書を生成（初回のみ、既存があればスキップ）
+# 5. Generate a self-signed certificate (first run only; skipped if one exists)
 # ---------------------------------------------------------------------------
 $certSubject = 'CN=kiyoteru.hosoda'
 $pfxPath     = Join-Path $workDir 'NolumiaScheduler.pfx'
@@ -127,7 +126,7 @@ $existingCert = Get-ChildItem 'Cert:\CurrentUser\My' |
 	Select-Object -First 1
 
 if ($existingCert) {
-	Write-Host "既存の証明書を再利用します: $($existingCert.Thumbprint)"
+	Write-Host "Reusing the existing certificate: $($existingCert.Thumbprint)"
 	Export-PfxCertificate -Cert $existingCert -FilePath $pfxPath -Password $pfxPassword | Out-Null
 } else {
 	$cert = New-SelfSignedCertificate `
@@ -137,11 +136,11 @@ if ($existingCert) {
 		-NotAfter (Get-Date).AddYears(10)
 
 	Export-PfxCertificate -Cert $cert -FilePath $pfxPath -Password $pfxPassword | Out-Null
-	Write-Host "自己署名証明書を生成しました: $($cert.Thumbprint)"
+	Write-Host "Generated a self-signed certificate: $($cert.Thumbprint)"
 
-	# 「信頼されたルート証明機関」への追加（管理者権限が必要）
+	# Add to "Trusted Root Certification Authorities" (needs admin rights)
 	Write-Host ''
-	Write-Host '--- 証明書を信頼済みルートへ追加します（UAC が表示される場合があります）---'
+	Write-Host '--- Adding the certificate to the trusted root (a UAC prompt may appear) ---'
 
 	$certBytes = $cert.Export([System.Security.Cryptography.X509Certificates.X509ContentType]::Cert)
 	$tempCer   = Join-Path $workDir 'NolumiaScheduler.cer'
@@ -152,21 +151,21 @@ if ($existingCert) {
 }
 
 # ---------------------------------------------------------------------------
-# 6. appx に署名
+# 6. Sign the appx
 # ---------------------------------------------------------------------------
 & $signTool sign /fd SHA256 /a /f $pfxPath /p 'NolumiaSchedulerDev' $appxPath
-if ($LASTEXITCODE -ne 0) { Write-Error "SignTool が失敗しました (exit $LASTEXITCODE)" }
-Write-Host '署名完了'
+if ($LASTEXITCODE -ne 0) { Write-Error "SignTool failed (exit $LASTEXITCODE)" }
+Write-Host 'Signing complete'
 
 # ---------------------------------------------------------------------------
-# 7. スパースパッケージとして登録
-#    -ExternalLocation で EXE フォルダを指定することで
-#    OS がプロセス起動時にパッケージ ID を自動で紐付けます。
+# 7. Register as a sparse package
+#    Passing the EXE folder as -ExternalLocation makes the OS
+#    attach the package identity automatically when the process starts.
 # ---------------------------------------------------------------------------
 Add-AppxPackage -Path $appxPath -ExternalLocation $ExeDir
 Write-Host ''
-Write-Host 'スパースパッケージの登録が完了しました。'
-Write-Host "   パッケージ名       : NolumiaScheduler"
-Write-Host "   外部ロケーション   : $ExeDir"
+Write-Host 'Sparse package registration complete.'
+Write-Host "   Package name       : NolumiaScheduler"
+Write-Host "   External location  : $ExeDir"
 Write-Host ''
-Write-Host 'アプリを起動後、タスクマネージャー「詳細」タブの「パッケージ名」列に NolumiaScheduler と表示されます。'
+Write-Host 'After the app starts, NolumiaScheduler appears in the "Package name" column of the Task Manager "Details" tab.'

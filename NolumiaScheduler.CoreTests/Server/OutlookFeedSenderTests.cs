@@ -47,7 +47,7 @@ public class OutlookFeedSenderTests
     private static OutlookSendOutcome Send(OutlookFeedSender sender) => sender.SendAsync(CancellationToken.None).GetAwaiter().GetResult();
 
     [TestMethod]
-    public void 初めて送るとき_仕事のOutlookカレンダーを作り_置いたJSONをそのまま送り_idを覚える()
+    public void FirstSend_CreatesWorkOutlookCalendar_SendsJsonAsIs_RemembersId()
     {
         File.WriteAllText(FeedFile, Feed);
 
@@ -57,12 +57,12 @@ public class OutlookFeedSenderTests
         Assert.AreEqual("Outlook", created.GetProperty("name").GetString());
         Assert.AreEqual("WORK", created.GetProperty("scope").GetString());
         Assert.AreEqual("OUTLOOK_PUSH", created.GetProperty("source").GetProperty("type").GetString());
-        Assert.AreEqual(Feed, _server.Sent(HttpMethod.Put, "/api/calendars/31/outlook-feed").Single().Body, "中身は読み替えずに送る");
+        Assert.AreEqual(Feed, _server.Sent(HttpMethod.Put, "/api/calendars/31/outlook-feed").Single().Body, "The content is sent without conversion");
         Assert.AreEqual(31L, ExternalCalendarConfig.Load(_dir).ServerCalendarId);
     }
 
     [TestMethod]
-    public void 覚えたカレンダーがあれば作らずに送る_同じ中身を何度送ってもよい()
+    public void RememberedCalendar_SendsWithoutCreating_SameContentCanBeSentRepeatedly()
     {
         File.WriteAllText(FeedFile, Feed);
         Send(Sender());
@@ -76,7 +76,7 @@ public class OutlookFeedSenderTests
     }
 
     [TestMethod]
-    public void 覚えたカレンダーがサーバーで消されていたら_作り直して送る()
+    public void RememberedCalendarDeletedOnServer_RecreatesAndSends()
     {
         File.WriteAllText(FeedFile, Feed);
         ExternalCalendarConfig.SaveServerCalendarId(_dir, 8);
@@ -89,7 +89,7 @@ public class OutlookFeedSenderTests
     }
 
     [TestMethod]
-    public void 覚えたidを書いても_ほかの設定は残る()
+    public void WritingRememberedId_KeepsOtherSettings()
     {
         File.WriteAllText(Path.Combine(_dir, ExternalCalendarConfig.FileName),
             """{"enabled":true,"filePath":"C:\\feeds\\o.json","intervalMinutes":7}""");
@@ -103,14 +103,14 @@ public class OutlookFeedSenderTests
     }
 
     [TestMethod]
-    public void ファイルが無ければ何も送らない()
+    public void NoFile_SendsNothing()
     {
         Assert.AreEqual(OutlookSendOutcome.NoFile, Send(Sender()));
         Assert.AreEqual(0, _server.Requests.Count);
     }
 
     [TestMethod]
-    public void 書きかけのファイルは送らない()
+    public void PartiallyWrittenFile_IsNotSent()
     {
         File.WriteAllText(FeedFile, """{"value":[{"id":"AAMkAD-1","sub""");
 
@@ -119,7 +119,7 @@ public class OutlookFeedSenderTests
     }
 
     [TestMethod]
-    public void ログインしていなければ送れない_次の周回でまた送る()
+    public void NotSignedIn_CannotSend_RetriesNextCycle()
     {
         File.WriteAllText(FeedFile, Feed);
 

@@ -5,8 +5,8 @@ using System.Text;
 namespace NolumiaScheduler.Infrastructure.Auth;
 
 /// <summary>
-/// ログインの戻り先（<c>http://127.0.0.1:48653/callback</c>）をその場で受ける（RFC 8252）。
-/// HttpListener は 127.0.0.1 の受け口に管理者の予約が要るので、TCP で 1 本だけ受ける。
+/// Receives the sign-in redirect (<c>http://127.0.0.1:48653/callback</c>) in place (RFC 8252).
+/// HttpListener needs an admin URL reservation for 127.0.0.1, so a single connection is accepted over TCP instead.
 /// </summary>
 public sealed class LoopbackReceiver : IDisposable
 {
@@ -15,12 +15,12 @@ public sealed class LoopbackReceiver : IDisposable
     private readonly TimeSpan _readTimeout;
     private readonly string _donePage;
 
-    /// <param name="redirectUri">戻り先。</param>
+    /// <param name="redirectUri">The redirect URI.</param>
     /// <param name="readTimeout">
-    /// 1 本の接続で要求が届くまで待つ長さ（既定 5 秒）。ブラウザは先回りで中身の無い接続を開くことがあり、
-    /// それを待ち続けると本物の戻りを受けられない。
+    /// How long to wait for a request on one connection (default 5 seconds). Browsers may open empty preconnect connections,
+    /// and waiting on one of them forever would miss the real redirect.
     /// </param>
-    /// <param name="page">ログインが戻ったときにブラウザへ出す画面（アプリの言語。既定は英語）。</param>
+    /// <param name="page">Page shown in the browser when sign-in returns (in the app language; English by default).</param>
     public LoopbackReceiver(Uri redirectUri, TimeSpan? readTimeout = null, SignInPage? page = null)
     {
         _readTimeout = readTimeout ?? TimeSpan.FromSeconds(5);
@@ -35,10 +35,10 @@ public sealed class LoopbackReceiver : IDisposable
         _listener.Start();
     }
 
-    /// <summary>受けている番号（試験で 0 を渡したときに実際の番号を知るため）。</summary>
+    /// <summary>The port being listened on (so tests that pass 0 can learn the actual port).</summary>
     public int Port => ((IPEndPoint)_listener.LocalEndpoint).Port;
 
-    /// <summary>戻り先への GET を 1 本受け、問い合わせの値を返す。ほかの道（favicon など）には 404 を返して待ち続ける。</summary>
+    /// <summary>Accepts one GET to the redirect path and returns its query values. Other paths (favicon etc.) get 404 and waiting continues.</summary>
     public async Task<IReadOnlyDictionary<string, string>> WaitAsync(CancellationToken cancellationToken)
     {
         while (true)
@@ -55,7 +55,7 @@ public sealed class LoopbackReceiver : IDisposable
                 }
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
-                    // 何も送ってこない接続（先回りの接続）。捨てて次を待つ。
+                    // A connection that sends nothing (a preconnect). Drop it and wait for the next.
                     continue;
                 }
                 catch (IOException)
@@ -85,7 +85,7 @@ public sealed class LoopbackReceiver : IDisposable
 
     internal static (string Path, string Query)? ParseTarget(string? requestLine)
     {
-        // 例: "GET /callback?code=...&state=... HTTP/1.1"
+        // e.g. "GET /callback?code=...&state=... HTTP/1.1"
         var parts = requestLine?.Split(' ');
         if (parts is not { Length: 3 } || parts[0] != "GET")
         {
@@ -112,7 +112,7 @@ public sealed class LoopbackReceiver : IDisposable
 
     private static async Task<string?> ReadRequestLineAsync(NetworkStream stream, CancellationToken cancellationToken)
     {
-        // 要求の頭だけ読む（本文は無い）。8 KiB を超える要求は相手にしない。
+        // Read only the request head (there is no body). Requests over 8 KiB are ignored.
         var buffer = new byte[8192];
         var length = 0;
         while (length < buffer.Length)

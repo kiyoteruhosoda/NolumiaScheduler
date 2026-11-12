@@ -32,7 +32,7 @@ namespace NolumiaScheduler.Domain.ValueObjects
         }
     }
 
-    /// <summary>The last calendar day of each month (28–31), e.g. "毎月末".</summary>
+    /// <summary>The last calendar day of each month (28–31), e.g. "end of every month".</summary>
     public sealed class LastDayOfMonthMonthlyRule : MonthlyRule
     {
     }

@@ -1,6 +1,6 @@
 namespace NolumiaScheduler.Infrastructure.Auth;
 
-/// <summary>PC に置く秘密（更新トークン）を暗号化する。Windows では DPAPI（CurrentUser）。</summary>
+/// <summary>Encrypts the secret kept on the PC (the refresh token). On Windows this is DPAPI (CurrentUser).</summary>
 public interface ISecretProtector
 {
     byte[] Protect(byte[] plain);

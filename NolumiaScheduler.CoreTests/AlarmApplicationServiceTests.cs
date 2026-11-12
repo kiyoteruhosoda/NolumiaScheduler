@@ -36,7 +36,7 @@ public class AlarmApplicationServiceTests
     // ── pending → due ──────────────────────────────────────────────────────
 
     [TestMethod]
-    public void 通知時刻前は何も発火しない()
+    public void BeforeNotificationTime_NothingFires()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-16));
@@ -46,7 +46,7 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 通知時刻を迎えると発火し発火済みに遷移する()
+    public void AtNotificationTime_FiresAndBecomesFired()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -61,17 +61,17 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 発火済みのアラームは同時刻に再収集しても発火しない()
+    public void FiredAlarm_CollectedAgainAtSameTime_DoesNotFire()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
 
         Assert.HasCount(1, _service.CollectDueAlarms());
-        Assert.HasCount(0, _service.CollectDueAlarms(), "2回目は発火済みなので空");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "The second time is empty because it already fired");
     }
 
     [TestMethod]
-    public void 時間経過で15分前_5分前_1分前_開始時刻と順に遷移する()
+    public void OverTime_Advances15Min_5Min_1Min_StartTimeInOrder()
     {
         SaveEvent("ev");
 
@@ -88,11 +88,11 @@ public class AlarmApplicationServiceTests
         Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes);
 
         _clock.SetUtcNow(EventStart.AddMinutes(2));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "全オフセット消化後は何もない");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "Nothing is left after all offsets are consumed");
     }
 
     [TestMethod]
-    public void 猶予時間を過ぎた通知は発火せずスキップされる()
+    public void NotificationPastGrace_IsSkippedWithoutFiring()
     {
         SaveEvent("ev");
         // 15-min notify time passed 2 minutes ago — beyond the catch-up grace (1 min).
@@ -102,7 +102,7 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 無効化されたアラームは発火しない()
+    public void DisabledAlarm_DoesNotFire()
     {
         SaveEvent("ev", new EventAlarm(IsEnabled: false, true, true, true, true));
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -111,7 +111,7 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void オフセット個別設定_有効なものだけ発火する()
+    public void PerOffsetSettings_OnlyEnabledOnesFire()
     {
         SaveEvent("ev", new EventAlarm(true, Notify15Min: false, Notify5Min: true, Notify1Min: false, NotifyAtStart: false));
 
@@ -125,7 +125,7 @@ public class AlarmApplicationServiceTests
     // ── fired → snoozed → re-fired ─────────────────────────────────────────
 
     [TestMethod]
-    public void スヌーズすると指定時間後に再通知される()
+    public void Snooze_RenotifiesAfterGivenTime()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -134,7 +134,7 @@ public class AlarmApplicationServiceTests
         _service.SnoozeFor(due, TimeSpan.FromMinutes(5));
 
         _clock.Advance(TimeSpan.FromMinutes(4));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "スヌーズ期限前は再通知しない");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "No re-notification before the snooze expires");
 
         _clock.Advance(TimeSpan.FromMinutes(1));
         var reminder = _service.CollectDueAlarms();
@@ -143,7 +143,7 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 開始5分前スヌーズは開始5分前に再通知される()
+    public void SnoozeUntil5MinBeforeStart_RenotifiesAt5MinBeforeStart()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -162,7 +162,7 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 開始時刻情報がないアラームの開始前スヌーズは無視される()
+    public void SnoozeBeforeStart_WithoutStartTime_IsIgnored()
     {
         var orphan = new DueAlarm("ev", "title", null, 0, true, OccurrenceStart: null);
 
@@ -174,20 +174,20 @@ public class AlarmApplicationServiceTests
     // ── next-alarm override (explicit time wins over offsets) ───────────────
 
     [TestMethod]
-    public void 次のアラート設定_今からの指定で全オフセットを抑止し指定時刻に一度だけ再通知する()
+    public void SetNextAlert_FromNow_SuppressesAllOffsetsAndRenotifiesOnceAtGivenTime()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         var due = _service.CollectDueAlarms().Single();
 
-        // 再通知時刻 = (EventStart-15) + 20 = EventStart+5
+        // Re-notification time = (EventStart-15) + 20 = EventStart+5
         _service.SetNextAlarmFromNow(due, TimeSpan.FromMinutes(20));
 
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "5分前オフセットは抑止される");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "The 5-minute offset is suppressed");
 
         _clock.SetUtcNow(EventStart);
-        Assert.HasCount(0, _service.CollectDueAlarms(), "開始時刻オフセットも抑止される");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "The start-time offset is suppressed too");
 
         _clock.SetUtcNow(EventStart.AddMinutes(5));
         var reminder = _service.CollectDueAlarms();
@@ -197,53 +197,53 @@ public class AlarmApplicationServiceTests
     }
 
     [TestMethod]
-    public void 次のアラート設定_指定時刻より前のオフセットだけ抑止し後のオフセットは残る()
+    public void SetNextAlert_SuppressesOnlyOffsetsBeforeGivenTimeAndKeepsLaterOnes()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         var due = _service.CollectDueAlarms().Single();
 
-        // 次のアラート = 開始3分前。これより前の5分前は抑止、後の1分前・開始時刻は残る。
+        // Next alert = 3 minutes before start. The earlier 5-minute offset is suppressed; the later 1-minute and start-time offsets remain.
         _service.SetNextAlarmBeforeStart(due, TimeSpan.FromMinutes(3));
 
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "指定時刻より前の5分前は抑止される");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "The 5-minute offset before the given time is suppressed");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-3));
-        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "開始3分前に明示アラートが鳴る");
+        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "The explicit alert rings 3 minutes before start");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-1));
-        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "指定時刻より後の1分前は残る");
+        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "The 1-minute offset after the given time remains");
 
         _clock.SetUtcNow(EventStart);
-        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "開始時刻も残る");
+        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "The start time remains too");
     }
 
     [TestMethod]
-    public void スヌーズが残りオフセットより前なら5分前1分前開始時刻は発火し続ける()
+    public void SnoozeBeforeRemainingOffsets_5Min1MinAndStartTimeStillFire()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
-        var due = _service.CollectDueAlarms().Single(); // 15分前アラート
+        var due = _service.CollectDueAlarms().Single(); // 15-minute alert
 
-        // 今から5分後 = 開始10分前。残りの5分前/1分前/開始時刻はすべて後なので発火済みにしない。
+        // 5 minutes from now = 10 minutes before start. The remaining 5-min/1-min/start-time offsets are all later, so they are not marked fired.
         _service.SetNextAlarmFromNow(due, TimeSpan.FromMinutes(5));
 
         _clock.SetUtcNow(EventStart.AddMinutes(-10));
-        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "5分後のスヌーズが鳴る");
+        Assert.IsTrue(_service.CollectDueAlarms().Any(a => a.IsSnoozeReminder), "The 5-minute snooze rings");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
-        Assert.AreEqual(5, _service.CollectDueAlarms().Single().OffsetMinutes, "5分前は発火する");
+        Assert.AreEqual(5, _service.CollectDueAlarms().Single().OffsetMinutes, "The 5-minute offset fires");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-1));
-        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "1分前は発火する");
+        Assert.AreEqual(1, _service.CollectDueAlarms().Single().OffsetMinutes, "The 1-minute offset fires");
 
         _clock.SetUtcNow(EventStart);
-        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "開始時刻は発火する");
+        Assert.AreEqual(0, _service.CollectDueAlarms().Single().OffsetMinutes, "The start time fires");
     }
 
     [TestMethod]
-    public void 次のアラート設定は他のイベントへ影響しない()
+    public void SetNextAlert_DoesNotAffectOtherEvents()
     {
         SaveEvent("ev1");
         SaveEvent("ev2");
@@ -254,12 +254,12 @@ public class AlarmApplicationServiceTests
 
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
         var due = _service.CollectDueAlarms();
-        Assert.HasCount(1, due, "ev2 の5分前は通常どおり発火する");
+        Assert.HasCount(1, due, "The 5-minute offset of ev2 fires as usual");
         Assert.AreEqual("ev2", due[0].EventId);
     }
 
     [TestMethod]
-    public void 次のアラート取得は同じ回の未消化通知時刻を返す()
+    public void GetNextAlert_ReturnsUnconsumedNotificationTimeOfSameOccurrence()
     {
         SaveEvent("ev");
         var occStart = EventStart.DateTime;
@@ -267,7 +267,7 @@ public class AlarmApplicationServiceTests
         Assert.AreEqual(
             occStart.AddMinutes(-15),
             _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
-            "最も近い未消化は15分前");
+            "The nearest unconsumed one is 15 minutes before");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         _service.CollectDueAlarms();
@@ -275,11 +275,11 @@ public class AlarmApplicationServiceTests
         Assert.AreEqual(
             occStart.AddMinutes(-5),
             _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
-            "15分前を消化したら次は5分前");
+            "After the 15-minute one is consumed, the next is 5 minutes before");
     }
 
     [TestMethod]
-    public void 次のアラート取得は残りがなければnull()
+    public void GetNextAlert_NoneRemaining_ReturnsNull()
     {
         SaveEvent("ev");
         var occStart = EventStart.DateTime;
@@ -292,44 +292,44 @@ public class AlarmApplicationServiceTests
 
         Assert.IsNull(
             _service.GetNextAlarmTimeForOccurrence("ev", occStart, _clock.GetLocalNow().DateTime),
-            "全オフセット消化後は null");
+            "Null after all offsets are consumed");
     }
 
     [TestMethod]
-    public void 次のアラート取得は繰り返し予定でも当日の回だけを対象にする()
+    public void GetNextAlert_RecurringEvent_ConsidersOnlyTodaysOccurrence()
     {
-        // 毎日(全曜日)繰り返しなので、今日(6/10)と明日(6/11)の両方に10:00の回がある。
+        // Repeats daily (every weekday), so both today (6/10) and tomorrow (6/11) have a 10:00 occurrence.
         SaveDailyRecurringEvent("daily");
         var todayOccStart = EventStart.DateTime;
 
-        // 今日の全オフセットを消化する
+        // Consume all of today's offsets
         foreach (var minutes in new[] { -15, -5, -1, 0 })
         {
             _clock.SetUtcNow(EventStart.AddMinutes(minutes));
             _service.CollectDueAlarms();
         }
 
-        // 翌日の回(6/11 10:00)の15分前が予定一覧には存在する
+        // The schedule list contains the 15-minute alert of tomorrow's occurrence (6/11 10:00)
         Assert.IsTrue(
             _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddDays(1).AddMinutes(-15).DateTime),
-            "翌日の回は予定一覧には含まれる");
+            "Tomorrow's occurrence is in the schedule list");
 
-        // しかし当日の回に絞った「次のアラート」は翌日へロールオーバーしない
+        // But the "next alert", limited to today's occurrence, does not roll over to tomorrow
         Assert.IsNull(
             _service.GetNextAlarmTimeForOccurrence("daily", todayOccStart, _clock.GetLocalNow().DateTime),
-            "当日の回を消化したら翌日の回は次のアラートにしない");
+            "Once today's occurrence is consumed, tomorrow's is not the next alert");
     }
 
     [TestMethod]
-    public void 残りアラート判定は将来の未発火通知があるときだけtrue()
+    public void HasRemainingAlarms_TrueOnlyWhenFutureUnfiredNotificationsExist()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
-        _service.CollectDueAlarms(); // 15分前を消化
+        _service.CollectDueAlarms(); // Consume the 15-minute alert
 
-        Assert.IsTrue(_service.HasRemainingAlarms("ev"), "5分前/1分前/開始時刻がまだ将来に残る");
+        Assert.IsTrue(_service.HasRemainingAlarms("ev"), "The 5-min/1-min/start-time alerts are still in the future");
 
-        // 全オフセットを消化する
+        // Consume all offsets
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
         _service.CollectDueAlarms();
         _clock.SetUtcNow(EventStart.AddMinutes(-1));
@@ -337,25 +337,25 @@ public class AlarmApplicationServiceTests
         _clock.SetUtcNow(EventStart);
         _service.CollectDueAlarms();
 
-        Assert.IsFalse(_service.HasRemainingAlarms("ev"), "全オフセット消化後は残りなし");
+        Assert.IsFalse(_service.HasRemainingAlarms("ev"), "Nothing remains after all offsets are consumed");
     }
 
     [TestMethod]
-    public void 未表示の発火中アラート判定は新しいアラートが来たときだけtrue()
+    public void HasUnshownDueAlarm_TrueOnlyWhenNewAlertArrives()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
-        _service.CollectDueAlarms(); // 15分前を表示(発火済み)
+        _service.CollectDueAlarms(); // Show the 15-minute alert (fired)
 
-        Assert.IsFalse(_service.HasUnshownDueAlarm("ev"), "5分前の時刻前は未表示の発火中アラートなし");
+        Assert.IsFalse(_service.HasUnshownDueAlarm("ev"), "No unshown due alarm before the 5-minute time");
 
         _clock.SetUtcNow(EventStart.AddMinutes(-5));
-        Assert.IsTrue(_service.HasUnshownDueAlarm("ev"), "5分前が発火中かつ未表示");
-        Assert.IsFalse(_service.HasUnshownDueAlarm("other"), "別イベントには反応しない");
+        Assert.IsTrue(_service.HasUnshownDueAlarm("ev"), "The 5-minute alarm is due and unshown");
+        Assert.IsFalse(_service.HasUnshownDueAlarm("other"), "Does not react to another event");
     }
 
     [TestMethod]
-    public void 発火済みキーを退避して復元すると再発火しない()
+    public void FiredKeys_SavedAndRestored_DoNotRefire()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -365,13 +365,13 @@ public class AlarmApplicationServiceTests
         _service.ResetAllFiredKeys();
         _service.RestoreFiredKeys(snapshot);
 
-        Assert.HasCount(0, _service.CollectDueAlarms(), "復元後は同じアラームが再発火しない");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "The same alarm does not fire again after restore");
     }
 
     // ── cancelled ──────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void 全キャンセルで残りの通知もスヌーズも発火しなくなる()
+    public void CancelAll_StopsRemainingNotificationsAndSnoozes()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -381,11 +381,11 @@ public class AlarmApplicationServiceTests
         _service.CancelRemainingAlarms("ev");
 
         _clock.SetUtcNow(EventStart);
-        Assert.HasCount(0, _service.CollectDueAlarms(), "5分前・1分前・開始時刻・スヌーズすべて発火しない");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "None of 5-min, 1-min, start-time or snooze fires");
     }
 
     [TestMethod]
-    public void 全キャンセルは他のイベントへ影響しない()
+    public void CancelAll_DoesNotAffectOtherEvents()
     {
         SaveEvent("ev1");
         SaveEvent("ev2");
@@ -401,7 +401,7 @@ public class AlarmApplicationServiceTests
     // ── reset ──────────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void イベント変更で発火済み状態がリセットされ猶予内なら再発火する()
+    public void EventChange_ResetsFiredStateAndRefiresWithinGrace()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -412,11 +412,11 @@ public class AlarmApplicationServiceTests
 
         Assert.HasCount(0, _service.GetFiredKeys());
         var due = _service.CollectDueAlarms();
-        Assert.IsTrue(due.Any(a => a.EventId == "ev"), "通知時刻が猶予内なので再発火する");
+        Assert.IsTrue(due.Any(a => a.EventId == "ev"), "Fires again because the notification time is within grace");
     }
 
     [TestMethod]
-    public void ResetFiredKeysは対象イベントの発火履歴だけ消す()
+    public void ResetFiredKeys_ClearsOnlyTargetEventHistory()
     {
         SaveEvent("ev1");
         SaveEvent("ev2");
@@ -433,7 +433,7 @@ public class AlarmApplicationServiceTests
     // ── schedule listing ───────────────────────────────────────────────────
 
     [TestMethod]
-    public void 予定一覧は通知時刻順で発火済みフラグを反映する()
+    public void ScheduleList_OrderedByNotificationTimeAndReflectsFiredFlag()
     {
         SaveEvent("ev");
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
@@ -445,13 +445,13 @@ public class AlarmApplicationServiceTests
         CollectionAssert.AreEqual(
             new[] { 15, 5, 1, 0 },
             entries.Select(e => e.MinutesBefore).ToArray(),
-            "通知時刻の昇順 = オフセットの降順");
+            "Ascending notification time = descending offset");
         Assert.IsTrue(entries.Single(e => e.MinutesBefore == 15).AlreadyFired);
         Assert.IsFalse(entries.Single(e => e.MinutesBefore == 5).AlreadyFired);
     }
 
     [TestMethod]
-    public void 終日イベントにはアラームが計画されない()
+    public void AllDayEvent_HasNoAlarmsPlanned()
     {
         var start = new DateTimeOffset(2026, 6, 10, 0, 0, 0, TimeSpan.Zero);
         var ev = CalendarEvent.CreateSingle(
@@ -471,7 +471,7 @@ public class AlarmApplicationServiceTests
     // ── per-occurrence alarm suppression ───────────────────────────────────
 
     [TestMethod]
-    public void 繰り返しのこの回だけアラームを無効化できる()
+    public void RecurringEvent_CanDisableAlarmForThisOccurrenceOnly()
     {
         SaveDailyRecurringEvent("daily");
 
@@ -492,19 +492,19 @@ public class AlarmApplicationServiceTests
 
         // Today's 15-min alarm would normally be due here, but the occurrence is silenced.
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "この回はアラーム無効なので発火しない");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "This occurrence does not fire because its alarm is disabled");
 
         // The next day's occurrence is unaffected and still planned.
         Assert.IsTrue(
             _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddDays(1).AddMinutes(-15).DateTime),
-            "他の回は影響を受けない");
+            "Other occurrences are unaffected");
         Assert.IsFalse(
             _service.GetScheduledAlarms().Any(e => e.NotifyAt == EventStart.AddMinutes(-15).DateTime),
-            "無効化した回は予定一覧にも出ない");
+            "The disabled occurrence is not in the schedule list either");
     }
 
     [TestMethod]
-    public void アラーム無効化は他の回には及ばない()
+    public void DisablingAlarm_DoesNotExtendToOtherOccurrences()
     {
         SaveDailyRecurringEvent("daily");
         var ev = _repo.FindById(new EventId("daily"))!;
@@ -523,14 +523,14 @@ public class AlarmApplicationServiceTests
 
         _clock.SetUtcNow(EventStart.AddMinutes(-15));
         var due = _service.CollectDueAlarms();
-        Assert.HasCount(1, due, "今日の回は通常どおり発火する");
+        Assert.HasCount(1, due, "Today's occurrence fires as usual");
         Assert.AreEqual(15, due[0].OffsetMinutes);
     }
 
     // ── business-day shift ─────────────────────────────────────────────────
 
     [TestMethod]
-    public void 営業日シフトの繰り返しはシフト後の日付でアラームが鳴る()
+    public void BusinessDayShiftedRecurrence_RingsOnShiftedDate()
     {
         // Monthly month-end minus 3 business days with a Mon–Fri calendar:
         // June 2026 ends Tue 6/30, so 3 business days before is Thu 6/25 at 10:00. The alarm must
@@ -545,7 +545,7 @@ public class AlarmApplicationServiceTests
 
         // Nothing fires on the unshifted month-end (6/30): the occurrence moved to 6/25.
         _clock.SetUtcNow(new DateTimeOffset(2026, 6, 30, 9, 45, 0, TimeSpan.Zero));
-        Assert.HasCount(0, _service.CollectDueAlarms(), "シフト前の月末(6/30)では鳴らない");
+        Assert.HasCount(0, _service.CollectDueAlarms(), "Does not ring on the unshifted month end (6/30)");
 
         // The 15-min alarm fires before the shifted occurrence on 6/25.
         _clock.SetUtcNow(shiftedStart.AddMinutes(-15));

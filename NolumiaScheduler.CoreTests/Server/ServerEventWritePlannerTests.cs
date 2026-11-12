@@ -14,14 +14,14 @@ public class ServerEventWritePlannerTests
     private static CalendarEvent Read(EventDto dto) => ServerEventMapper.ToDomain(dto, DaysOff);
 
     [TestMethod]
-    public void 何も変えていなければ送らない()
+    public void NothingChanged_SendsNothing()
     {
         Assert.IsNull(ServerEventWritePlanner.NextStep(ServerEvents.Single(1), Read(ServerEvents.Single(1)), null));
         Assert.IsNull(ServerEventWritePlanner.NextStep(ServerEvents.Weekly(2), Read(ServerEvents.Weekly(2)), null));
     }
 
     [TestMethod]
-    public void 新しい予定は作る_カレンダーは指定が無ければ既定()
+    public void NewEvent_IsCreated_CalendarDefaultsWhenUnspecified()
     {
         var ev = CalendarEvent.CreateSingle(new EventId(Guid.NewGuid().ToString()), new EventTitle("New"), null,
             Visibility.Public, null, null, new TimeZoneId("Asia/Tokyo"),
@@ -38,7 +38,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 単発の題名を直すと_分類とタスクとカレンダーを送り返して直す()
+    public void EditSingleTitle_SendsBackCategoryTaskAndCalendar()
     {
         var server = ServerEvents.Single(1);
         var ev = Read(server);
@@ -54,7 +54,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 単発の時刻を動かすと直す()
+    public void MoveSingleTime_Updates()
     {
         var server = ServerEvents.Single(1);
         var ev = Read(server);
@@ -67,7 +67,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 繰り返しの回を飛ばすと_飛ばす口を呼ぶ()
+    public void SkipRecurringOccurrence_CallsSkipEndpoint()
     {
         var server = ServerEvents.Weekly(2);
         var ev = Read(server);
@@ -81,7 +81,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 飛ばした回を戻すと_戻す口を呼ぶ()
+    public void UnskipOccurrence_CallsUnskipEndpoint()
     {
         var server = ServerEvents.Weekly(2) with
         {
@@ -96,7 +96,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 回を動かすと_予定のタイムゾーンでの瞬間を送る()
+    public void MoveOccurrence_SendsInstantInEventTimeZone()
     {
         var server = ServerEvents.Weekly(2);
         var ev = Read(server);
@@ -110,7 +110,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void サーバーが返した移動と同じなら_もう送らない()
+    public void SameMoveAsServerReturned_NotSentAgain()
     {
         var server = ServerEvents.Weekly(2) with
         {
@@ -123,7 +123,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 移動を取り消すと_取り消す口を呼ぶ()
+    public void UndoMove_CallsUndoEndpoint()
     {
         var server = ServerEvents.Weekly(2) with
         {
@@ -138,7 +138,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 繰り返しのすべてを直すと_系列を直す_回の操作より先()
+    public void EditAllRecurring_UpdatesSeries_BeforeOccurrenceOperations()
     {
         var server = ServerEvents.Weekly(2) with { TaskId = 12, EventType = "TASK", CalendarId = 8 };
         var ev = Read(server);
@@ -155,7 +155,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 以降を消す_終了日を変えると系列を直す()
+    public void DeleteFollowing_ChangingEndDateUpdatesSeries()
     {
         var server = ServerEvents.Weekly(2);
         var ev = Read(server);
@@ -167,7 +167,7 @@ public class ServerEventWritePlannerTests
     }
 
     [TestMethod]
-    public void 取り込んだ予定は書かない()
+    public void ImportedEvents_AreNotWritten()
     {
         var imported = ServerEventMapper.ToDomain(
             new ImportedOccurrenceDto("x", 9, "Review", null, Now, 30, false), "Asia/Tokyo");

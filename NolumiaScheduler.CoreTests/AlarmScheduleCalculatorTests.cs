@@ -7,7 +7,7 @@ namespace NolumiaScheduler.CoreTests;
 public class AlarmScheduleCalculatorTests
 {
     [TestMethod]
-    public void EventAlarm_既定は開始時刻通知も有効()
+    public void EventAlarm_Default_AlsoEnablesStartTimeNotification()
     {
         var alarm = EventAlarm.Default;
         Assert.IsTrue(alarm.NotifyAtStart);
@@ -18,7 +18,7 @@ public class AlarmScheduleCalculatorTests
     }
 
     [TestMethod]
-    public void Offsets_は15_5_1_0の順()
+    public void Offsets_AreInOrder15_5_1_0()
     {
         CollectionAssert.AreEqual(new[] { 15, 5, 1, 0 }, Rec0());
 
@@ -26,7 +26,7 @@ public class AlarmScheduleCalculatorTests
     }
 
     [TestMethod]
-    public void IsOffsetEnabled_各フラグに対応する()
+    public void IsOffsetEnabled_MatchesEachFlag()
     {
         var alarm = new EventAlarm(true, Notify15Min: true, Notify5Min: false, Notify1Min: true, NotifyAtStart: false);
 
@@ -37,7 +37,7 @@ public class AlarmScheduleCalculatorTests
     }
 
     [TestMethod]
-    public void IsOffsetEnabled_開始時刻は他の前通知と独立して有効化できる()
+    public void IsOffsetEnabled_StartTimeCanBeEnabledIndependentlyOfEarlierNotifications()
     {
         // Before-reminders all off, but at-start on: only offset 0 is enabled.
         var alarm = new EventAlarm(true, false, false, false, NotifyAtStart: true);
@@ -49,7 +49,7 @@ public class AlarmScheduleCalculatorTests
     }
 
     [TestMethod]
-    public void IsDue_予定時刻より前は鳴らない()
+    public void IsDue_BeforeScheduledTime_DoesNotRing()
     {
         var notifyAt = new DateTime(2026, 6, 10, 9, 19, 0);
         Assert.IsFalse(AlarmScheduleCalculator.IsDue(notifyAt.AddSeconds(-1), notifyAt));
@@ -57,7 +57,7 @@ public class AlarmScheduleCalculatorTests
     }
 
     [TestMethod]
-    public void IsDue_予定時刻ちょうど_と_猶予内は鳴る()
+    public void IsDue_AtScheduledTimeAndWithinGrace_Rings()
     {
         var notifyAt = new DateTime(2026, 6, 10, 9, 19, 0);
         Assert.IsTrue(AlarmScheduleCalculator.IsDue(notifyAt, notifyAt), "exactly on time");
@@ -66,14 +66,14 @@ public class AlarmScheduleCalculatorTests
     }
 
     [TestMethod]
-    public void IsDue_猶予を過ぎたら鳴らない()
+    public void IsDue_AfterGrace_DoesNotRing()
     {
         var notifyAt = new DateTime(2026, 6, 10, 9, 19, 0);
         Assert.IsFalse(AlarmScheduleCalculator.IsDue(notifyAt.Add(AlarmScheduleCalculator.CatchUpGrace).AddSeconds(1), notifyAt));
     }
 
     [TestMethod]
-    public void シナリオ_9時19分開始の予定は9時19分に開始時刻通知が鳴る()
+    public void Scenario_EventStartingAt0919_RingsStartTimeNotificationAt0919()
     {
         // Event starts 9:19, default alarm (at-start enabled). At 9:18 (creation) it is NOT due;
         // at 9:19 it becomes due. Reproduces the reported "doesn't fire at 9:19" case.

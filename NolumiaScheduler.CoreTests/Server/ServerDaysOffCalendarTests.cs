@@ -10,7 +10,7 @@ public class ServerDaysOffCalendarTests
         => new(1, "WORKWEEK", "Workweek", "DEFAULT", 0, false, days, null, false, "WORK");
 
     [TestMethod]
-    public void 休みとして数える層の日だけが休日_曜日の休みと数えない層は休日ではない()
+    public void OnlyDaysInCountedLayersAreHolidays_WeekdayOffAndUncountedLayersAreNot()
     {
         var marks = new[]
         {
@@ -22,14 +22,14 @@ public class ServerDaysOffCalendarTests
         var calendar = ServerDaysOffCalendar.Build([Workweek("MO", "TU", "WE", "TH", "FR")], marks, "Asia/Tokyo");
 
         Assert.IsTrue(calendar.IsHoliday(new LocalDateValue(2026, 11, 3)));
-        Assert.IsFalse(calendar.IsHoliday(new LocalDateValue(2026, 11, 7)), "土曜は曜日の休み（休日ではない）");
-        Assert.IsFalse(calendar.IsHoliday(new LocalDateValue(2026, 11, 10)), "数えない層の日");
+        Assert.IsFalse(calendar.IsHoliday(new LocalDateValue(2026, 11, 7)), "Saturday is a weekday off (not a holiday)");
+        Assert.IsFalse(calendar.IsHoliday(new LocalDateValue(2026, 11, 10)), "A day in an uncounted layer");
         Assert.IsFalse(calendar.IsBusinessDay(new LocalDateValue(2026, 11, 7)));
         Assert.AreEqual("文化の日", calendar.Holidays.Single().Name);
     }
 
     [TestMethod]
-    public void 営業日を数えるときは祝日と稼働しない曜日を飛ばす()
+    public void CountingBusinessDays_SkipsHolidaysAndNonWorkingWeekdays()
     {
         var marks = new[] { new DayOffMarkDto("2026-11-03", "NATIONAL_HOLIDAY", 2, null, true) };
         var calendar = ServerDaysOffCalendar.Build([Workweek("MO", "TU", "WE", "TH", "FR")], marks, "Asia/Tokyo");
@@ -39,7 +39,7 @@ public class ServerDaysOffCalendarTests
     }
 
     [TestMethod]
-    public void 営業日の層が無ければ月曜から金曜()
+    public void NoBusinessDayLayer_DefaultsToMondayThroughFriday()
     {
         var calendar = ServerDaysOffCalendar.Build([], [], "Asia/Tokyo");
 
@@ -48,7 +48,7 @@ public class ServerDaysOffCalendarTests
     }
 
     [TestMethod]
-    public void 営業日の層の曜日を使う()
+    public void UsesWeekdaysOfBusinessDayLayer()
     {
         var calendar = ServerDaysOffCalendar.Build([Workweek("SA", "SU")], [], "Asia/Tokyo");
 

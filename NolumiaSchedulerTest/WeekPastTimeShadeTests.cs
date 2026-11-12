@@ -27,7 +27,7 @@ public class WeekPastTimeShadeTests
     private const double HalfPastNine = (9 * 60) + 30;
 
     [TestMethod]
-    public void 過ぎた日は終日ぶん影が敷かれる()
+    public void PastDay_IsShadedForWholeDay()
     {
         var column = Column(isPast: true);
 
@@ -35,7 +35,7 @@ public class WeekPastTimeShadeTests
     }
 
     [TestMethod]
-    public void 当日は現在時刻までが影になる()
+    public void Today_IsShadedUpToCurrentTime()
     {
         var column = Column(isToday: true);
 
@@ -43,7 +43,7 @@ public class WeekPastTimeShadeTests
     }
 
     [TestMethod]
-    public void これから来る日は影が敷かれない()
+    public void FutureDay_IsNotShaded()
     {
         var column = Column();
 
@@ -51,7 +51,7 @@ public class WeekPastTimeShadeTests
     }
 
     [TestMethod]
-    public void 当日の日付が変わる直前でも影は一日を超えない()
+    public void Today_JustBeforeMidnight_ShadeDoesNotExceedOneDay()
     {
         var column = Column(isToday: true);
 
@@ -61,7 +61,7 @@ public class WeekPastTimeShadeTests
     }
 
     [TestMethod]
-    public void 当日の真夜中では影が敷かれない()
+    public void Today_AtMidnight_IsNotShaded()
     {
         var column = Column(isToday: true);
 
@@ -70,7 +70,7 @@ public class WeekPastTimeShadeTests
     }
 
     [TestMethod]
-    public void 当日は過ぎた日には含まれない()
+    public void Today_IsNotAPastDay()
     {
         var column = Column(isToday: true);
 
@@ -81,14 +81,14 @@ public class WeekPastTimeShadeTests
     // each other (this assembly parallelizes at method level).
     [TestMethod]
     [DoNotParallelize]
-    public void 影の色は月表示と同じトークンを使う()
+    public void ShadeColor_UsesSameTokenAsMonthView()
     {
         Assert.AreEqual(WinColors.GCalPastDayShade, WeekDayColumn.PastShadeColor);
     }
 
     [TestMethod]
     [DoNotParallelize]
-    public void 影の色はダークテーマでは専用の濃さになる()
+    public void ShadeColor_HasDedicatedOpacityInDarkTheme()
     {
         ThemeHelper.UpdateTheme(ElementTheme.Dark);
         try
@@ -104,7 +104,7 @@ public class WeekPastTimeShadeTests
 
     [TestMethod]
     [DoNotParallelize]
-    public void 影は半透明なので下地の背景と時刻線が透ける()
+    public void Shade_IsTranslucent_BackgroundAndTimeLinesShowThrough()
     {
         int alpha = WeekDayColumn.PastShadeColor.A;
 

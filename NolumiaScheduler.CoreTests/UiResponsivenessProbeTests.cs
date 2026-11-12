@@ -53,7 +53,7 @@ public class UiResponsivenessProbeTests
     }
 
     [TestMethod]
-    public void 応答しているUIスレッドは何度標本を取ってもラグ0を返す()
+    public void ResponsiveUiThread_ReturnsZeroLagOnEverySample()
     {
         // The regression: measuring from the last reply instead of the outstanding ping made
         // every one of these report a whole sample interval, i.e. a permanent false stall.
@@ -67,13 +67,13 @@ public class UiResponsivenessProbeTests
     }
 
     [TestMethod]
-    public void 初回の標本は基準がないのでラグ0を返す()
+    public void FirstSample_HasNoBaseline_ReturnsZeroLag()
     {
         Assert.AreEqual(TimeSpan.Zero, SampleAfter(TimeSpan.FromMinutes(1)));
     }
 
     [TestMethod]
-    public void 応答しないUIスレッドではラグが標本ごとに伸びる()
+    public void UnresponsiveUiThread_LagGrowsWithEachSample()
     {
         SampleAfter(TimeSpan.FromMinutes(1));   // posts the ping that is never answered
 
@@ -83,7 +83,7 @@ public class UiResponsivenessProbeTests
     }
 
     [TestMethod]
-    public void 復帰したUIスレッドは次の標本でラグ0に戻る()
+    public void RecoveredUiThread_ReturnsToZeroLagOnNextSample()
     {
         SampleAfter(TimeSpan.FromMinutes(1));
         Assert.AreEqual(TimeSpan.FromMinutes(2), SampleAfter(TimeSpan.FromMinutes(2)));
@@ -95,7 +95,7 @@ public class UiResponsivenessProbeTests
     }
 
     [TestMethod]
-    public void スリープをまたいでもラグは増えない()
+    public void AcrossSleep_LagDoesNotIncrease()
     {
         SampleAfter(TimeSpan.FromMinutes(1));   // posts the ping
         var beforeSleep = SampleAfter(TimeSpan.FromMinutes(1));
@@ -110,7 +110,7 @@ public class UiResponsivenessProbeTests
     }
 
     [TestMethod]
-    public void キューに積めなかった場合は次の標本で積み直す()
+    public void FailedToQueue_RequeuesOnNextSample()
     {
         _ui.AcceptsWork = false;
         SampleAfter(TimeSpan.FromMinutes(1));

@@ -22,7 +22,7 @@ public class MonthPastDayTests
 
     [TestMethod]
     [DoNotParallelize]
-    public void 過去日のセルには影が敷かれる()
+    public void PastDayCell_IsShaded()
     {
         var cell = CreateCell(day: 4, isPast: true);
 
@@ -30,7 +30,7 @@ public class MonthPastDayTests
     }
 
     [TestMethod]
-    public void 未来日のセルには影が敷かれない()
+    public void FutureDayCell_IsNotShaded()
     {
         var cell = CreateCell(day: 20, isPast: false);
 
@@ -38,7 +38,7 @@ public class MonthPastDayTests
     }
 
     [TestMethod]
-    public void 当日は過去日ではないので影が敷かれない()
+    public void Today_IsNotPast_IsNotShaded()
     {
         var cell = CreateCell(day: 10, isPast: false, isToday: true);
 
@@ -47,7 +47,7 @@ public class MonthPastDayTests
 
     [TestMethod]
     [DoNotParallelize]
-    public void 過去日の影は半透明なので下地の背景が透ける()
+    public void PastDayShade_IsTranslucent_BackgroundShowsThrough()
     {
         var cell = CreateCell(day: 4, isPast: true);
 
@@ -60,7 +60,7 @@ public class MonthPastDayTests
     // (this assembly parallelizes at method level).
     [TestMethod]
     [DoNotParallelize]
-    public void 過去日の影はダークテーマでは専用の濃さになる()
+    public void PastDayShade_HasDedicatedOpacityInDarkTheme()
     {
         ThemeHelper.UpdateTheme(ElementTheme.Dark);
         try

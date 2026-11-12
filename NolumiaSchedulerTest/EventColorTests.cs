@@ -24,21 +24,21 @@ public class EventColorTests
     }
 
     [TestMethod]
-    public void 色を指定しない場合はDefaultになる()
+    public void NoColorSpecified_IsDefault()
     {
         var ev = CreateSingleEvent();
         Assert.AreEqual(EventColorKey.Default, ev.ColorKey);
     }
 
     [TestMethod]
-    public void 生成時に指定した色が保持される()
+    public void ColorGivenAtCreation_IsKept()
     {
         var ev = CreateSingleEvent(EventColorKey.Tomato);
         Assert.AreEqual(EventColorKey.Tomato, ev.ColorKey);
     }
 
     [TestMethod]
-    public void SetColorで色が変わりVersionが進む()
+    public void SetColor_ChangesColorAndAdvancesVersion()
     {
         var ev = CreateSingleEvent();
         var versionBefore = ev.Version.Value;
@@ -50,7 +50,7 @@ public class EventColorTests
     }
 
     [TestMethod]
-    public void SetColorで同じ色を設定してもVersionは進まない()
+    public void SetColor_SameColor_DoesNotAdvanceVersion()
     {
         var ev = CreateSingleEvent(EventColorKey.Basil);
         var versionBefore = ev.Version.Value;
@@ -61,7 +61,7 @@ public class EventColorTests
     }
 
     [TestMethod]
-    public void 展開したオカレンスへ色が伝播する()
+    public void Color_PropagatesToExpandedOccurrences()
     {
         var ev = CreateSingleEvent(EventColorKey.Peacock);
         var expander = new OccurrenceExpander(new BusinessDayShiftService());

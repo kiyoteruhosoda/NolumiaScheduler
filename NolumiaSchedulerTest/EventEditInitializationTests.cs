@@ -10,7 +10,7 @@ namespace NolumiaSchedulerTest;
 public class EventEditInitializationTests
 {
     [TestMethod]
-    public void startDateとstartMinuteで新規初期値が設定される()
+    public void StartDateAndStartMinute_SetNewEventDefaults()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 5, 6), 570);
@@ -22,7 +22,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void startMinuteは15分単位へ丸める()
+    public void StartMinute_IsRoundedTo15Minutes()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 5, 6), 575);
@@ -30,7 +30,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 深夜帯でも終了時刻は日跨ぎしない()
+    public void LateNight_EndTimeDoesNotCrossDay()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 5, 6), 1410);
@@ -40,7 +40,7 @@ public class EventEditInitializationTests
 
 
     [TestMethod]
-    public void eventId指定時はOccurrenceKeyを保持する()
+    public void WithEventId_KeepsOccurrenceKey()
     {
         var vm = CreateViewModel(out var repo);
         var ev = CreateSingleEvent("e-load");
@@ -56,7 +56,7 @@ public class EventEditInitializationTests
 
 
     [TestMethod]
-    public void 単発予定編集では範囲選択不要()
+    public void EditingSingleEvent_NeedsNoScopeChoice()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateSingleEvent("single"));
@@ -65,7 +65,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 繰り返し予定かつoccurrenceありは範囲選択が必要()
+    public void RecurringEventWithOccurrence_NeedsScopeChoice()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec"));
@@ -74,7 +74,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降は未実装エラーになる_旧ケース()
+    public void ThisAndFollowing_LegacyNotImplementedErrorCase()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec2"));
@@ -86,7 +86,7 @@ public class EventEditInitializationTests
 
 
     [TestMethod]
-    public void LoadEvent_繰り返し発生日指定時は指定occurrenceの日時で初期化される()
+    public void LoadEvent_WithRecurringOccurrenceDate_InitializesWithThatOccurrenceDateTime()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-occ"));
@@ -99,7 +99,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void この予定のみで対象Occurrenceだけ変更される()
+    public void ThisOccurrenceOnly_ChangesOnlyTargetOccurrence()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec3"));
@@ -122,7 +122,7 @@ public class EventEditInitializationTests
 
 
     [TestMethod]
-    public void これ以降を選ぶと系列が分割される()
+    public void ThisAndFollowing_SplitsSeries()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-split"));
@@ -154,7 +154,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降選択で保存できる()
+    public void ThisAndFollowing_CanSave()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec4"));
@@ -164,7 +164,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 系列全体を選ぶと繰り返しの曜日が更新される()
+    public void EntireSeries_UpdatesRecurrenceWeekdays()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-series"));
@@ -192,7 +192,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 系列全体は開始日と例外状態を保持して更新する()
+    public void EntireSeries_UpdatesKeepingStartDateAndExceptions()
     {
         var vm = CreateViewModel(out var repo);
         var ev = CreateRecurringEvent("rec-entire-keep");
@@ -215,7 +215,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 新規として作り直すと旧系列を削除して入力開始日の新系列を作成する()
+    public void RecreateAsNew_DeletesOldSeriesAndCreatesNewOneFromEnteredStartDate()
     {
         var vm = CreateViewModel(out var repo);
         var ev = CreateRecurringEvent("rec-recreate");
@@ -238,7 +238,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 複数曜日の週次予定を読み込むと該当曜日がすべて選択される()
+    public void LoadingMultiWeekdayWeeklyEvent_SelectsAllItsWeekdays()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateWeeklyEvent("rec-multi", Weekday.Tuesday, Weekday.Thursday));
@@ -252,7 +252,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 系列全体で終了日を開始日より前にすると検証エラーになる()
+    public void EntireSeries_EndBeforeStart_IsValidationError()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-end")); // series starts 2026-05-01
@@ -268,7 +268,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 新規週次予定で終了日が開始日より前だと検証エラーになる()
+    public void NewWeeklyEvent_EndBeforeStart_IsValidationError()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 6, 1), 540);
@@ -282,7 +282,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 読み込み時に過去終了日が既定値で上書きされない()
+    public void Loading_PastEndDateIsNotOverwrittenByDefault()
     {
         var vm = CreateViewModel(out var repo);
         // A series that already ended in the past.
@@ -296,7 +296,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降で保存した新系列にユーザー指定の終了日が反映される()
+    public void ThisAndFollowing_NewSeriesGetsUserSpecifiedEndDate()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-end-fwd"));
@@ -314,7 +314,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降で終了日を発生日当日にしても元系列は前日で終わる()
+    public void ThisAndFollowing_EndDateOnOccurrenceDay_OriginalEndsDayBefore()
     {
         // Regression: EndDate == occurrence_date (the split point) must be accepted and
         // must truncate the original series to occurrence_date-1, not fail validation.
@@ -340,7 +340,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降で終了日を発生日より前にすると検証エラーになる()
+    public void ThisAndFollowing_EndBeforeOccurrence_IsValidationError()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-end-fwd-invalid"));
@@ -357,7 +357,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降で曜日未選択だと検証エラーになる()
+    public void ThisAndFollowing_NoWeekdaySelected_IsValidationError()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("rec-noday-fwd"));
@@ -374,7 +374,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 新規週次は開始日の曜日が初期選択される()
+    public void NewWeekly_StartDateWeekdayIsPreselected()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 6, 3), 540); // Wednesday
@@ -388,7 +388,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 新規月次は開始日の日が初期値になる()
+    public void NewMonthly_DefaultsToStartDateDay()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 6, 18), 540);
@@ -398,7 +398,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 新規年次は開始日の月日が初期値になる()
+    public void NewYearly_DefaultsToStartDateMonthAndDay()
     {
         var vm = CreateViewModel();
         vm.InitializeNewEvent(new DateOnly(2026, 6, 15), 540);
@@ -409,7 +409,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 既存週次の読み込みは開始日デフォルトで上書きされない()
+    public void LoadingExistingWeekly_IsNotOverwrittenByStartDateDefault()
     {
         // Series starts 2026-05-01 (a Friday) but recurs Tue + Thu. Loading must keep Tue/Thu
         // and must not force-select the start weekday (Friday).
@@ -423,7 +423,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void DeleteOccurrenceAndFollowing_元系列が発生日の前日で終了する()
+    public void DeleteOccurrenceAndFollowing_OriginalSeriesEndsDayBeforeOccurrence()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("del-following-vm"));
@@ -438,7 +438,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void DeleteOccurrenceAndFollowing_先頭の発生日を指定すると系列ごと削除される()
+    public void DeleteOccurrenceAndFollowing_FirstOccurrence_DeletesWholeSeries()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEvent("del-following-first-vm"));
@@ -450,10 +450,10 @@ public class EventEditInitializationTests
         Assert.HasCount(0, repo.FindAll());
     }
 
-    // ── シフト（AdjustmentRule）関連テスト ─────────────────────────────────
+    // ── Shift (AdjustmentRule) tests ─────────────────────────────────
 
     [TestMethod]
-    public void シフトあり繰り返しイベントを読み込むとAdjustmentBusinessDaysが設定される()
+    public void LoadingShiftedRecurringEvent_SetsAdjustmentBusinessDays()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-load", shiftDays: 3));
@@ -466,7 +466,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 系列全体でシフトあり編集を保存するとAdjustmentRuleが維持される()
+    public void EntireSeries_SavingShiftedEdit_KeepsAdjustmentRule()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-series", shiftDays: 2));
@@ -484,7 +484,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 系列全体でシフト日数を変更すると保存に反映される()
+    public void EntireSeries_ChangingShiftDays_IsSaved()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-change", shiftDays: 2));
@@ -502,7 +502,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 系列全体でシフトを解除すると保存後はAdjustmentRuleがなくなる()
+    public void EntireSeries_RemovingShift_LeavesNoAdjustmentRuleAfterSave()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-off", shiftDays: 2));
@@ -520,7 +520,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降でシフトあり編集が保存できる()
+    public void ThisAndFollowing_CanSaveShiftedEdit()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-fwd", shiftDays: 2));
@@ -542,7 +542,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降でシフト日数を変更すると新系列に反映される()
+    public void ThisAndFollowing_ChangingShiftDays_AppliesToNewSeries()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-fwd-change", shiftDays: 2));
@@ -567,7 +567,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void これ以降でシフトを解除すると新系列にはAdjustmentRuleがない()
+    public void ThisAndFollowing_RemovingShift_NewSeriesHasNoAdjustmentRule()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-fwd-off", shiftDays: 2));
@@ -587,7 +587,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void この予定のみでシフトあり系列のAdjustmentRuleは変更されない()
+    public void ThisOccurrenceOnly_ShiftedSeriesAdjustmentRuleUnchanged()
     {
         var vm = CreateViewModel(out var repo);
         repo.Save(CreateRecurringEventWithShift("rec-shift-single-occ", shiftDays: 2));
@@ -612,7 +612,7 @@ public class EventEditInitializationTests
     }
 
     [TestMethod]
-    public void 休日中止イベントを読み込むと基準日方向ピッカー用インデックスが範囲内に収まる()
+    public void LoadingCancelOnHolidayEvent_KeepsBaseDateDirectionPickerIndexInRange()
     {
         // The Base Date direction picker offers only Before/After (2 items); assigning the raw
         // Cancel index (2) as its SelectedIndex crashed EventEditPage with ArgumentException.

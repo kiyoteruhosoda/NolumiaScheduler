@@ -19,13 +19,13 @@ public class StorageConfigTests
     }
 
     [TestMethod]
-    public void GetBackend_設定が無ければJsonが既定()
+    public void GetBackend_NoSetting_DefaultsToJson()
     {
         Assert.AreEqual(StorageBackend.Json, new StorageConfig(_dir).GetBackend());
     }
 
     [TestMethod]
-    public void SetBackend_保存した値を読み戻せる()
+    public void SetBackend_SavedValueCanBeReadBack()
     {
         new StorageConfig(_dir).SetBackend(StorageBackend.Sqlite);
 
@@ -34,7 +34,7 @@ public class StorageConfigTests
     }
 
     [TestMethod]
-    public void GetBackend_壊れた設定はJsonにフォールバックする()
+    public void GetBackend_CorruptSetting_FallsBackToJson()
     {
         var config = new StorageConfig(_dir);
         File.WriteAllText(config.FilePath, "{ this is not json");

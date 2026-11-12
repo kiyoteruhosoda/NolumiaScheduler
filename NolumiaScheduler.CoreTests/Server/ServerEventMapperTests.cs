@@ -10,7 +10,7 @@ public class ServerEventMapperTests
     private static readonly BusinessCalendarId DaysOff = new(ServerDaysOffCalendar.Id);
 
     [TestMethod]
-    public void ToDomain_サーバーの整数のidが文字列のEventIdになる()
+    public void ToDomain_ServerIntegerIdBecomesStringEventId()
     {
         var ev = ServerEventMapper.ToDomain(ServerEvents.Single(42), DaysOff);
 
@@ -25,7 +25,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void ToDomain_繰り返しの規則と例外と移動を読む_営業日シフトは休みの層を指す()
+    public void ToDomain_ReadsRecurrenceRuleExceptionsAndMoves_BusinessDayShiftPointsToDaysOffLayer()
     {
         var dto = ServerEvents.Weekly(7) with
         {
@@ -39,7 +39,7 @@ public class ServerEventMapperTests
         var rule = ev.RecurringSchedule!.RecurrenceRule;
         Assert.AreEqual(RecurrenceType.Weekly, rule.RuleType);
         CollectionAssert.AreEqual(new[] { Weekday.Monday, Weekday.Wednesday }, rule.Weekly!.Weekdays.ToArray());
-        Assert.AreEqual(ServerEventMapper.NoEndDate, rule.EndDate, "null の終了日は「終わりなし」");
+        Assert.AreEqual(ServerEventMapper.NoEndDate, rule.EndDate, "A null end date means \"no end\"");
         Assert.AreEqual(ServerDaysOffCalendar.Id, rule.Adjustment!.CalendarId!.Value);
         Assert.AreEqual(1, rule.Adjustment.ShiftAmount);
         Assert.AreEqual(EventColorKey.Tomato, ev.ColorKey);
@@ -55,7 +55,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void ToRuleDto_読んだ規則をそのまま書き戻せる()
+    public void ToRuleDto_ReadRuleCanBeWrittenBackAsIs()
     {
         var dto = ServerEvents.Weekly(7).Recurrence! with
         {
@@ -69,7 +69,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void ToRuleDto_月と年の規則()
+    public void ToRuleDto_MonthlyAndYearlyRules()
     {
         var monthlyNth = new RecurrenceRuleDto("MONTHLY", 2, null, null, new MonthlyRuleDto("NTH_WEEKDAY", WeekIndex: -1, Weekday: "FR"), null, null);
         var monthlyLast = new RecurrenceRuleDto("MONTHLY", 1, null, null, new MonthlyRuleDto("LAST_DAY"), null, null);
@@ -83,7 +83,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void ToRuleDto_曜日は月曜から並べる()
+    public void ToRuleDto_WeekdaysOrderedFromMonday()
     {
         var rule = new RecurrenceRule(RecurrenceType.Weekly, 1, ServerEventMapper.NoEndDate,
             weekly: new WeeklyRule([Weekday.Sunday, Weekday.Friday, Weekday.Monday]));
@@ -92,7 +92,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void 通知の欄はサーバーの名前で読み書きする()
+    public void NotificationFields_ReadAndWrittenWithServerNames()
     {
         var json = FakeSchedulerServer.Serialize(new AlarmDto(true, true, false, true, false));
 
@@ -102,7 +102,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void ToUpdateDto_アプリの知らない項目はサーバーの値を送り返す()
+    public void ToUpdateDto_SendsBackServerValuesForFieldsUnknownToApp()
     {
         var server = ServerEvents.Single(42);
         var ev = ServerEventMapper.ToDomain(server, DaysOff);
@@ -116,7 +116,7 @@ public class ServerEventMapperTests
     }
 
     [TestMethod]
-    public void ToDomain_取り込んだ回は読み取り専用でリマインダーを持ち_idは読み直しても変わらない()
+    public void ToDomain_ImportedOccurrenceIsReadOnlyWithReminder_IdStableAcrossReloads()
     {
         var dto = new ImportedOccurrenceDto(
             Id: "imported:9:0", CalendarId: 9, Title: "Review", Location: "Teams",
@@ -130,11 +130,11 @@ public class ServerEventMapperTests
         Assert.AreEqual(ServerEventMapper.ImportedSourceId, ev.ExternalOrigin!.SourceId);
         Assert.AreEqual(new EventAlarm(true, true, true, true, true), ev.Alarm);
         Assert.AreEqual(Visibility.Private, ev.Visibility);
-        Assert.AreEqual(ev.Id.Value, again.Id.Value, "応答の中の番号が変わっても同じ回は同じ id");
+        Assert.AreEqual(ev.Id.Value, again.Id.Value, "The same occurrence keeps the same id even if numbers in the response change");
     }
 
     [TestMethod]
-    public void ToDomain_リマインダーの無い取り込んだ回は鳴らさない()
+    public void ToDomain_ImportedOccurrenceWithoutReminder_DoesNotRing()
     {
         var dto = new ImportedOccurrenceDto("x", 9, "Holiday", null,
             new DateTimeOffset(2026, 11, 4, 15, 0, 0, TimeSpan.Zero), 1440, IsAllDay: true);

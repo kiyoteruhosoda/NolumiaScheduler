@@ -114,7 +114,7 @@ public sealed class DefaultWeekEventLayoutStrategy : IWeekEventLayoutStrategy
         }
         else
         {
-            // 列幅はグループ共通の列数で割り、右側に空き列があれば ColumnSpan の分だけ拡張する
+            // Divide the width by the group-wide column count; if there are free columns to the right, widen by ColumnSpan
             var totalColumns = segment.GroupColumns;
             var baseWidthRatio = (1d - ColumnGapRatio * (totalColumns - 1)) / totalColumns;
             widthRatio = baseWidthRatio * segment.ColumnSpan + ColumnGapRatio * (segment.ColumnSpan - 1);

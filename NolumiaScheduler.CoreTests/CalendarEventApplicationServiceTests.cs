@@ -32,7 +32,7 @@ public class CalendarEventApplicationServiceTests
     // ── CreateSingleEvent ──────────────────────────────────────────────────
 
     [TestMethod]
-    public void CreateSingleEvent_単発予定が保存される()
+    public void CreateSingleEvent_SavesSingleEvent()
     {
         _svc.CreateSingleEvent(new CreateSingleEventCommand(
             Title: "Meeting",
@@ -54,7 +54,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void CreateSingleEvent_終日予定はスケジュールが1日分になる()
+    public void CreateSingleEvent_AllDayEventScheduleSpansOneDay()
     {
         _svc.CreateSingleEvent(new CreateSingleEventCommand(
             Title: "Holiday",
@@ -76,7 +76,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void CreateSingleEvent_作成日時と更新日時はTimeProviderの現在時刻になる()
+    public void CreateSingleEvent_CreatedAndUpdatedAtAreTimeProviderNow()
     {
         _svc.CreateSingleEvent(new CreateSingleEventCommand(
             Title: "Clock",
@@ -96,7 +96,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void UpdateEvent_更新日時は進んだクロックの時刻に遷移する()
+    public void UpdateEvent_UpdatedAtMovesToAdvancedClockTime()
     {
         CreateAndSaveSingleEvent("clk1");
         _clock.Advance(TimeSpan.FromHours(3));
@@ -119,7 +119,7 @@ public class CalendarEventApplicationServiceTests
     // ── CreateRecurringEvent ───────────────────────────────────────────────
 
     [TestMethod]
-    public void CreateRecurringEvent_繰り返し予定が保存される()
+    public void CreateRecurringEvent_SavesRecurringEvent()
     {
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
@@ -148,7 +148,7 @@ public class CalendarEventApplicationServiceTests
     // ── UpdateEvent ────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void UpdateEvent_タイトルと場所を変更できる()
+    public void UpdateEvent_CanChangeTitleAndLocation()
     {
         var ev = CreateAndSaveSingleEvent("upd1");
         _svc.UpdateEvent(new UpdateEventCommand(
@@ -168,7 +168,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void UpdateEvent_単発予定は日時を変更できる()
+    public void UpdateEvent_SingleEventCanChangeDateTime()
     {
         var ev = CreateAndSaveSingleEvent("upd2");
         var originalStartDate = LocalSchedulePoint.LocalDateOf(ev.SingleSchedule!.StartUtc, Tokyo);
@@ -192,7 +192,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void UpdateEvent_色未指定の部分更新では既存色を保持する()
+    public void UpdateEvent_PartialUpdateWithoutColorKeepsExistingColor()
     {
         CreateAndSaveSingleEvent("color-drag", EventColorKey.Basil);
 
@@ -213,7 +213,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void UpdateEvent_終日単発予定は時間なしで日付変更できる()
+    public void UpdateEvent_AllDaySingleEventCanChangeDateWithoutTime()
     {
         _svc.CreateSingleEvent(new CreateSingleEventCommand(
             Title: "All Day", Location: null, Visibility: Visibility.Public,
@@ -243,7 +243,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void RescheduleSingleEvent_日時だけを変更し他属性は保持する()
+    public void RescheduleSingleEvent_ChangesOnlyDateTimeAndKeepsOtherAttributes()
     {
         var alarm = new EventAlarm(true, false, true, false, true);
         CreateAndSaveSingleEvent(
@@ -272,7 +272,7 @@ public class CalendarEventApplicationServiceTests
     // ── SkipOccurrence / DeleteOccurrence ──────────────────────────────────
 
     [TestMethod]
-    public void SkipOccurrence_対象Occurrenceがスキップされる()
+    public void SkipOccurrence_SkipsTargetOccurrence()
     {
         SaveRecurringEvent("skip1");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -286,7 +286,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void DeleteOccurrence_SkipOccurrenceと同等の動作をする()
+    public void DeleteOccurrence_BehavesLikeSkipOccurrence()
     {
         SaveRecurringEvent("del1");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -301,7 +301,7 @@ public class CalendarEventApplicationServiceTests
     // ── SplitThisOccurrence ─────────────────────────────────────────────────
 
     [TestMethod]
-    public void SplitThisOccurrence_対象Occurrenceがスキップされ単体予定が作成される()
+    public void SplitThisOccurrence_SkipsTargetOccurrenceAndCreatesSingleEvent()
     {
         SaveRecurringEvent("split-this-1");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -336,7 +336,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void SplitThisOccurrence_日付変更時は新しい単体予定が指定日に作成される()
+    public void SplitThisOccurrence_WithDateChange_CreatesSingleEventOnGivenDate()
     {
         SaveRecurringEvent("split-this-2");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -363,7 +363,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void SplitThisOccurrence_単発予定には呼べない()
+    public void SplitThisOccurrence_CannotBeCalledOnSingleEvent()
     {
         CreateAndSaveSingleEvent("single-ev");
         var key = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 20), new LocalTimeValue(9, 0, 0));
@@ -378,7 +378,7 @@ public class CalendarEventApplicationServiceTests
     // ── ChangeFollowingOccurrences ─────────────────────────────────────────
 
     [TestMethod]
-    public void ChangeFollowingOccurrences_元系列の終了日が分割点の前日になる()
+    public void ChangeFollowingOccurrences_OriginalSeriesEndsDayBeforeSplitPoint()
     {
         SaveRecurringEvent("split1");
         var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -410,7 +410,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void ChangeFollowingOccurrences_新系列にユーザー指定の終了日が反映される()
+    public void ChangeFollowingOccurrences_NewSeriesGetsUserSpecifiedEndDate()
     {
         SaveRecurringEvent("split-end");
         var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -436,7 +436,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void ChangeFollowingOccurrences_終了日が分割日と同日のとき元系列は前日で終わり新系列も同日が終了日になる()
+    public void ChangeFollowingOccurrences_EndDateOnSplitDate_OriginalEndsDayBeforeAndNewSeriesEndsSameDay()
     {
         // Regression: when NewRecurrenceRule.EndDate == fromKey.Date (occurrence date),
         // the original series must be truncated to fromKey.Date-1 and the new series must
@@ -472,7 +472,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void ChangeFollowingOccurrences_NewStartDateが指定された場合は新系列のアンカーがその日付になる()
+    public void ChangeFollowingOccurrences_WithNewStartDate_NewSeriesAnchorIsThatDate()
     {
         // Scenario: recurring Mon-Fri starting 6/29 (Mon), editing the 6/30 (Tue) occurrence
         // with "This and following" and moving the new series start to 7/1 (Wed).
@@ -526,7 +526,7 @@ public class CalendarEventApplicationServiceTests
     // ── DeleteFollowingOccurrences ─────────────────────────────────────────
 
     [TestMethod]
-    public void DeleteFollowingOccurrences_元系列が発生日の前日で終了する()
+    public void DeleteFollowingOccurrences_OriginalSeriesEndsDayBeforeOccurrence()
     {
         SaveRecurringEvent("del-following-1");
         var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 6), new LocalTimeValue(9, 30, 0));
@@ -541,7 +541,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void DeleteFollowingOccurrences_系列の先頭の発生日を指定すると系列ごと削除される()
+    public void DeleteFollowingOccurrences_FirstOccurrence_DeletesWholeSeries()
     {
         SaveRecurringEvent("del-following-first");
         var fromKey = new OccurrenceLocalKey(new LocalDateValue(2026, 5, 1), new LocalTimeValue(9, 30, 0));
@@ -554,7 +554,7 @@ public class CalendarEventApplicationServiceTests
     // ── UpdateRecurringSeries ──────────────────────────────────────────────
 
     [TestMethod]
-    public void UpdateRecurringSeries_繰り返しルールと時刻と詳細が更新される()
+    public void UpdateRecurringSeries_UpdatesRuleTimeAndDetails()
     {
         SaveRecurringEvent("series1");
 
@@ -589,7 +589,7 @@ public class CalendarEventApplicationServiceTests
     }
 
     [TestMethod]
-    public void UpdateRecurringSeries_NewStartDateを指定するとアンカーが移動する()
+    public void UpdateRecurringSeries_WithNewStartDate_MovesAnchor()
     {
         // Scenario: Mon-Fri series anchored at 6/29 (Mon). User opens the 6/30 (Tue) occurrence,
         // selects "Entire Series", and saves. StartDate in the form is 6/30, so the anchor must
@@ -629,7 +629,7 @@ public class CalendarEventApplicationServiceTests
     // ── DeleteEvent ────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void DeleteEvent_予定が削除される()
+    public void DeleteEvent_DeletesEvent()
     {
         CreateAndSaveSingleEvent("del-ev");
         Assert.HasCount(1, _repo.FindAll());

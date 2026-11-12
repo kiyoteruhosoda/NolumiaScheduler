@@ -55,7 +55,7 @@ public class ServerCalendarStoreTests
     // ── Reading ──────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void Refresh_予定と取り込んだ回と休みの日が読める_Bearerで呼ぶ()
+    public void Refresh_ReadsEventsImportedOccurrencesAndDaysOff_CallsWithBearer()
     {
         var store = NewStore();
         var repo = new ServerCalendarEventRepository(store);
@@ -73,7 +73,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void Refresh_休みと取り込んだ回は800日以内で聞く()
+    public void Refresh_AsksDaysOffAndImportedOccurrencesWithin800Days()
     {
         var store = NewStore();
 
@@ -88,7 +88,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 写しはファイルに残り_次の起動はつながらなくても表示できる()
+    public void CopyIsKeptInFile_NextStartCanShowWhileOffline()
     {
         Refresh(NewStore());
         _server.Offline = true;
@@ -100,7 +100,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void つながらないときの読み直しは失敗し_写しはそのまま()
+    public void ReloadWhileOffline_Fails_CopyUnchanged()
     {
         var store = NewStore();
         Refresh(store);
@@ -113,9 +113,9 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 断られた読み直しは_どの口で何が返ったかを持つ()
+    public void RejectedReload_RecordsWhichEndpointReturnedWhat()
     {
-        // nolumiatask #936: GET /api/calendar/events が 422 を返し続け、ログからはどの口か分からなかった
+        // nolumiatask #936: GET /api/calendar/events kept returning 422 and the logs did not say which endpoint
         var store = NewStore();
         _server.On(HttpMethod.Get, "/api/calendar/events", HttpStatusCode.UnprocessableEntity,
             """{"detail":"the period must be at most 400 days"}""");
@@ -131,7 +131,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void つながらないときも_どの口かを持つ()
+    public void Offline_StillRecordsWhichEndpoint()
     {
         var store = NewStore();
         _server.Offline = true;
@@ -142,7 +142,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 何も変わらない読み直しでは変更を知らせない()
+    public void ReloadWithNoChanges_DoesNotRaiseChanged()
     {
         var store = NewStore();
         Refresh(store);
@@ -151,7 +151,7 @@ public class ServerCalendarStoreTests
 
         Refresh(store);
 
-        Assert.AreEqual(0, raised, "知らせるとアラームの鳴った印が消えてしまう");
+        Assert.AreEqual(0, raised, "Raising it would clear the alarm fired marks");
     }
 
     // ── Writing through the app's own service ───────────────────────────
@@ -166,7 +166,7 @@ public class ServerCalendarStoreTests
         => new(id, title, "Room A", Visibility.Public, false, null, null, null, EventAlarm.Default);
 
     [TestMethod]
-    public void 予定を直すと_知らない項目を送り返して直し_写しはサーバーの答えになる()
+    public void EditEvent_SendsBackUnknownFields_CopyBecomesServerResponse()
     {
         _server.OnJson(HttpMethod.Put, "/api/calendar/events/1", ServerEvents.Single(1, "Renamed", version: 4));
         var store = NewStore();
@@ -185,7 +185,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 版がぶつかったら_読み直してから知らせる()
+    public void VersionConflict_ReloadsThenNotifies()
     {
         _server.On(HttpMethod.Put, "/api/calendar/events/1", HttpStatusCode.Conflict, """{"detail":"version mismatch"}""");
         var store = NewStore();
@@ -200,7 +200,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void つながらないときの書き込みは失敗し_画面は元に戻る()
+    public void WriteWhileOffline_Fails_ScreenReverts()
     {
         var store = NewStore();
         Refresh(store);
@@ -212,12 +212,12 @@ public class ServerCalendarStoreTests
         var error = Assert.ThrowsExactly<ServerException>(() => Service(store).UpdateEvent(Rename("1", "Offline edit")));
 
         Assert.IsTrue(error.IsUnreachable);
-        Assert.AreEqual("Meeting", repo.FindById(new EventId("1"))!.Title.Value, "手元に溜めない");
-        Assert.IsTrue(raised > 0, "画面を描き直させる");
+        Assert.AreEqual("Meeting", repo.FindById(new EventId("1"))!.Title.Value, "Nothing is queued locally");
+        Assert.IsTrue(raised > 0, "The screen is told to redraw");
     }
 
     [TestMethod]
-    public void 新しい予定はサーバーが振った番号に置き換わる()
+    public void NewEvent_IdReplacedByServerAssignedNumber()
     {
         _server.On(HttpMethod.Post, "/api/calendar/events",
             _ => (HttpStatusCode.Created, FakeSchedulerServer.Serialize(ServerEvents.Single(100, "Lunch", version: 1) with { TaskId = null, EventType = "EVENT" })));
@@ -237,7 +237,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 繰り返しの回を消すと_飛ばす口を呼ぶ()
+    public void DeleteRecurringOccurrence_CallsSkipEndpoint()
     {
         var skipped = ServerEvents.Weekly(2, version: 5) with
         {
@@ -254,11 +254,11 @@ public class ServerCalendarStoreTests
         Assert.AreEqual("2026-11-04", body.GetProperty("occurrence").GetProperty("date").GetString());
         Assert.AreEqual(4, body.GetProperty("expected_version").GetInt32());
         Assert.AreEqual(1, store.FindDto("2")!.Exceptions.Count);
-        Assert.AreEqual(1, _server.Requests.Count(r => r.Method != HttpMethod.Get), "収まったらそれ以上送らない");
+        Assert.AreEqual(1, _server.Requests.Count(r => r.Method != HttpMethod.Get), "Nothing more is sent once it settles");
     }
 
     [TestMethod]
-    public void 予定を消すとサーバーから消え_写しからも消える()
+    public void DeleteEvent_RemovedFromServerAndCopy()
     {
         _server.On(HttpMethod.Delete, "/api/calendar/events/1", HttpStatusCode.NoContent, "");
         var store = NewStore();
@@ -271,7 +271,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 取り込んだ回は消せず_通知の切り替えはサーバーへ送らない()
+    public void ImportedOccurrence_CannotBeDeleted_NotificationToggleNotSentToServer()
     {
         var store = NewStore();
         Refresh(store);
@@ -286,7 +286,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void ログインしていなければ書けない()
+    public void NotSignedIn_CannotWrite()
     {
         var store = NewStore(new FixedToken(null));
 
@@ -296,7 +296,7 @@ public class ServerCalendarStoreTests
     }
 
     [TestMethod]
-    public void 営業日はサーバーの休みの層の1つだけで_画面から直せない()
+    public void BusinessDays_AreOneServerDaysOffLayer_NotEditableFromScreen()
     {
         var store = NewStore();
         Refresh(store);

@@ -29,7 +29,7 @@ public class SyncStatusTests
     // ── DiagnosticTime ───────────────────────────────────────────────────
 
     [TestMethod]
-    public void Format_PCの時刻に時差を書き添える()
+    public void Format_AppendsUtcOffsetToPcTime()
     {
         var moved = new DateTimeOffset(2026, 10, 20, 2, 14, 20, TimeSpan.Zero);
         Assert.AreEqual("2026/10/20 11:14:20 (UTC+09:00)", DiagnosticTime.Format(moved, Tokyo));
@@ -54,46 +54,46 @@ public class SyncStatusTests
     private static SyncAttempt Read(DateTimeOffset at) => new(at, "timer", true, "Read", null);
 
     [TestMethod]
-    public void Diagnose_送って読めていれば何も言わない()
+    public void Diagnose_SentAndReadable_SaysNothing()
         => CollectionAssert.AreEqual(Array.Empty<SyncProblem>(), Healthy().Problems.ToArray());
 
     [TestMethod]
-    public void Diagnose_ログインしていない_移していない()
+    public void Diagnose_NotSignedIn_NotMigrated()
     {
         var s = Healthy() with { SignedIn = false, MovedAt = null };
         CollectionAssert.AreEqual(new[] { SyncProblem.NotSignedIn, SyncProblem.NotMovedToServer }, s.Problems.ToArray());
     }
 
     [TestMethod]
-    public void Diagnose_送る設定が切れていればファイルは見ない()
+    public void Diagnose_SendingDisabled_DoesNotCheckFile()
     {
         var s = Healthy() with { OutlookEnabled = false, OutlookFileExists = false };
         CollectionAssert.AreEqual(new[] { SyncProblem.OutlookDisabled }, s.Problems.ToArray());
     }
 
     [TestMethod]
-    public void Diagnose_ファイルが無い()
+    public void Diagnose_FileMissing()
     {
         var s = Healthy() with { OutlookFileExists = false, OutlookFileWrittenAt = null };
         CollectionAssert.AreEqual(new[] { SyncProblem.OutlookFileMissing }, s.Problems.ToArray());
     }
 
     [TestMethod]
-    public void Diagnose_ファイルが1日以上変わっていない()
+    public void Diagnose_FileUnchangedForOverADay()
     {
         var s = Healthy() with { OutlookFileWrittenAt = Now.AddHours(-25) };
         CollectionAssert.AreEqual(new[] { SyncProblem.OutlookFileOld }, s.Problems.ToArray());
     }
 
     [TestMethod]
-    public void Diagnose_最後の送りが失敗()
+    public void Diagnose_LastSendFailed()
     {
         var s = Healthy() with { LastOutlookSend = new SyncAttempt(Now.AddMinutes(-1), "timer", false, "Failed", "HTTP 413") };
         CollectionAssert.AreEqual(new[] { SyncProblem.OutlookSendFailed }, s.Problems.ToArray());
     }
 
     [TestMethod]
-    public void Diagnose_変わったファイルを送っていない_少しは待つ()
+    public void Diagnose_ChangedFileNotSent_WaitsABit()
     {
         var changed = Healthy() with { OutlookFileWrittenAt = Now.AddMinutes(-4) };
         var justNow = Healthy() with { OutlookFileWrittenAt = Now.AddMinutes(-1) };
@@ -105,7 +105,7 @@ public class SyncStatusTests
     }
 
     [TestMethod]
-    public void Diagnose_読めない_写しが古い_写しにOutlookが無い_読めない項目()
+    public void Diagnose_Unreadable_StaleCopy_NoOutlookInCopy_UnreadableItems()
     {
         var s = Healthy() with
         {
@@ -120,7 +120,7 @@ public class SyncStatusTests
     }
 
     [TestMethod]
-    public void Diagnose_移す前はサーバーの写しを問わない()
+    public void Diagnose_BeforeMigration_IgnoresServerCopy()
     {
         var s = Healthy() with { MovedAt = null, FetchedAt = null, OutlookCount = 0 };
         CollectionAssert.AreEqual(new[] { SyncProblem.NotMovedToServer }, s.Problems.ToArray());
@@ -129,7 +129,7 @@ public class SyncStatusTests
     // ── Collect ──────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void Collect_ファイルの更新時刻と今日のOutlookの予定と送受の記録を集める()
+    public void Collect_GathersFileTimeTodaysOutlookEventsAndSyncRecords()
     {
         var file = Path.Combine(_dir, "outlook-calendar.json");
         File.WriteAllText(file, "{}");
@@ -158,7 +158,7 @@ public class SyncStatusTests
     }
 
     [TestMethod]
-    public void Collect_写しのOutlookのカレンダーだけを数え_今日はPCの日付で選ぶ()
+    public void Collect_CountsOnlyOutlookCalendarInCopy_PicksTodayByPcDate()
     {
         var server = new FakeSchedulerServer()
             .OnJson(HttpMethod.Get, "/api/calendars", Array.Empty<CalendarDto>())
@@ -202,7 +202,7 @@ public class SyncStatusTests
     // ── AppLogTail ───────────────────────────────────────────────────────
 
     [TestMethod]
-    public void AppLogTail_連携の行と警告以上だけ_例外は1行目だけ_新しい順に上限まで()
+    public void AppLogTail_OnlySyncLinesAndWarningsOrAbove_FirstLineOfExceptions_NewestFirstUpToLimit()
     {
         var log = Path.Combine(_dir, "nolumia-20261021.log");
         File.WriteAllLines(log,
@@ -232,7 +232,7 @@ public class SyncStatusTests
     // ── SyncActivity ─────────────────────────────────────────────────────
 
     [TestMethod]
-    public void Describe_状態コードと理由を1行に()
+    public void Describe_StatusCodeAndReasonOnOneLine()
     {
         Assert.AreEqual("not signed in", SyncActivity.Describe(new ServerNotSignedInException()));
         Assert.AreEqual("HTTP 413 feed_too_large: too big",
@@ -243,7 +243,7 @@ public class SyncStatusTests
     }
 
     [TestMethod]
-    public void Describe_失敗した口を末尾に添える()
+    public void Describe_AppendsFailedEndpointAtEnd()
     {
         var error = new ServerException("refused", System.Net.HttpStatusCode.UnprocessableEntity)
         {
@@ -253,7 +253,7 @@ public class SyncStatusTests
     }
 
     [TestMethod]
-    public void SyncActivity_続けて失敗した回数といつからを数え_読めたら戻す()
+    public void SyncActivity_CountsConsecutiveFailuresAndSince_ResetsOnSuccessfulRead()
     {
         var clock = new FakeClock(Now);
         var activity = new SyncActivity(clock);
@@ -275,7 +275,7 @@ public class SyncStatusTests
     }
 
     [TestMethod]
-    public void SyncActivity_失敗しても最後に成功した回は残る()
+    public void SyncActivity_KeepsLastSuccessEvenAfterFailure()
     {
         var clock = new FakeClock(Now);
         var activity = new SyncActivity(clock);
