@@ -6,19 +6,19 @@ using System.Text.Json.Serialization;
 namespace NolumiaScheduler.Infrastructure.Auth;
 
 /// <summary>
-/// ログインが失敗した。画面は <see cref="Failure"/> をアプリの言語で出し、<see cref="Detail"/> を添える
-/// （<see cref="Exception.Message"/> は記録用の英語）。
+/// Sign-in failed. The screen shows <see cref="Failure"/> in the app language and appends <see cref="Detail"/>
+/// (<see cref="Exception.Message"/> is English, for logs).
 /// </summary>
 public sealed class SignInException(SignInFailure failure, string message, string? detail = null, Exception? innerException = null)
     : Exception(message, innerException)
 {
     public SignInFailure Failure { get; } = failure;
 
-    /// <summary>失敗ごとに変わる部分（番号・エラーの名前など）。無ければ null。</summary>
+    /// <summary>The part that varies per failure (a number, an error name, etc.). Null if none.</summary>
     public string? Detail { get; } = detail;
 }
 
-/// <summary>トークンの口の応答。</summary>
+/// <summary>Response from the token endpoint.</summary>
 public sealed record TokenResponse(
     [property: JsonPropertyName("access_token")] string AccessToken,
     [property: JsonPropertyName("refresh_token")] string? RefreshToken,
@@ -29,14 +29,14 @@ internal sealed record DiscoveryDocument(
     [property: JsonPropertyName("authorization_endpoint")] Uri AuthorizationEndpoint,
     [property: JsonPropertyName("token_endpoint")] Uri TokenEndpoint);
 
-/// <summary>assay（OIDC）とのやり取り。認可コード＋PKCE（S256）・state・nonce。</summary>
+/// <summary>Talks to assay (OIDC): authorization code + PKCE (S256), state and nonce.</summary>
 public sealed class OidcClient(HttpClient http, OidcSettings settings)
 {
     private DiscoveryDocument? _discovery;
 
     public OidcSettings Settings => settings;
 
-    /// <summary>ログイン画面の URL。</summary>
+    /// <summary>URL of the sign-in page.</summary>
     public async Task<Uri> AuthorizeUriAsync(string state, string nonce, string codeChallenge, CancellationToken cancellationToken)
     {
         var discovery = await DiscoverAsync(cancellationToken).ConfigureAwait(false);
@@ -77,7 +77,7 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
             },
             cancellationToken).ConfigureAwait(false);
 
-    /// <summary>ID トークンの中身（署名は確かめない。トークンの口から TLS で直接受け取ったもののため）。</summary>
+    /// <summary>Claims of the ID token (the signature is not verified, because it was received directly from the token endpoint over TLS).</summary>
     public static IReadOnlyDictionary<string, JsonElement> ReadIdTokenClaims(string idToken)
     {
         var parts = idToken.Split('.');
@@ -166,18 +166,18 @@ public sealed class OidcClient(HttpClient http, OidcSettings settings)
     }
 }
 
-/// <summary>トークンの口が失敗した。<see cref="Error"/> は OAuth の <c>error</c>（<c>invalid_grant</c> など）。</summary>
+/// <summary>The token endpoint failed. <see cref="Error"/> is the OAuth <c>error</c> (<c>invalid_grant</c> etc.).</summary>
 public sealed class TokenEndpointException(
     string? error, SignInFailure failure, string message, string? detail = null, Exception? innerException = null)
     : Exception(message, innerException)
 {
     public string? Error { get; } = error;
 
-    /// <summary>画面に出すときの種類（<see cref="SignInException.Failure"/> と同じ）。</summary>
+    /// <summary>The kind shown on screen (same as <see cref="SignInException.Failure"/>).</summary>
     public SignInFailure Failure { get; } = failure;
 
     public string? Detail { get; } = detail;
 
-    /// <summary>更新トークンが使えない（取り消された・切れた）。もう一度ログインが要る。</summary>
+    /// <summary>The refresh token is unusable (revoked or expired). The user must sign in again.</summary>
     public bool NeedsSignIn => Error is "invalid_grant" or "invalid_client" or "unauthorized_client";
 }

@@ -7,7 +7,7 @@ namespace NolumiaSchedulerTest;
 public class WeekInteractionServicesTests
 {
     [TestMethod]
-    public void タップとドラッグの誤判定を防止する()
+    public void TapAndDrag_AreNotMisclassified()
     {
         var sut = new WeekGestureArbitrationService();
         var tap = sut.Decide(true, false, new Point(0, 0), new Point(3, 3), TimeSpan.FromMilliseconds(100));
@@ -18,7 +18,7 @@ public class WeekInteractionServicesTests
     }
 
     [TestMethod]
-    public void リサイズは縦方向優先で判定される()
+    public void Resize_PrefersVerticalDirection()
     {
         var sut = new WeekGestureArbitrationService();
         var decision = sut.Decide(true, true, new Point(0, 0), new Point(1, 12), TimeSpan.FromMilliseconds(300));
@@ -26,7 +26,7 @@ public class WeekInteractionServicesTests
     }
 
     [TestMethod]
-    public void タップ作成は15分45分を0分30分に丸める()
+    public void TapCreate_RoundsMinute15And45To0And30()
     {
         var sut = new WeekInteractionMapper();
 
@@ -38,19 +38,19 @@ public class WeekInteractionServicesTests
     }
 
     [TestMethod]
-    public void タップ作成では15分45分の境界が生成されない()
+    public void TapCreate_DoesNotProduce15Or45MinuteBoundaries()
     {
         var sut = new WeekInteractionMapper();
         for (var minute = 0; minute <= 1439; minute++)
         {
             var snapped = sut.MapToHalfHourMinute(minute);
-            Assert.AreNotEqual(15, snapped % 60, $"{minute} 分が 15 分にスナップされました");
-            Assert.AreNotEqual(45, snapped % 60, $"{minute} 分が 45 分にスナップされました");
+            Assert.AreNotEqual(15, snapped % 60, $"{minute} min snapped to 15 min");
+            Assert.AreNotEqual(45, snapped % 60, $"{minute} min snapped to 45 min");
         }
     }
 
     [TestMethod]
-    public void エッジ近傍でオートスクロール量が発生する()
+    public void NearEdge_ProducesAutoScrollAmount()
     {
         var sut = new WeekAutoScrollService();
         var top = sut.ComputeVerticalDelta(4, 600);

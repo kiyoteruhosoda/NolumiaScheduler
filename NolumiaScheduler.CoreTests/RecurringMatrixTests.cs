@@ -76,7 +76,7 @@ public class RecurringMatrixTests
     // ── NEW ───────────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void New_各繰り返し種別で想定どおりの発生日になる()
+    public void New_EachRecurrenceKind_ProducesExpectedDates()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -93,7 +93,7 @@ public class RecurringMatrixTests
     // ── NEW + ADJUSTMENT (holiday shift none / forward / backward) ──────────
 
     [TestMethod]
-    public void New_休日シフトで発生日が前後にずれる()
+    public void New_HolidayShift_MovesDatesBackOrForward()
     {
         // holiday=2026-06-15 (a Mon / 15th / Jun-15 occurrence for all three types)
         var window = (from: new LocalDateValue(2026, 6, 8), to: new LocalDateValue(2026, 6, 22));
@@ -132,7 +132,7 @@ public class RecurringMatrixTests
     // ── CHANGE · ENTIRE SERIES ──────────────────────────────────────────────
 
     [TestMethod]
-    public void Change_系列全体_内容のみ_全発生のタイトルが変わり日付は不変()
+    public void Change_EntireSeries_ContentOnly_AllTitlesChangeDatesUnchanged()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -152,7 +152,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Change_系列全体_時間のみ_全発生の時刻が変わる()
+    public void Change_EntireSeries_TimeOnly_AllTimesChange()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -172,7 +172,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Change_系列全体_時刻変更後もスキップが維持される()
+    public void Change_EntireSeries_SkipsSurviveTimeChange()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -198,7 +198,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Change_系列全体_終了日短縮_発生数が減る()
+    public void Change_EntireSeries_ShorterEndDate_FewerOccurrences()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -220,7 +220,7 @@ public class RecurringMatrixTests
     // ── CHANGE · THIS AND FOLLOWING ──────────────────────────────────────────
 
     [TestMethod]
-    public void Change_これ以降_3番目で分割し以降のみ変更される()
+    public void Change_ThisAndFollowing_SplitsAtThirdAndChangesOnlyFollowing()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -257,7 +257,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Change_これ以降_先頭発生で分割すると元系列は消え新系列が全体を担う()
+    public void Change_ThisAndFollowing_SplitAtFirst_OriginalGoneNewSeriesCoversAll()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -290,7 +290,7 @@ public class RecurringMatrixTests
     // ── CHANGE · THIS OCCURRENCE ─────────────────────────────────────────────
 
     [TestMethod]
-    public void Split_この予約のみ_対象発生が除外され単体予定が作成される()
+    public void Split_ThisOccurrenceOnly_ExcludesTargetAndCreatesSingleEvent()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -329,7 +329,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Split_この予約のみ_日付変更時は新しい単体予定が別日に作成される()
+    public void Split_ThisOccurrenceOnly_WithDateChange_CreatesSingleEventOnOtherDay()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -369,7 +369,7 @@ public class RecurringMatrixTests
     // ── DELETE ───────────────────────────────────────────────────────────────
 
     [TestMethod]
-    public void Delete_系列全体_予定が消える()
+    public void Delete_EntireSeries_RemovesEvent()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -384,7 +384,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void Delete_この予定のみ_対象発生だけ除外される()
+    public void Delete_ThisOccurrenceOnly_ExcludesOnlyTarget()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -406,7 +406,7 @@ public class RecurringMatrixTests
     // ── END-DATE VALIDATION (domain guard) ───────────────────────────────────
 
     [TestMethod]
-    public void EndDate_開始日より前の終了日で新規作成すると例外()
+    public void EndDate_CreateWithEndBeforeStart_Throws()
     {
         foreach (var type in Rec.AllTypes)
         {
@@ -423,7 +423,7 @@ public class RecurringMatrixTests
     }
 
     [TestMethod]
-    public void EndDate_系列全体更新で開始日より前の終了日は例外()
+    public void EndDate_UpdateEntireSeriesWithEndBeforeStart_Throws()
     {
         foreach (var type in Rec.AllTypes)
         {

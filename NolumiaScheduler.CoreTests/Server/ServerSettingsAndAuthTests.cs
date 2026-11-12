@@ -19,7 +19,7 @@ public class ServerSettingsAndAuthTests
     public void Cleanup() => Directory.Delete(_dir, recursive: true);
 
     [TestMethod]
-    public void 設定のファイルが無ければ本番とWindowsアプリのclientを向く()
+    public void NoSettingsFile_PointsToProductionAndWindowsAppClient()
     {
         var settings = ServerSettings.Load(_dir);
 
@@ -30,7 +30,7 @@ public class ServerSettingsAndAuthTests
     }
 
     [TestMethod]
-    public void 設定のファイルで向き先を差し替えられる()
+    public void SettingsFile_CanOverrideTarget()
     {
         File.WriteAllText(Path.Combine(_dir, ServerSettings.FileName),
             """{ "baseUrl": "https://schedulerstg.nolumia.com", "clientId": "other" }""");
@@ -43,7 +43,7 @@ public class ServerSettingsAndAuthTests
     }
 
     [TestMethod]
-    public void 読めない設定は既定に戻る()
+    public void UnreadableSettings_FallBackToDefaults()
     {
         File.WriteAllText(Path.Combine(_dir, ServerSettings.FileName), "{ not json");
 
@@ -51,7 +51,7 @@ public class ServerSettingsAndAuthTests
     }
 
     [TestMethod]
-    public void PKCEのchallengeはverifierのSHA256のbase64url()
+    public void PkceChallenge_IsBase64UrlOfVerifierSha256()
     {
         // Base64url(SHA-256(verifier)), computed independently.
         Assert.AreEqual("T08pcQoLW-K9jKPm68HZPmIWT5MWIunArWDWzu3ls04",
@@ -59,7 +59,7 @@ public class ServerSettingsAndAuthTests
     }
 
     [TestMethod]
-    public void 戻り先の要求から値を読む_127001以外は受けない()
+    public void RedirectRequest_ReadsValues_RejectsNon127001()
     {
         Assert.AreEqual<(string, string)?>(("/callback", "code=a%20b&state=x"), LoopbackReceiver.ParseTarget("GET /callback?code=a%20b&state=x HTTP/1.1"));
         Assert.IsNull(LoopbackReceiver.ParseTarget("POST /callback HTTP/1.1"));

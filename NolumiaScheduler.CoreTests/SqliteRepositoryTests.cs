@@ -34,7 +34,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void MigrationRunner_繰り返し実行しても冪等である()
+    public void MigrationRunner_IsIdempotentWhenRunRepeatedly()
     {
         // Running again over an already-migrated database must not throw.
         SqliteMigrationRunner.Run(_factory);
@@ -42,7 +42,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_保存して取得できる()
+    public void CalendarEvent_CanSaveAndLoad()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         var ev = NewSingleEvent("Meeting", "Room A");
@@ -58,7 +58,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_月末3営業日前ルールが往復する()
+    public void CalendarEvent_ThreeBusinessDaysBeforeMonthEndRuleRoundTrips()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         var rule = new RecurrenceRule(
@@ -85,7 +85,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_別インスタンスからも読み込める()
+    public void CalendarEvent_CanBeLoadedFromAnotherInstance()
     {
         var ev = NewSingleEvent("Persisted", null);
         new SqliteCalendarEventRepository(_factory).Save(ev);
@@ -98,7 +98,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_保存は更新として上書きされる()
+    public void CalendarEvent_SaveOverwritesAsUpdate()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         repo.Save(NewSingleEvent("First", null));
@@ -113,7 +113,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_削除できる()
+    public void CalendarEvent_CanDelete()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         var ev = NewSingleEvent("ToDelete", null);
@@ -126,7 +126,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_保存削除でChangedが発火する()
+    public void CalendarEvent_SaveAndDeleteRaiseChanged()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         var count = 0;
@@ -140,7 +140,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_FindByPeriodは重なるイベントだけ返す()
+    public void CalendarEvent_FindByPeriodReturnsOnlyOverlappingEvents()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         var inWindow = NewSingleEventOn(new DateOnly(2026, 6, 12));
@@ -155,7 +155,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void CalendarEvent_FindByPeriodは繰り返しの活動期間で重なりを判定する()
+    public void CalendarEvent_FindByPeriodUsesRecurrenceActivePeriodForOverlap()
     {
         var repo = new SqliteCalendarEventRepository(_factory);
         var recurring = NewWeeklyEvent(new LocalDateValue(2026, 1, 5), new LocalDateValue(2026, 3, 31));
@@ -166,7 +166,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void Migration_既存行のスパンをバックフィルする()
+    public void Migration_BackfillsSpanOfExistingRows()
     {
         // Produce a valid payload via the already-migrated primary database.
         var seed = NewSingleEventOn(new DateOnly(2026, 6, 12));
@@ -215,7 +215,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void BusinessCalendar_保存して取得できる()
+    public void BusinessCalendar_CanSaveAndLoad()
     {
         var repo = new SqliteBusinessCalendarRepository(_factory);
         var cal = new BusinessCalendar(
@@ -235,7 +235,7 @@ public class SqliteRepositoryTests
     }
 
     [TestMethod]
-    public void AppSettings_テーマと言語を保存して取得できる()
+    public void AppSettings_CanSaveAndLoadThemeAndLanguage()
     {
         var repo = new SqliteAppSettingsRepository(_factory);
 

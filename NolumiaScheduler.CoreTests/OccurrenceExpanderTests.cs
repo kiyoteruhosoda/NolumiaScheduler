@@ -231,7 +231,7 @@ public class OccurrenceExpanderTests
 
 
     [TestMethod]
-    public void Expand_休日キャンセル調整は祝日の発生だけ除外する()
+    public void Expand_HolidayCancelAdjustment_ExcludesOnlyHolidayOccurrences()
     {
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
@@ -265,7 +265,7 @@ public class OccurrenceExpanderTests
             results.Select(r => r.Date).ToArray());
     }
 
-    // ── "N business days before a monthly anchor" (毎月15日/月末の3営業日前) ────────────
+    // ── "N business days before a monthly anchor" (3 business days before the 15th / month end) ────────────
 
     // Mon–Fri workday calendar with the given holidays.
     private static BusinessCalendar WeekdayCalendar(params LocalDateValue[] holidays) =>
@@ -290,7 +290,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_毎月15日の3営業日前_13時()
+    public void Expand_ThreeBusinessDaysBeforeThe15th_At1300()
     {
         // June 2026: the 15th is a Monday; 3 business days before is Wed June 10 at 13:00.
         var ev = MonthlyAnchorMinusBusinessDays(new DayOfMonthMonthlyRule(15), 3);
@@ -304,7 +304,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_毎月末の3営業日前_13時()
+    public void Expand_ThreeBusinessDaysBeforeMonthEnd_At1300()
     {
         // June 2026 ends Tue June 30; 3 business days before is Thu June 25 at 13:00.
         var ev = MonthlyAnchorMinusBusinessDays(new LastDayOfMonthMonthlyRule(), 3);
@@ -318,7 +318,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_3営業日前は祝日をスキップして数える()
+    public void Expand_ThreeBusinessDaysBefore_SkipsHolidaysWhenCounting()
     {
         // With Thu June 11 a holiday, counting back 3 business days from Mon June 15 skips it:
         // Fri 12, (Thu 11 holiday), Wed 10, Tue 9 → June 9.
@@ -455,7 +455,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_範囲外の日付から範囲内へ移動されたオカレンスも展開される()
+    public void Expand_OccurrenceMovedFromOutsideIntoRange_IsExpanded()
     {
         // Backward-compat: original occurrence 4/27 (outside the queried window) moved into 5/13:
         // the occurrence must show up when expanding May even though its candidate date is in April.
@@ -478,7 +478,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_週次_日曜が最終週でend超えても他曜日の発生を打ち切らない()
+    public void Expand_Weekly_SundayPastEndInLastWeek_DoesNotCutOtherWeekdays()
     {
         // Weekdays: Sunday + Wednesday.  EndDate = 2026-05-07 (Thursday).
         // Week starting Mon 2026-05-04: Sunday candidate = 2026-05-10 > end.
@@ -516,7 +516,7 @@ public class OccurrenceExpanderTests
     // cleanly at DateOnly.MaxValue instead of overflowing in AddDays/AddMonths.
 
     [TestMethod]
-    public void Expand_Weekly_暦の上限9999年末まで展開してもオーバーフローしない()
+    public void Expand_Weekly_UpToCalendarMaxEndOf9999_DoesNotOverflow()
     {
         var rule = new RecurrenceRule(
             RecurrenceType.Weekly, 1,
@@ -534,7 +534,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_Monthly_暦の上限9999年末まで展開してもオーバーフローしない()
+    public void Expand_Monthly_UpToCalendarMaxEndOf9999_DoesNotOverflow()
     {
         var rule = new RecurrenceRule(
             RecurrenceType.Monthly, 1,
@@ -551,7 +551,7 @@ public class OccurrenceExpanderTests
     }
 
     [TestMethod]
-    public void Expand_Yearly_暦の上限9999年まで展開してもオーバーフローしない()
+    public void Expand_Yearly_UpToCalendarMaxYear9999_DoesNotOverflow()
     {
         var rule = new RecurrenceRule(
             RecurrenceType.Yearly, 1,

@@ -10,7 +10,7 @@ public class CalendarEventSpanTests
     private static readonly DateTimeOffset Now = new(2026, 1, 1, 0, 0, 0, TimeSpan.Zero);
 
     [TestMethod]
-    public void SingleEvent_スパンは予定日になる()
+    public void SingleEvent_SpanIsTheScheduledDate()
     {
         var ev = Single(new DateTimeOffset(2026, 5, 20, 9, 0, 0, TimeSpan.Zero));
 
@@ -21,7 +21,7 @@ public class CalendarEventSpanTests
     }
 
     [TestMethod]
-    public void RecurringEvent_スパンは開始日から繰り返し終了日まで()
+    public void RecurringEvent_SpanRunsFromStartDateToRecurrenceEndDate()
     {
         var ev = WeeklyMonday(new LocalDateValue(2026, 1, 5), new LocalDateValue(2027, 12, 31));
 
@@ -32,7 +32,7 @@ public class CalendarEventSpanTests
     }
 
     [TestMethod]
-    public void OverlapsPeriod_スパン内の窓はヒットしスパン外は外れる()
+    public void OverlapsPeriod_WindowInsideSpanHitsAndOutsideMisses()
     {
         var ev = WeeklyMonday(new LocalDateValue(2026, 1, 5), new LocalDateValue(2026, 3, 31));
 

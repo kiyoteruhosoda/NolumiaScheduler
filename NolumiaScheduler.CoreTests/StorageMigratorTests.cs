@@ -28,7 +28,7 @@ public class StorageMigratorTests
     }
 
     [TestMethod]
-    public void Migrate_JSONからSQLiteへ全データを移行する()
+    public void Migrate_MovesAllDataFromJsonToSqlite()
     {
         // Arrange: populate a JSON store.
         var jsonEvents = new JsonCalendarEventRepository(Path.Combine(_root, "events"));
@@ -66,7 +66,7 @@ public class StorageMigratorTests
     }
 
     [TestMethod]
-    public void FindByPeriod_既定実装はJSONでも重なりで絞り込む()
+    public void FindByPeriod_DefaultImplementationFiltersByOverlapForJsonToo()
     {
         // JSON does not override FindByPeriod, so this exercises the default
         // interface implementation (FindAll + OverlapsPeriod) via the interface type.

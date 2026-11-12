@@ -12,7 +12,7 @@ public class WeekViewPresentationTests
     private const double EventColumnGapRatio = 0.015d;
 
     [TestMethod]
-    public void 時間帯イベントが開始時刻の分位置に配置される()
+    public void TimedEvent_IsPlacedAtStartMinutePosition()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -25,7 +25,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 終日イベントは時間グリッドに表示しない()
+    public void AllDayEvent_IsNotShownInTimeGrid()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([CreateItem("all", null, null, null, null, true)]);
@@ -37,7 +37,7 @@ public class WeekViewPresentationTests
     // parallel with the dark-theme test (this assembly parallelizes at method level).
     [TestMethod]
     [DoNotParallelize]
-    public void 休日カラムは月表示と同系統の赤背景になる()
+    public void HolidayColumn_HasRedBackgroundMatchingMonthView()
     {
         var holidayColumn = new WeekDayColumn("Sun 4", new DateTime(2026,5,4), true);
         var normalColumn = new WeekDayColumn("Mon 5", new DateTime(2026,5,5), false);
@@ -48,7 +48,7 @@ public class WeekViewPresentationTests
 
     [TestMethod]
     [DoNotParallelize]
-    public void 休日カラムはダークテーマでは暗色系の赤背景になる()
+    public void HolidayColumn_HasDarkRedBackgroundInDarkTheme()
     {
         // Theme state is static: restore the default so other tests keep seeing light mode.
         ThemeHelper.UpdateTheme(ElementTheme.Dark);
@@ -65,7 +65,7 @@ public class WeekViewPresentationTests
 
 
     [TestMethod]
-    public void 月表示と週表示で同一Occurrenceの時間情報が一致する()
+    public void MonthAndWeekViews_ShowSameTimesForSameOccurrence()
     {
         var item = CreateItem("sync", 14, 15, 15, 0, false);
         Assert.AreEqual("14:15 – 15:00", item.TimeRange);
@@ -75,7 +75,7 @@ public class WeekViewPresentationTests
 
 
     [TestMethod]
-    public void 重ならない予定は幅100パーセントになる()
+    public void NonOverlappingEvent_Is100PercentWide()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -87,7 +87,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 完全重複2件は幅50パーセントずつになる()
+    public void TwoFullyOverlappingEvents_Are50PercentEach()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -99,7 +99,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 三重複は幅3分の1ずつになる()
+    public void ThreeOverlappingEvents_AreOneThirdEach()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -112,7 +112,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 連続予定は重複扱いしない()
+    public void BackToBackEvents_AreNotOverlapping()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -125,7 +125,7 @@ public class WeekViewPresentationTests
 
 
     [TestMethod]
-    public void 連鎖重複は実際の同時件数に応じて幅を使い切る()
+    public void ChainedOverlap_UsesFullWidthByActualConcurrentCount()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -134,14 +134,14 @@ public class WeekViewPresentationTests
             CreateItem("c", 11, 0, 12, 0, false),
         ]).ToDictionary(x => x.EventId);
 
-        // 同時に重なるのは最大2件なので、連鎖していても全員が2列幅になる
+        // At most 2 overlap at once, so even when chained every event gets a 2-column width
         Assert.IsLessThan(0.02, Math.Abs(blocks["a"].WidthRatio - ExpectedWidthRatio(2)));
         Assert.IsLessThan(0.02, Math.Abs(blocks["b"].WidthRatio - ExpectedWidthRatio(2)));
         Assert.IsLessThan(0.02, Math.Abs(blocks["c"].WidthRatio - ExpectedWidthRatio(2)));
     }
 
     [TestMethod]
-    public void 長い予定と短い予定の組み合わせでも右側の空白列を作らない()
+    public void LongAndShortEventsMixed_LeaveNoEmptyColumnOnRight()
     {
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
@@ -156,10 +156,10 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 両隣が重ならない長い予定は両隣と水平に重ならない()
+    public void LongEventWithNonOverlappingNeighbors_DoesNotOverlapThemHorizontally()
     {
-        // 予定B(長い)はAともCとも重なるが、AとCは互いに重ならない。
-        // 同時重複は最大2件なので2列で割り、Bは左半分・A/Cは右半分に並ぶ。
+        // Event B (long) overlaps both A and C, but A and C do not overlap each other.
+        // At most 2 overlap at once, so split into 2 columns: B on the left half, A/C on the right half.
         var strategy = new DefaultWeekEventLayoutStrategy();
         var blocks = strategy.Layout([
             CreateItem("A", 15, 0, 15, 30, false),
@@ -171,14 +171,14 @@ public class WeekViewPresentationTests
         Assert.IsLessThan(0.02, Math.Abs(blocks["A"].WidthRatio - ExpectedWidthRatio(2)));
         Assert.IsLessThan(0.02, Math.Abs(blocks["C"].WidthRatio - ExpectedWidthRatio(2)));
 
-        // B は左端、A と C は B の右端より右側に配置され、水平に重ならない
+        // B is at the left edge; A and C are placed right of B's right edge and do not overlap horizontally
         Assert.IsLessThan(0.0001, Math.Abs(blocks["B"].LeftRatio));
         var bRight = blocks["B"].LeftRatio + blocks["B"].WidthRatio;
-        Assert.IsTrue(bRight <= blocks["A"].LeftRatio + 0.0001, "B が A に重なっています");
-        Assert.IsTrue(bRight <= blocks["C"].LeftRatio + 0.0001, "B が C に重なっています");
+        Assert.IsTrue(bRight <= blocks["A"].LeftRatio + 0.0001, "B overlaps A");
+        Assert.IsTrue(bRight <= blocks["C"].LeftRatio + 0.0001, "B overlaps C");
     }
     [TestMethod]
-    public void 終日イベントは終日レーンに配置される()
+    public void AllDayEvent_IsPlacedInAllDayLane()
     {
         var strategy = new DefaultWeekAllDayLayoutStrategy();
         var blocks = strategy.Layout([
@@ -191,7 +191,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 終日イベントが重なる場合はスタック表示になる()
+    public void OverlappingAllDayEvents_AreStacked()
     {
         var strategy = new DefaultWeekAllDayLayoutStrategy();
         var blocks = strategy.Layout([
@@ -204,7 +204,7 @@ public class WeekViewPresentationTests
     }
 
     [TestMethod]
-    public void 日跨ぎ時間予定は分割対象フラグを持つ()
+    public void CrossDayTimedEvent_HasSplitFlag()
     {
         var item = CreateItem("overnight", 22, 0, 2, 0, false);
         Assert.IsTrue(item.CrossesMidnight);

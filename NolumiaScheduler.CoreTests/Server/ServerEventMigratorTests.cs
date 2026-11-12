@@ -104,7 +104,7 @@ public class ServerEventMigratorTests
     // ── The mapping table ────────────────────────────────────────────────
 
     [TestMethod]
-    public void 単発の予定は表のとおりに写り_手元のidがclient_refになる()
+    public void SingleEvent_MappedPerTable_LocalIdBecomesClientRef()
     {
         var store = LocalStore();
         var ev = Single("Design review");
@@ -126,14 +126,14 @@ public class ServerEventMigratorTests
         Assert.IsFalse(alarm.GetProperty("notify_15_min").GetBoolean());
         Assert.IsTrue(alarm.GetProperty("notify_5_min").GetBoolean());
         Assert.AreEqual(JsonValueKind.Null, item.GetProperty("recurrence").ValueKind);
-        Assert.AreEqual(JsonValueKind.Null, item.GetProperty("calendar_id").ValueKind, "公開は既定（仕事）のカレンダー");
-        Assert.AreEqual("EVENT", item.GetProperty("event_type").GetString(), "予定の種類（Meeting）は持っていかない");
+        Assert.AreEqual(JsonValueKind.Null, item.GetProperty("calendar_id").ValueKind, "Public goes to the default (work) calendar");
+        Assert.AreEqual("EVENT", item.GetProperty("event_type").GetString(), "The event kind (Meeting) is not carried over");
         Assert.IsFalse(item.TryGetProperty("visibility", out _));
         Assert.IsFalse(item.TryGetProperty("version", out _));
     }
 
     [TestMethod]
-    public void 繰り返しは規則と飛ばした回と動かした回が写り_営業日シフトは名指しを外してシフトだけ残す()
+    public void Recurring_RuleSkipsAndMovesCarried_BusinessDayShiftDropsCalendarNameKeepsShift()
     {
         var store = LocalStore();
         store.Save(MonthEndReport());
@@ -149,7 +149,7 @@ public class ServerEventMigratorTests
         Assert.AreEqual("HOLIDAY", adjustment.GetProperty("condition").GetString());
         Assert.AreEqual("BUSINESS_DAY", adjustment.GetProperty("shift_unit").GetString());
         Assert.AreEqual(-1, adjustment.GetProperty("shift_amount").GetInt32());
-        Assert.IsFalse(adjustment.TryGetProperty("calendar_id", out _), "営業日カレンダーの名指しは外す");
+        Assert.IsFalse(adjustment.TryGetProperty("calendar_id", out _), "The business calendar reference is removed");
 
         var skip = item.GetProperty("exceptions").EnumerateArray().Single();
         Assert.AreEqual("SKIP", skip.GetProperty("type").GetString());
@@ -164,7 +164,7 @@ public class ServerEventMigratorTests
     }
 
     [TestMethod]
-    public void 公開範囲が非公開と機密の予定はプライベートのカレンダーへ_無ければ作る()
+    public void PrivateAndConfidentialEvents_GoToPrivateCalendar_CreatedIfMissing()
     {
         var store = LocalStore();
         var secret = Single("Clinic", Visibility.Private);
@@ -188,7 +188,7 @@ public class ServerEventMigratorTests
     }
 
     [TestMethod]
-    public void プライベートのカレンダーがもうあればそれを使う()
+    public void ExistingPrivateCalendar_IsUsed()
     {
         _calendars.Add(new CalendarDto(9, "EVENTS", "私用", "DEFAULT", 1, false, null, null, false, "PRIVATE"));
         var store = LocalStore();
@@ -201,7 +201,7 @@ public class ServerEventMigratorTests
     }
 
     [TestMethod]
-    public void Outlookから取り込んだ予定は移さない()
+    public void OutlookImportedEvents_AreNotMigrated()
     {
         var store = LocalStore();
         store.Save(Single("Mine"));
@@ -215,7 +215,7 @@ public class ServerEventMigratorTests
     }
 
     [TestMethod]
-    public void Windowsのタイムゾーン名はIANAの名前にして送る()
+    public void WindowsTimeZoneName_IsSentAsIanaName()
     {
         var store = LocalStore();
         var ev = CalendarEvent.CreateSingle(new EventId(Guid.NewGuid().ToString()), new EventTitle("Old"), null,
@@ -231,7 +231,7 @@ public class ServerEventMigratorTests
     // ── Running again ────────────────────────────────────────────────────
 
     [TestMethod]
-    public void もう一度流しても二重にならない()
+    public void RunningAgain_DoesNotDuplicate()
     {
         var store = LocalStore();
         for (var i = 0; i < 5; i++) store.Save(Single($"Event {i}"));
@@ -242,18 +242,18 @@ public class ServerEventMigratorTests
         Assert.AreEqual(5, first.Created);
         Assert.AreEqual(0, second.Created);
         Assert.AreEqual(5, second.AlreadyOnServer);
-        Assert.AreEqual(5, _serverRefs.Count, "サーバーにある予定は 5 件のまま");
+        Assert.AreEqual(5, _serverRefs.Count, "The server still has 5 events");
     }
 
     [TestMethod]
-    public void 途中で落ちても_やり直せば続きから入り二重にならない()
+    public void FailureMidway_RetryResumesWithoutDuplicates()
     {
         var store = LocalStore();
         for (var i = 0; i < 5; i++) store.Save(Single($"Event {i}"));
         _failImportCall = 2; // the second batch of two fails
 
         Assert.ThrowsExactly<ServerException>(() => Run(Migrator(batchSize: 2), store));
-        Assert.IsFalse(ServerEventMigrator.IsMigrated(_dir), "全部入るまでは「移した」印を置かない");
+        Assert.IsFalse(ServerEventMigrator.IsMigrated(_dir), "The migrated mark is not written until everything is in");
         Assert.AreEqual(2, _serverRefs.Count);
 
         var report = Run(Migrator(batchSize: 2), store);
@@ -264,7 +264,7 @@ public class ServerEventMigratorTests
     }
 
     [TestMethod]
-    public void 移し終えたら印を置き_手元の予定のファイルは消さない()
+    public void AfterMigration_WritesMark_KeepsLocalEventFile()
     {
         var store = LocalStore();
         store.Save(Single("Keep me"));
@@ -282,7 +282,7 @@ public class ServerEventMigratorTests
     }
 
     [TestMethod]
-    public void 一度に送るのは100件まで()
+    public void SendsAtMost100PerBatch()
     {
         var store = LocalStore();
         for (var i = 0; i < 3; i++) store.Save(Single($"Event {i}"));

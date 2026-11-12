@@ -243,8 +243,8 @@ public partial class App : Microsoft.UI.Xaml.Application
         var logPath = Path.Combine(StorageContext.DefaultDataDirectory, "crash.log");
 
         var sb = new System.Text.StringBuilder();
-        // UTC で刻む。crash.log は他端末やサーバのログと突き合わせて読むもので、
-        // 書いた端末のローカル時刻だと基準が端末ごとに変わる。
+        // Timestamp in UTC. crash.log is read side by side with logs from other devices and the server,
+        // and the writing device's local time would give each device a different reference.
         sb.AppendLine($"[{DateTime.UtcNow:O}] {origin}");
         sb.AppendLine(ex.ToString());
 
