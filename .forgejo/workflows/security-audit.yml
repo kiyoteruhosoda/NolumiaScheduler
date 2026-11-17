@@ -44,6 +44,14 @@ jobs:
       image: hub.nolumia.com:5000/builder/ci-node24@sha256:e5c381eed0118d123a39d3282129b35b00cc8d2d83c37f270e94ac2f4aac02be
     steps:
       - uses: actions/checkout@v4
-      - name: Audit package-lock.json
+      # Block only on what reaches users (deploy-repo ADR-0003, ADR-0010, the owner's decision of
+      # 2026-11-17); the build and test tools are reported. Here npm holds only the UI test tools
+      # (Playwright), so the blocking step has nothing to check today and stays as the rule.
+      - name: Audit what reaches users
         run: |
-          npm audit --audit-level=high
+          npm audit --audit-level=high --omit=dev
+      - name: Report the build and test tools (does not block)
+        run: |
+          if ! npm audit --audit-level=high; then
+            echo "::warning::A build or test tool has a known vulnerability (report above). It never reaches users, so it does not block (deploy-repo ADR-0003, ADR-0010)."
+          fi
